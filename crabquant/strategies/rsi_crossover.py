@@ -19,11 +19,11 @@ DEFAULT_PARAMS = {
 }
 
 PARAM_GRID = {
-    "fast_len": [5, 7, 10, 14],
-    "slow_len": [21, 28, 35],
-    "regime_len": [50, 70],
-    "regime_bull": [50, 55, 60],
-    "exit_level": [35, 40, 45],
+    "fast_len": [3, 5, 7, 10, 14, 21],
+    "slow_len": [14, 21, 28, 35, 42],
+    "regime_len": [30, 50, 70, 100],
+    "regime_bull": [45, 50, 55, 60, 65],
+    "exit_level": [30, 35, 40, 45, 50],
 }
 
 DESCRIPTION = (
