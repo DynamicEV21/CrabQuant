@@ -1,0 +1,24 @@
+[
+  {
+    "key": "rsi_crossover|CAT|{\"exit_level\": 35, \"fast_len\": 5, \"regime_bull\": 50, \"regime_len\": 50, \"slow_len\": 21}",
+    "ticker": "CAT",
+    "strategy": "rsi_crossover",
+    "sharpe": 1.9912212600983974,
+    "return": 1.02848081164007,
+    "max_dd": 0.14189401885559913,
+    "trades": 13,
+    "score": 1.3775809483781392,
+    "win_rate": 0.5833333333333334,
+    "calmar": 4.750886055432461,
+    "sortino": 3.3900728885578255,
+    "profit_factor": 4.893175453350855,
+    "params": {
+      "fast_len": 5,
+      "slow_len": 21,
+      "regime_len": 50,
+      "regime_bull": 50,
+      "exit_level": 35
+    },
+    "discovered": "2026-04-25T18:51:52.139720"
+  }
+]
