@@ -1,104 +1,157 @@
 {
-  "timestamp": "2026-04-25T19:38:01.798781",
-  "total_results": 53,
-  "total_winners": 4,
-  "dead_combos": 0,
+  "timestamp": "2026-04-25T20:08:07.449865",
+  "total_results": 130,
+  "total_winners": 12,
+  "dead_combos": 3,
   "strategy_rates": {
     "rsi_crossover": {
-      "rate": 0.05,
-      "wins": 1,
-      "total": 20,
-      "avg_sharpe": 0.7564522185742104
+      "rate": 0.047619047619047616,
+      "wins": 2,
+      "total": 42,
+      "avg_sharpe": 0.8567638519049589
     },
     "macd_momentum": {
-      "rate": 0.1111111111111111,
-      "wins": 2,
-      "total": 18,
-      "avg_sharpe": 0.7665664012316126
+      "rate": 0.15151515151515152,
+      "wins": 5,
+      "total": 33,
+      "avg_sharpe": 0.8977319624631126
     },
     "invented_momentum_rsi_stoch": {
-      "rate": 0.125,
+      "rate": 0.07142857142857142,
       "wins": 1,
-      "total": 8,
-      "avg_sharpe": 1.142559642137744
+      "total": 14,
+      "avg_sharpe": 1.0640222561837902
     },
     "volume_breakout": {
       "rate": 0.0,
       "wins": 0,
-      "total": 1,
-      "avg_sharpe": 1.2072975412785725
+      "total": 2,
+      "avg_sharpe": 1.3451456978476326
     },
     "atr_channel_breakout": {
-      "rate": 0.0,
-      "wins": 0,
-      "total": 2,
-      "avg_sharpe": 0.38915951774408397
+      "rate": 0.16666666666666666,
+      "wins": 1,
+      "total": 6,
+      "avg_sharpe": 0.7720449540516355
     },
     "adx_pullback": {
-      "rate": 0.0,
-      "wins": 0,
-      "total": 2,
-      "avg_sharpe": 1.1286187376772476
+      "rate": 0.12,
+      "wins": 3,
+      "total": 25,
+      "avg_sharpe": 1.2063208790986517
     },
     "bollinger_squeeze": {
       "rate": 0.0,
       "wins": 0,
-      "total": 1,
-      "avg_sharpe": 0.5133378534722447
+      "total": 2,
+      "avg_sharpe": 0.3868079745945424
     },
     "invented_momentum_rsi_atr": {
       "rate": 0.0,
       "wins": 0,
+      "total": 3,
+      "avg_sharpe": 2.285832378833058
+    },
+    "multi_rsi_confluence": {
+      "rate": 0.0,
+      "wins": 0,
+      "total": 1,
+      "avg_sharpe": 1.1033601298292173
+    },
+    "ema_ribbon_reversal": {
+      "rate": 0.0,
+      "wins": 0,
       "total": 1,
       "avg_sharpe": 0.0
+    },
+    "ichimoku_trend": {
+      "rate": 0.0,
+      "wins": 0,
+      "total": 1,
+      "avg_sharpe": 1.6102394931644963
     }
   },
   "ticker_wins": {
-    "CAT": 2,
+    "CAT": 3,
+    "JNJ": 2,
+    "PLTR": 1,
     "GE": 1,
-    "TSLA": 1
+    "NFLX": 1,
+    "TSLA": 1,
+    "AMD": 1,
+    "INTC": 1,
+    "NET": 1
   },
   "param_patterns": {
     "fast_len": {
-      "5": 1
+      "5": 1,
+      "7": 1
     },
     "slow_len": {
-      "21": 1
+      "21": 2
     },
     "regime_len": {
-      "50": 1
+      "50": 2
     },
     "regime_bull": {
-      "50": 1
+      "50": 1,
+      "55": 1
     },
     "exit_level": {
-      "35": 1
+      "35": 1,
+      "45": 1
     },
     "macd_fast": {
-      "12": 2
+      "12": 4,
+      "8": 1
     },
     "macd_slow": {
-      "26": 2
+      "26": 5
     },
     "macd_signal": {
-      "9": 1,
-      "11": 1
+      "11": 3,
+      "9": 2
     },
     "exit_hist": {
-      "-0.2": 1,
-      "-0.5": 1
+      "-0.5": 3,
+      "-0.2": 2
     },
     "sma_len": {
-      "20": 1,
-      "50": 1
+      "20": 2,
+      "50": 2,
+      "100": 1
     },
     "volume_window": {
-      "20": 2,
-      "10": 1
+      "20": 4,
+      "10": 2
     },
     "volume_mult": {
-      "1.2": 2,
+      "1.0": 1,
+      "1.2": 4,
       "1.5": 1
+    },
+    "ema_len": {
+      "15": 2,
+      "20": 2
+    },
+    "atr_len": {
+      "14": 1
+    },
+    "mult": {
+      "2.0": 1
+    },
+    "vol_mult": {
+      "1.2": 1
+    },
+    "adx_len": {
+      "14": 2,
+      "20": 1
+    },
+    "adx_threshold": {
+      "25": 3
+    },
+    "take_atr": {
+      "3": 3
     },
     "rsi_len": {
       "7": 1
@@ -108,14 +161,15 @@
     }
   },
   "insights": [
-    "Best strategy: invented_momentum_rsi_stoch (12% win rate)",
+    "Best strategy: atr_channel_breakout (17% win rate)",
     "Weakest strategy: rsi_crossover (5% win rate) \u2014 consider removing or rewriting",
-    "Most winning ticker: CAT (2 wins)"
+    "Most winning ticker: CAT (3 wins)",
+    "3 dead combos \u2014 strategy/ticker pairs that produce 0 trades"
   ],
   "actions": [
     "Consider building sector-specific variant of rsi_crossover (works well on CAT)"
   ],
   "round": 0,
-  "combos_completed": 51,
-  "combos_remaining": 554
+  "combos_completed": 131,
+  "combos_remaining": 474
 }

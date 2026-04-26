@@ -14,6 +14,8 @@ Exit logic:
 - Or RSI exceeds overbought level (take profit on extended moves)
 """
 
+from itertools import product
+
 import pandas as pd
 import pandas_ta
 
@@ -84,3 +86,63 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     exits = (atr_exit | rsi_exit).fillna(False)
 
     return entries, exits
+
+
+def generate_signals_matrix(
+    df: pd.DataFrame, param_grid: dict | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
+    """Generate signals for ALL param combinations at once (vectorized)."""
+    pg = param_grid or PARAM_GRID
+    keys = list(pg.keys())
+    combos = list(product(*(pg[k] for k in keys)))
+
+    close = df["close"]
+    high = df["high"]
+    low = df["low"]
+
+    # Deduplicate indicators
+    all_rsi_lens = sorted(set(pg["rsi_len"]))
+    all_roc_lens = sorted(set(pg["roc_len"]))
+    all_ema_lens = sorted(set(pg["ema_len"]))
+    all_atr_lens = sorted(set(pg["atr_len"]))
+
+    rsi_cache = {l: pandas_ta.rsi(close, length=l) for l in all_rsi_lens}
+    roc_cache = {l: pandas_ta.roc(close, length=l) for l in all_roc_lens}
+    ema_cache = {l: pandas_ta.ema(close, length=l) for l in all_ema_lens}
+    atr_cache = {l: pandas_ta.atr(high, low, close, length=l) for l in all_atr_lens}
+    adx = pandas_ta.adx(high, low, close, length=14)
+    adx_col = [c for c in adx.columns if "ADX" in c and "DI" not in c][0]
+    adx_val = adx[adx_col]
+
+    entries_cols = {}
+    exits_cols = {}
+    param_list = []
+
+    for i, vals in enumerate(combos):
+        params = dict(zip(keys, vals))
+        rsi = rsi_cache[params["rsi_len"]]
+        roc = roc_cache[params["roc_len"]]
+        ema = ema_cache[params["ema_len"]]
+        atr = atr_cache[params["atr_len"]]
+
+        trend_ok = close > ema
+        momentum_ok = roc > params["roc_threshold"]
+        adx_ok = adx_val > 20
+
+        rsi_turning_up = (rsi.shift(1) < params["rsi_pullback"]) & (rsi >= params["rsi_pullback"])
+        rsi_rising = rsi > rsi.shift(1)
+        rsi_in_zone = rsi.between(params["rsi_pullback"], 60)
+        rsi_pullback_entry = rsi_turning_up | (rsi_in_zone & rsi_rising & (rsi.shift(2) < params["rsi_pullback"]))
+
+        e = (trend_ok & momentum_ok & adx_ok & rsi_pullback_entry).fillna(False)
+
+        atr_stop = ema - (params["atr_exit_mult"] * atr)
+        atr_exit = close < atr_stop
+        rsi_exit = rsi > params["rsi_overbought"]
+        x = (atr_exit | rsi_exit).fillna(False)
+
+        entries_cols[f"c{i}"] = e
+        exits_cols[f"c{i}"] = x
+        param_list.append(params)
+
+    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list

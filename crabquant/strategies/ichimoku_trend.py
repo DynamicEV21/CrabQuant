@@ -5,6 +5,8 @@ Simplified Ichimoku Cloud trend following.
 Enters on Tenkan/Kijun cross above the cloud.
 """
 
+from itertools import product
+
 import pandas as pd
 
 
@@ -38,3 +40,15 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     exits = (close < span_a).fillna(False)
 
     return entries, exits
+
+
+def generate_signals_matrix(
+    df: pd.DataFrame, param_grid: dict | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
+    """Generate signals — parameter-free strategy, returns single column."""
+    entries, exits = generate_signals(df)
+    return (
+        entries.to_frame("c0"),
+        exits.to_frame("c0"),
+        [{}],
+    )

@@ -14,6 +14,7 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 import vectorbt as vbt
+from itertools import product
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -189,6 +190,163 @@ class BacktestEngine:
                 passed=False, score=0, notes=f"ERROR: {e}",
                 params=params or {},
             )
+
+    def run_vectorized(
+        self,
+        df: pd.DataFrame,
+        entries_df: pd.DataFrame,
+        exits_df: pd.DataFrame,
+        param_list: list[dict],
+        strategy_name: str,
+        ticker: str,
+    ) -> list[BacktestResult]:
+        """
+        Run backtests for ALL param combos in one vectorized Portfolio.from_signals call.
+
+        Uses batch metrics (pf.sharpe_ratio(), pf.total_return(), etc.) instead of
+        per-column stats() calls for maximum speed. Only trade-level details (PnL,
+        holding duration) are computed from the shared records DataFrame.
+
+        Args:
+            df: OHLCV DataFrame
+            entries_df: Multi-column DataFrame of boolean entry signals (one column per combo)
+            exits_df: Multi-column DataFrame of boolean exit signals (one column per combo)
+            param_list: List of param dicts, one per column (maps index to params)
+            strategy_name: Name of the strategy
+            ticker: Ticker symbol
+
+        Returns:
+            List of BacktestResult, one per param combo
+        """
+        try:
+            pf = vbt.Portfolio.from_signals(
+                close=df["close"],
+                open=df["open"],
+                high=df["high"],
+                low=df["low"],
+                entries=entries_df,
+                exits=exits_df,
+                init_cash=self.initial_cash,
+                fees=self.commission,
+                freq="1D",
+                accumulate=False,
+                call_seq="auto",
+            )
+
+            # ── Batch metrics: one call per metric, returns per-column Series ──
+            sharpes = pf.sharpe_ratio().fillna(0).replace([np.inf, -np.inf], 0)
+            total_returns = pf.total_return().fillna(0)
+            max_drawdowns = pf.max_drawdown().fillna(0)
+            win_rates = pf.trades.win_rate().fillna(0)
+            trade_counts = pf.trades.count().fillna(0).astype(int)
+            calmars = pf.calmar_ratio().fillna(0).replace([np.inf, -np.inf], 0)
+            sortinos = pf.sortino_ratio().fillna(0).replace([np.inf, -np.inf], 0)
+
+            # Profit factor (batch)
+            try:
+                profit_factors = pf.trades.profit_factor().fillna(0).replace([np.inf, -np.inf], 0)
+            except Exception:
+                profit_factors = pd.Series(0.0, index=entries_df.columns)
+
+            # ── Trade-level details from shared records DataFrame ──
+            records = pf.trades.records_readable
+            col_trades = {}
+            if len(records) > 0 and "PnL" in records.columns and "Column" in records.columns:
+                for col in entries_df.columns:
+                    col_recs = records[records["Column"] == col]
+                    if len(col_recs) > 0:
+                        winners = col_recs[col_recs["PnL"] > 0]["PnL"]
+                        losers = col_recs[col_recs["PnL"] < 0]["PnL"]
+                        best = float(col_recs["PnL"].max())
+                        worst = float(col_recs["PnL"].min())
+                        avg_win = float(winners.mean()) if len(winners) > 0 else 0.0
+                        # Holding duration in bars
+                        if "Entry Timestamp" in col_recs.columns and "Exit Timestamp" in col_recs.columns:
+                            holds = (col_recs["Exit Timestamp"] - col_recs["Entry Timestamp"]).dt.days
+                            avg_hold = float(holds.mean()) if len(holds) > 0 else 0.0
+                        else:
+                            avg_hold = 0.0
+                        col_trades[col] = {
+                            "best_trade": best,
+                            "worst_trade": worst,
+                            "avg_trade_return": avg_win,
+                            "avg_holding_bars": avg_hold,
+                        }
+                    else:
+                        col_trades[col] = {
+                            "best_trade": 0.0, "worst_trade": 0.0,
+                            "avg_trade_return": 0.0, "avg_holding_bars": 0.0,
+                        }
+            else:
+                for col in entries_df.columns:
+                    col_trades[col] = {
+                        "best_trade": 0.0, "worst_trade": 0.0,
+                        "avg_trade_return": 0.0, "avg_holding_bars": 0.0,
+                    }
+
+            # ── Build results ──
+            results = []
+            for i, (col_name, params) in enumerate(zip(entries_df.columns, param_list)):
+                sharpe = float(sharpes.iloc[i]) if i < len(sharpes) else 0.0
+                total_return = float(total_returns.iloc[i]) if i < len(total_returns) else 0.0
+                max_dd = float(max_drawdowns.iloc[i]) if i < len(max_drawdowns) else 0.0
+                win_rate = float(win_rates.iloc[i]) if i < len(win_rates) else 0.0
+                num_trades = int(trade_counts.iloc[i]) if i < len(trade_counts) else 0
+                calmar = float(calmars.iloc[i]) if i < len(calmars) else 0.0
+                sortino = float(sortinos.iloc[i]) if i < len(sortinos) else 0.0
+                pf_val = float(profit_factors.iloc[i]) if i < len(profit_factors) else 0.0
+
+                ct = col_trades.get(col_name, {})
+
+                # Composite score
+                trade_factor = np.sqrt(min(num_trades, 100) / 20)
+                dd_penalty = max(0, 1 - abs(max_dd))
+                score = sharpe * trade_factor * dd_penalty
+
+                if np.isnan(score):
+                    score = 0.0
+
+                passed = (
+                    sharpe >= self.sharpe_target
+                    and max_dd >= -self.max_drawdown_limit
+                    and total_return >= self.min_total_return
+                    and num_trades >= self.min_trades
+                )
+
+                notes = self._build_notes(sharpe, max_dd, num_trades, total_return)
+
+                results.append(BacktestResult(
+                    ticker=ticker,
+                    strategy_name=strategy_name,
+                    iteration=i,
+                    sharpe=sharpe,
+                    total_return=total_return,
+                    max_drawdown=max_dd,
+                    win_rate=win_rate,
+                    num_trades=num_trades,
+                    avg_trade_return=ct.get("avg_trade_return", 0.0),
+                    calmar_ratio=calmar,
+                    sortino_ratio=sortino,
+                    profit_factor=pf_val,
+                    avg_holding_bars=ct.get("avg_holding_bars", 0.0),
+                    best_trade=ct.get("best_trade", 0.0),
+                    worst_trade=ct.get("worst_trade", 0.0),
+                    passed=passed,
+                    score=score,
+                    notes=notes,
+                    params=params,
+                ))
+
+            return results
+
+        except Exception as e:
+            logger.error(f"Vectorized backtest error ({ticker}/{strategy_name}): {e}")
+            # Fall back to individual runs if the batch call fails
+            logger.info("Falling back to sequential runs...")
+            return [
+                self.run(df, entries_df[col], exits_df[col], strategy_name, ticker, i, params)
+                for i, (col, params) in enumerate(zip(entries_df.columns, param_list))
+            ]
 
     def _build_notes(self, sharpe: float, max_dd: float, num_trades: int, total_return: float) -> str:
         """Build human-readable pass/fail notes."""

@@ -6,6 +6,8 @@ Best performer: AMD (Sharpe 2.15, 208% return), GOOGL (Sharpe 2.09).
 Works best on high-momentum stocks with volume confirmation.
 """
 
+from itertools import product
+
 import pandas as pd
 import pandas_ta
 
@@ -77,3 +79,61 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     exits = (hist < p["exit_hist"]).fillna(False)
 
     return entries, exits
+
+
+def generate_signals_matrix(
+    df: pd.DataFrame, param_grid: dict | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
+    """Generate signals for ALL param combinations at once (vectorized)."""
+    pg = param_grid or PARAM_GRID
+    keys = list(pg.keys())
+    combos = list(product(*(pg[k] for k in keys)))
+
+    close = df["close"]
+    volume = df["volume"]
+
+    # Deduplicate MACD combos
+    all_macd_combos = set()
+    for vals in combos:
+        params = dict(zip(keys, vals))
+        all_macd_combos.add((params["macd_fast"], params["macd_slow"], params["macd_signal"]))
+
+    macd_cache = {}
+    for mf, ms, msig in all_macd_combos:
+        macd = pandas_ta.macd(close, fast=mf, slow=ms, signal=msig)
+        hist_col = f"MACDh_{mf}_{ms}_{msig}"
+        macd_cache[(mf, ms, msig)] = macd[hist_col]
+
+    # Deduplicate SMA and volume windows
+    all_sma_lens = sorted(set(pg["sma_len"]))
+    all_vol_windows = sorted(set(pg["volume_window"]))
+    sma_cache = {l: pandas_ta.sma(close, length=l) for l in all_sma_lens}
+    vol_avg_cache = {w: pandas_ta.sma(volume, length=w) for w in all_vol_windows}
+
+    entries_cols = {}
+    exits_cols = {}
+    param_list = []
+
+    for i, vals in enumerate(combos):
+        params = dict(zip(keys, vals))
+        mf, ms, msig = params["macd_fast"], params["macd_slow"], params["macd_signal"]
+        hist = macd_cache[(mf, ms, msig)]
+
+        sma = sma_cache[params["sma_len"]]
+        trend_ok = close > sma
+        volume_avg = vol_avg_cache[params["volume_window"]]
+        volume_ok = volume > (volume_avg * params["volume_mult"])
+
+        hist_prev = hist.shift(1)
+        hist_prev2 = hist.shift(2)
+        mom_cross = (hist_prev <= 0) & (hist > 0)
+        mom_strong = (hist_prev < hist_prev2) & (hist > hist_prev) & (hist > 0)
+
+        e = (trend_ok & volume_ok & (mom_cross | mom_strong)).fillna(False)
+        x = (hist < params["exit_hist"]).fillna(False)
+
+        entries_cols[f"c{i}"] = e
+        exits_cols[f"c{i}"] = x
+        param_list.append(params)
+
+    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list

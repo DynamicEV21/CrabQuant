@@ -33,19 +33,20 @@ class TestStrategyInterface:
             assert name in STRATEGY_REGISTRY, f"{name} missing from registry"
 
     def test_registry_tuple_structure(self):
-        """Each registry entry should be (fn, defaults, grid, description)."""
-        for name, (fn, defaults, grid, desc) in STRATEGY_REGISTRY.items():
+        """Each registry entry should be (fn, defaults, grid, description, matrix_fn)."""
+        for name, (fn, defaults, grid, desc, matrix_fn) in STRATEGY_REGISTRY.items():
             assert callable(fn), f"{name}: fn should be callable"
             assert isinstance(defaults, dict), f"{name}: defaults should be dict"
             assert isinstance(grid, dict), f"{name}: grid should be dict"
             assert isinstance(desc, str), f"{name}: desc should be string"
             assert len(desc) > 20, f"{name}: desc too short"
+            assert callable(matrix_fn), f"{name}: matrix_fn should be callable"
 
     def test_all_strategies_return_boolean_series(self):
         """Every strategy should return (entries, exits) as boolean Series."""
         df = get_sample_data()
 
-        for name, (fn, defaults, grid, desc) in STRATEGY_REGISTRY.items():
+        for name, (fn, defaults, grid, desc, matrix_fn) in STRATEGY_REGISTRY.items():
             entries, exits = fn(df, defaults)
 
             assert isinstance(entries, pd.Series), f"{name}: entries should be Series"
@@ -59,7 +60,7 @@ class TestStrategyInterface:
         """Strategies should work with params=None (use defaults)."""
         df = get_sample_data()
 
-        for name, (fn, defaults, grid, desc) in STRATEGY_REGISTRY.items():
+        for name, (fn, defaults, grid, desc, matrix_fn) in STRATEGY_REGISTRY.items():
             entries, exits = fn(df, None)
             assert len(entries) == len(df)
 

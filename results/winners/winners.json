@@ -22,6 +22,73 @@
     "discovered": "2026-04-25T18:51:52.139720"
   },
   {
+    "key": "macd_momentum|JNJ|{\"exit_hist\": -0.5, \"macd_fast\": 12, \"macd_signal\": 11, \"macd_slow\": 26, \"sma_len\": 20, \"volume_mult\": 1.0, \"volume_window\": 20}",
+    "ticker": "JNJ",
+    "strategy": "macd_momentum",
+    "sharpe": 2.289825129156486,
+    "return": 0.4778689720751169,
+    "max_dd": 0.10379936681206468,
+    "trades": 8,
+    "score": 1.2978890225157647,
+    "win_rate": 0.75,
+    "calmar": 3.1714063461965893,
+    "sortino": 4.258715995835886,
+    "profit_factor": 8.66396643863472,
+    "params": {
+      "macd_fast": 12,
+      "macd_slow": 26,
+      "macd_signal": 11,
+      "exit_hist": -0.5,
+      "sma_len": 20,
+      "volume_window": 20,
+      "volume_mult": 1.0
+    },
+    "discovered": "2026-04-25T19:52:48.507376"
+  },
+  {
+    "key": "atr_channel_breakout|JNJ|{\"atr_len\": 14, \"ema_len\": 15, \"mult\": 2.0, \"vol_mult\": 1.2}",
+    "ticker": "JNJ",
+    "strategy": "atr_channel_breakout",
+    "sharpe": 1.9041608831192411,
+    "return": 0.3217375185617829,
+    "max_dd": 0.06058931590322308,
+    "trades": 7,
+    "score": 1.058261889964673,
+    "win_rate": 0.8571428571428571,
+    "calmar": 3.71927163090548,
+    "sortino": 3.0984541969084143,
+    "profit_factor": 39.60309651673365,
+    "params": {
+      "ema_len": 15,
+      "atr_len": 14,
+      "mult": 2.0,
+      "vol_mult": 1.2
+    },
+    "discovered": "2026-04-25T19:53:43.654433"
+  },
+  {
+    "key": "rsi_crossover|PLTR|{\"exit_level\": 45, \"fast_len\": 7, \"regime_bull\": 55, \"regime_len\": 50, \"slow_len\": 21}",
+    "ticker": "PLTR",
+    "strategy": "rsi_crossover",
+    "sharpe": 1.7091300643418,
+    "return": 1.6499012572175003,
+    "max_dd": 0.31452437435490394,
+    "trades": 13,
+    "score": 0.9445475124719378,
+    "win_rate": 0.6153846153846154,
+    "calmar": 3.287355309667063,
+    "sortino": 2.8661244547909823,
+    "profit_factor": 2.937621158781105,
+    "params": {
+      "fast_len": 7,
+      "slow_len": 21,
+      "regime_len": 50,
+      "regime_bull": 55,
+      "exit_level": 45
+    },
+    "discovered": "2026-04-25T19:52:49.180593"
+  },
+  {
     "key": "macd_momentum|GE|{\"exit_hist\": -0.2, \"macd_fast\": 12, \"macd_signal\": 9, \"macd_slow\": 26, \"sma_len\": 20, \"volume_mult\": 1.2, \"volume_window\": 20}",
     "ticker": "GE",
     "strategy": "macd_momentum",
@@ -44,6 +111,27 @@
       "volume_mult": 1.2
     },
     "discovered": "2026-04-25T19:33:50.190120"
+  },
+  {
+    "key": "adx_pullback|NFLX|{\"adx_len\": 14, \"adx_threshold\": 25, \"ema_len\": 20, \"take_atr\": 3}",
+    "ticker": "NFLX",
+    "strategy": "adx_pullback",
+    "sharpe": 2.087544553154686,
+    "return": 1.056521503742148,
+    "max_dd": 0.14180569891186573,
+    "trades": 5,
+    "score": 0.8957594193924636,
+    "win_rate": 1.0,
+    "calmar": 4.872519025591139,
+    "sortino": 3.603992008952862,
+    "profit_factor": 10.560579053839948,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "discovered": "2026-04-25T19:53:41.021851"
   },
   {
     "key": "macd_momentum|TSLA|{\"exit_hist\": -0.5, \"macd_fast\": 12, \"macd_signal\": 11, \"macd_slow\": 26, \"sma_len\": 50, \"volume_mult\": 1.2, \"volume_window\": 10}",
@@ -89,5 +177,95 @@
       "volume_mult": 1.5
     },
     "discovered": "2026-04-25T19:24:36.706275"
+  },
+  {
+    "key": "adx_pullback|CAT|{\"adx_len\": 20, \"adx_threshold\": 25, \"ema_len\": 15, \"take_atr\": 3}",
+    "ticker": "CAT",
+    "strategy": "adx_pullback",
+    "sharpe": 1.9766948655304368,
+    "return": 0.8925333180883507,
+    "max_dd": 0.15803118822846007,
+    "trades": 5,
+    "score": 0.8321577135827829,
+    "win_rate": 1.0,
+    "calmar": 3.7436616177314037,
+    "sortino": 3.4301369978783036,
+    "profit_factor": 999.0,
+    "params": {
+      "adx_len": 20,
+      "adx_threshold": 25,
+      "ema_len": 15,
+      "take_atr": 3
+    },
+    "discovered": "2026-04-25T19:53:00.404939"
+  },
+  {
+    "key": "macd_momentum|AMD|{\"exit_hist\": -0.2, \"macd_fast\": 12, \"macd_signal\": 11, \"macd_slow\": 26, \"sma_len\": 50, \"volume_mult\": 1.2, \"volume_window\": 20}",
+    "ticker": "AMD",
+    "strategy": "macd_momentum",
+    "sharpe": 1.6293626708342799,
+    "return": 0.7354205500744765,
+    "max_dd": 0.09532968983179263,
+    "trades": 5,
+    "score": 0.7370180164000735,
+    "win_rate": 0.75,
+    "calmar": 5.184399039264099,
+    "sortino": 3.4136301933572244,
+    "profit_factor": 280.12183920876805,
+    "params": {
+      "macd_fast": 12,
+      "macd_slow": 26,
+      "macd_signal": 11,
+      "exit_hist": -0.2,
+      "sma_len": 50,
+      "volume_window": 20,
+      "volume_mult": 1.2
+    },
+    "discovered": "2026-04-25T19:53:43.992902"
+  },
+  {
+    "key": "macd_momentum|INTC|{\"exit_hist\": -0.5, \"macd_fast\": 8, \"macd_signal\": 9, \"macd_slow\": 26, \"sma_len\": 100, \"volume_mult\": 1.2, \"volume_window\": 10}",
+    "ticker": "INTC",
+    "strategy": "macd_momentum",
+    "sharpe": 1.6178278227770397,
+    "return": 1.4943412566689986,
+    "max_dd": 0.2177834698604503,
+    "trades": 6,
+    "score": 0.6931383317459636,
+    "win_rate": 0.4,
+    "calmar": 4.344927601786823,
+    "sortino": 3.1358607938333223,
+    "profit_factor": 5.279063031918777,
+    "params": {
+      "macd_fast": 8,
+      "macd_slow": 26,
+      "macd_signal": 9,
+      "exit_hist": -0.5,
+      "sma_len": 100,
+      "volume_window": 10,
+      "volume_mult": 1.2
+    },
+    "discovered": "2026-04-25T19:52:59.570441"
+  },
+  {
+    "key": "adx_pullback|NET|{\"adx_len\": 14, \"adx_threshold\": 25, \"ema_len\": 20, \"take_atr\": 3}",
+    "ticker": "NET",
+    "strategy": "adx_pullback",
+    "sharpe": 1.5887913534198108,
+    "return": 1.41449795714843,
+    "max_dd": 0.36178590071493977,
+    "trades": 5,
+    "score": 0.5069945212873582,
+    "win_rate": 0.75,
+    "calmar": 2.4894997268632495,
+    "sortino": 2.510834316912389,
+    "profit_factor": 12.922660649629119,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "discovered": "2026-04-25T20:08:07.096607"
   }
 ]

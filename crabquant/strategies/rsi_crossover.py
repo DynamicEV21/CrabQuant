@@ -6,6 +6,8 @@ Best performers: TXN (Sharpe 1.56), GOOGL (Sharpe 1.68).
 Works well in trending markets with mean-reverting pullbacks.
 """
 
+from itertools import product
+
 import pandas as pd
 import pandas_ta
 
@@ -61,3 +63,49 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     exits = (rsi_fast < p["exit_level"]).fillna(False)
 
     return entries, exits
+
+
+def generate_signals_matrix(
+    df: pd.DataFrame, param_grid: dict | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
+    """
+    Generate signals for ALL param combinations at once (vectorized).
+
+    Returns:
+        (entries_df, exits_df, param_list) where each DataFrame has one column per combo.
+    """
+    pg = param_grid or PARAM_GRID
+    keys = list(pg.keys())  # fast_len, slow_len, regime_len, regime_bull, exit_level
+    combos = list(product(*(pg[k] for k in keys)))
+
+    # Deduplicate indicator lengths
+    all_fast_lens = sorted(set(pg["fast_len"]))
+    all_slow_lens = sorted(set(pg["slow_len"]))
+    all_regime_lens = sorted(set(pg["regime_len"]))
+
+    close = df["close"]
+    rsi_fast = {l: pandas_ta.rsi(close, length=l) for l in all_fast_lens}
+    rsi_slow = {l: pandas_ta.rsi(close, length=l) for l in all_slow_lens}
+    regime = {l: pandas_ta.rsi(close, length=l) for l in all_regime_lens}
+
+    entries_cols = {}
+    exits_cols = {}
+    param_list = []
+
+    for i, vals in enumerate(combos):
+        params = dict(zip(keys, vals))
+        fl, sl, rl = params["fast_len"], params["slow_len"], params["regime_len"]
+        rb, el = params["regime_bull"], params["exit_level"]
+
+        e = (
+            (rsi_fast[fl].shift(1) < rsi_slow[sl].shift(1))
+            & (rsi_fast[fl] > rsi_slow[sl])
+            & (regime[rl] > rb)
+        ).fillna(False)
+        x = (rsi_fast[fl] < el).fillna(False)
+
+        entries_cols[f"c{i}"] = e
+        exits_cols[f"c{i}"] = x
+        param_list.append(params)
+
+    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list

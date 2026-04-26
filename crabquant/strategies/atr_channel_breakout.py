@@ -5,6 +5,8 @@ Keltner Channel (EMA + ATR) breakout with volume and trend confirmation.
 Best performer: ORCL (Sharpe 1.59, 84% return).
 """
 
+from itertools import product
+
 import pandas as pd
 import pandas_ta
 
@@ -55,3 +57,48 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     exits = (close < ema).fillna(False)
 
     return entries, exits
+
+
+def generate_signals_matrix(
+    df: pd.DataFrame, param_grid: dict | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
+    """Generate signals for ALL param combinations at once (vectorized)."""
+    pg = param_grid or PARAM_GRID
+    keys = list(pg.keys())
+    combos = list(product(*(pg[k] for k in keys)))
+
+    close = df["close"]
+    high = df["high"]
+    low = df["low"]
+    volume = df["volume"]
+
+    # Deduplicate
+    all_ema_lens = sorted(set(pg["ema_len"]))
+    all_atr_lens = sorted(set(pg["atr_len"]))
+    ema_cache = {l: pandas_ta.ema(close, length=l) for l in all_ema_lens}
+    atr_cache = {l: pandas_ta.atr(high, low, close, length=l) for l in all_atr_lens}
+    trend_ema = pandas_ta.ema(close, length=50)
+    vol_avg_20 = volume.rolling(20).mean()
+
+    entries_cols = {}
+    exits_cols = {}
+    param_list = []
+
+    for i, vals in enumerate(combos):
+        params = dict(zip(keys, vals))
+        ema_val = ema_cache[params["ema_len"]]
+        atr_val = atr_cache[params["atr_len"]]
+
+        upper = ema_val + atr_val * params["mult"]
+        breakout = close > upper.shift(1)
+        vol_confirm = volume > vol_avg_20 * params["vol_mult"]
+        trend = close > trend_ema
+
+        e = (breakout & vol_confirm & trend).fillna(False)
+        x = (close < ema_val).fillna(False)
+
+        entries_cols[f"c{i}"] = e
+        exits_cols[f"c{i}"] = x
+        param_list.append(params)
+
+    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list

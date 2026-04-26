@@ -5,6 +5,8 @@ Multiple timeframe RSI confluence with volume confirmation.
 Enters when all three RSIs are oversold and the fastest starts turning up.
 """
 
+from itertools import product
+
 import pandas as pd
 import pandas_ta
 
@@ -54,3 +56,43 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     exits = (rsi1 > p["exit_thresh"]).fillna(False)
 
     return entries, exits
+
+
+def generate_signals_matrix(
+    df: pd.DataFrame, param_grid: dict | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:
+    """Generate signals for ALL param combinations at once (vectorized)."""
+    pg = param_grid or PARAM_GRID
+    keys = list(pg.keys())
+    combos = list(product(*(pg[k] for k in keys)))
+
+    close = df["close"]
+    volume = df["volume"]
+
+    # Deduplicate RSI lengths
+    all_rsi_lens = sorted(set(pg["rsi1"]) | set(pg["rsi2"]) | set(pg["rsi3"]))
+    rsi_cache = {l: pandas_ta.rsi(close, length=l) for l in all_rsi_lens}
+    vol_avg_20 = volume.rolling(20).mean()
+
+    entries_cols = {}
+    exits_cols = {}
+    param_list = []
+
+    for i, vals in enumerate(combos):
+        params = dict(zip(keys, vals))
+        rsi1 = rsi_cache[params["rsi1"]]
+        rsi2 = rsi_cache[params["rsi2"]]
+        rsi3 = rsi_cache[params["rsi3"]]
+
+        all_oversold = (rsi1 < params["thresh"]) & (rsi2 < params["thresh"]) & (rsi3 < params["thresh"])
+        rsi_turning = rsi1 > rsi1.shift(1)
+        vol_confirm = volume > vol_avg_20 * params["vol_mult"]
+
+        e = (all_oversold & rsi_turning & vol_confirm).fillna(False)
+        x = (rsi1 > params["exit_thresh"]).fillna(False)
+
+        entries_cols[f"c{i}"] = e
+        exits_cols[f"c{i}"] = x
+        param_list.append(params)
+
+    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list
