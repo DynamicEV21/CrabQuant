@@ -20,6 +20,7 @@ Usage:
 
 import argparse
 import json
+import random
 import sys
 import time
 import traceback
@@ -27,6 +28,8 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from itertools import product
 from pathlib import Path
+
+MAX_GRID_SIZE = 5000  # Sample down to this if grid is larger
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -74,7 +77,7 @@ def load_state() -> dict:
         "completed_combos": [],
         "validated_winners": [],
         "total_runs": 0,
-        "total_winners": 0,
+        "total_passing_iterations": 0,
         "best_score": 0,
         "last_run": None,
         "dead_combos": [],
@@ -188,13 +191,55 @@ def get_next_combo(state: dict, strategy_filter=None, ticker_filter=None) -> tup
 
 # ─── Vectorized Parameter Sweep ───────────────────────────────────────────────
 
+def sample_param_grid(param_grid: dict, max_size: int = MAX_GRID_SIZE) -> tuple[dict, int]:
+    """
+    If param_grid has more than max_size combos, randomly sample max_size combos.
+    Returns (possibly_sampled_grid, original_total_combos).
+    """
+    total_combos = 1
+    for v in param_grid.values():
+        total_combos *= len(v)
+
+    if total_combos <= max_size:
+        return param_grid, total_combos
+
+    # Generate all combos, then randomly sample
+    keys = list(param_grid.keys())
+    all_combos = list(product(*(param_grid[k] for k in keys)))
+    sampled = random.sample(all_combos, max_size)
+
+    # Rebuild a grid from sampled combos — one value per param
+    sampled_grid = defaultdict(list)
+    for combo in sampled:
+        for k, v in zip(keys, combo):
+            if v not in sampled_grid[k]:
+                sampled_grid[k].append(v)
+    # Sort each param list to keep deterministic ordering within the sampled subset
+    sampled_grid = {k: sorted(vs) for k, vs in sampled_grid.items()}
+
+    # Recalculate actual combos in the sampled grid
+    sampled_total = 1
+    for v in sampled_grid.values():
+        sampled_total *= len(v)
+
+    return dict(sampled_grid), total_combos
+
+
 def vectorized_sweep(matrix_fn, param_grid, df, engine,
                      strategy_name, ticker) -> list:
     """
-    Run ALL param combos in one vectorized vbt.Portfolio.from_signals() call.
-    Returns list of BacktestResult for all combos.
+    Run param combos in one vectorized vbt.Portfolio.from_signals() call.
+    If the grid is too large (> MAX_GRID_SIZE), randomly samples combos first.
+    Returns list of BacktestResult for all combos tested.
     """
-    entries_df, exits_df, param_list = matrix_fn(df, param_grid)
+    effective_grid, original_total = sample_param_grid(param_grid)
+    if original_total > MAX_GRID_SIZE:
+        sampled_total = 1
+        for v in effective_grid.values():
+            sampled_total *= len(v)
+        print(f"   🔀 Grid has {original_total:,} combos, sampling ~{sampled_total:,}")
+
+    entries_df, exits_df, param_list = matrix_fn(df, effective_grid)
 
     if entries_df.empty or len(param_list) == 0:
         print(f"   ⚡ No param combos generated")
@@ -550,13 +595,18 @@ def print_status():
     dead = len(state.get("dead_combos", []))
     pct = (completed / total_possible * 100) if total_possible > 0 else 0
 
+    # Migrate legacy key if present
+    if "total_winners" in state and "total_passing_iterations" not in state:
+        state["total_passing_iterations"] = state["total_winners"]
+        save_state(state)
+
     print(f"🦀 CrabQuant Cron Status (v3 — Vectorized)")
     print(f"{'='*50}")
     print(f"Round: {state.get('round', 0)}")
     print(f"Combos tested: {completed}/{total_possible} ({pct:.1f}%)")
     print(f"Dead combos: {dead}")
     print(f"Total runs: {state['total_runs']}")
-    print(f"Winners found: {state['total_winners']}")
+    print(f"Passing iterations: {state.get('total_passing_iterations', state.get('total_winners', 0))}")
     print(f"Best score: {state['best_score']:.2f}")
     print(f"Last run: {state.get('last_run', 'Never')}")
 
@@ -700,19 +750,21 @@ def main():
             dead.add(f"{strategy_name}|{ticker}")
             state["dead_combos"] = sorted(dead)
             print(f"\n💀 Zero trades across all {len(results)} combos — marked as dead combo")
-            for r in results:
-                save_result(r)
+            # Don't log zero-trade ghost entries
         elif results:
-            # Save all results
+            # Only log results that have trades AND are interesting (passed or Sharpe > 0.5)
+            logged = 0
             for r in results:
-                save_result(r)
+                if r.num_trades >= 1 and (r.passed or r.sharpe > 0.5):
+                    save_result(r)
+                    logged += 1
 
             passed = [r for r in results if r.passed]
             best = max(results, key=lambda r: r.score)
 
             if passed:
                 for p in passed:
-                    state["total_winners"] += 1
+                    state["total_passing_iterations"] = state.get("total_passing_iterations", 0) + 1
                     save_winner(p)
                     if p.score > state["best_score"]:
                         state["best_score"] = p.score

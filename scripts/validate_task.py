@@ -30,6 +30,7 @@ STATE_FILE = RESULTS_DIR / "cron_state.json"
 WINNERS_FILE = RESULTS_DIR / "winners" / "winners.json"
 VALIDATED_FILE = RESULTS_DIR / "winners" / "validated_winners.json"
 CURVEFIT_FILE = RESULTS_DIR / "winners" / "curvefit_winners.json"
+MIXED_FILE = RESULTS_DIR / "winners" / "mixed_winners.json"
 LOGS_FILE = RESULTS_DIR / "logs" / "validation_results.jsonl"
 
 
@@ -69,6 +70,13 @@ def load_curvefit():
     return []
 
 
+def load_mixed():
+    if MIXED_FILE.exists():
+        with open(MIXED_FILE) as f:
+            return json.load(f)
+    return []
+
+
 def save_validated(winners):
     VALIDATED_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(VALIDATED_FILE, "w") as f:
@@ -78,6 +86,12 @@ def save_validated(winners):
 def save_curvefit(winners):
     CURVEFIT_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(CURVEFIT_FILE, "w") as f:
+        json.dump(winners, f, indent=2)
+
+
+def save_mixed(winners):
+    MIXED_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(MIXED_FILE, "w") as f:
         json.dump(winners, f, indent=2)
 
 
@@ -196,14 +210,16 @@ def print_status():
     winners = load_winners()
     validated = load_validated()
     curvefit = load_curvefit()
+    mixed = load_mixed()
     state = load_state()
 
     print(f"\n🦀 CrabQuant Validation Status")
     print("=" * 50)
     print(f"Total winners:     {len(winners)}")
     print(f"Validated (robust): {len(validated)}")
+    print(f"Mixed (partial):   {len(mixed)}")
     print(f"Curve-fit:         {len(curvefit)}")
-    print(f"Pending:           {len(winners) - len(validated) - len(curvefit)}")
+    print(f"Pending:           {len(winners) - len(validated) - len(curvefit) - len(mixed)}")
     print()
 
     if validated:
@@ -212,6 +228,14 @@ def print_status():
             print(f"   {v['ticker']}/{v['strategy']}: "
                   f"WF={v.get('wf_test_sharpe', 0):.2f}, "
                   f"CT={v.get('ct_tickers_profitable', 0)}/{v.get('ct_tickers_tested', 0)}")
+
+    if mixed:
+        print("\n⚠️  Mixed (partial) strategies:")
+        for m in mixed:
+            print(f"   {m['ticker']}/{m['strategy']}: "
+                  f"Verdict={m.get('verdict', '?')}, "
+                  f"WF={'✅' if m.get('wf_robust') else '❌'}, "
+                  f"CT={'✅' if m.get('ct_generalizes') else '❌'}")
 
     if curvefit:
         print("\n❌ Curve-fit strategies:")
@@ -232,6 +256,7 @@ def main():
     winners = load_winners()
     validated = load_validated()
     curvefit = load_curvefit()
+    mixed = load_mixed()
 
     # Get validated keys (include params hash for proper dedup)
     def _dedup_key(w: dict) -> str:
@@ -242,12 +267,14 @@ def main():
 
     validated_keys = {_dedup_key(w) for w in validated}
     curvefit_keys = {_dedup_key(w) for w in curvefit}
+    mixed_keys = {_dedup_key(w) for w in mixed}
 
     # Find unvalidated
     pending = [
         w for w in winners
         if _dedup_key(w) not in validated_keys
         and _dedup_key(w) not in curvefit_keys
+        and _dedup_key(w) not in mixed_keys
     ]
 
     if not pending:
@@ -275,7 +302,10 @@ def main():
             save_curvefit(curvefit)
             print(f"\n❌ REJECTED — {w['ticker']}/{w['strategy']} is curve-fit")
         else:
-            print(f"\n⚠️  MIXED — {w['ticker']}/{w['strategy']} needs more data")
+            # MIXED or REGIME_SHIFT — save to mixed_winners.json
+            mixed.append(result)
+            save_mixed(mixed)
+            print(f"\n⚠️  MIXED — {w['ticker']}/{w['strategy']} ({result.get('verdict', 'unknown')})")
 
     # Update cron state
     state = load_state()
