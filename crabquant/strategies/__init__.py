@@ -137,6 +137,13 @@ from crabquant.strategies.informed_simple_adaptive import (
     PARAM_GRID as informed_simple_adaptive_grid,
     DESCRIPTION as informed_simple_adaptive_desc,
 )
+from crabquant.strategies.invented_rsi_volume_atr import (
+    generate_signals as invented_rsi_volume_atr_signals,
+    generate_signals_matrix as invented_rsi_volume_atr_matrix,
+    DEFAULT_PARAMS as invented_rsi_volume_atr_defaults,
+    PARAM_GRID as invented_rsi_volume_atr_grid,
+    DESCRIPTION as invented_rsi_volume_atr_desc,
+)
 
 # Registry: name -> (fn, defaults, grid, description, matrix_fn)
 STRATEGY_REGISTRY = {
@@ -162,6 +169,8 @@ STRATEGY_REGISTRY = {
     "injected_momentum_atr_volume": (injected_momentum_atr_volume_signals, injected_momentum_atr_volume_defaults, injected_momentum_atr_volume_grid, injected_momentum_atr_volume_desc, injected_momentum_atr_volume_matrix),
     # New informed strategy
     "informed_simple_adaptive": (informed_simple_adaptive_signals, informed_simple_adaptive_defaults, informed_simple_adaptive_grid, informed_simple_adaptive_desc, informed_simple_adaptive_matrix),
+    # New invented strategy
+    "invented_rsi_volume_atr": (invented_rsi_volume_atr_signals, invented_rsi_volume_atr_defaults, invented_rsi_volume_atr_grid, invented_rsi_volume_atr_desc, invented_rsi_volume_atr_matrix),
 }
 
 # Diverse ticker list for cross-ticker validation (excludes low-liquidity / meme stocks)
