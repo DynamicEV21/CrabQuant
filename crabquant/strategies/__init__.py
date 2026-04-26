@@ -123,6 +123,13 @@ from crabquant.strategies.ema_crossover import (
     PARAM_GRID as ema_crossover_grid,
     DESCRIPTION as ema_crossover_desc,
 )
+from crabquant.strategies.injected_momentum_atr_volume import (
+    generate_signals as injected_momentum_atr_volume_signals,
+    generate_signals_matrix as injected_momentum_atr_volume_matrix,
+    DEFAULT_PARAMS as injected_momentum_atr_volume_defaults,
+    PARAM_GRID as injected_momentum_atr_volume_grid,
+    DESCRIPTION as injected_momentum_atr_volume_desc,
+)
 
 # Registry: name -> (fn, defaults, grid, description, matrix_fn)
 STRATEGY_REGISTRY = {
@@ -144,6 +151,8 @@ STRATEGY_REGISTRY = {
     "bb_stoch_macd": (bb_stoch_macd_signals, bb_stoch_macd_defaults, bb_stoch_macd_grid, bb_stoch_macd_desc, bb_stoch_macd_matrix),
     "rsi_regime_dip": (rsi_regime_dip_signals, rsi_regime_dip_defaults, rsi_regime_dip_grid, rsi_regime_dip_desc, rsi_regime_dip_matrix),
     "ema_crossover": (ema_crossover_signals, ema_crossover_defaults, ema_crossover_grid, ema_crossover_desc, ema_crossover_matrix),
+    # New injected strategy
+    "injected_momentum_atr_volume": (injected_momentum_atr_volume_signals, injected_momentum_atr_volume_defaults, injected_momentum_atr_volume_grid, injected_momentum_atr_volume_desc, injected_momentum_atr_volume_matrix),
 }
 
 __all__ = ["STRATEGY_REGISTRY"]
