@@ -24,13 +24,13 @@ DEFAULT_PARAMS = {
 }
 
 PARAM_GRID = {
-    "adx_len": [14, 21],
-    "adx_threshold": [20, 25, 30],
-    "rsi_len": [10, 14, 21],
-    "rsi_oversold": [25, 30, 35],
-    "rsi_overbought": [60, 65, 70],
-    "volume_window": [15, 20, 25],
-    "volume_mult": [1.2, 1.3, 1.5],
+    "adx_len": [10, 12, 14, 16, 18, 21, 24, 28],
+    "adx_threshold": [18, 20, 22, 24, 25, 26, 28, 30, 32, 35],
+    "rsi_len": [7, 9, 10, 12, 14, 16, 18, 21, 24],
+    "rsi_oversold": [20, 23, 25, 27, 30, 32, 35, 38, 40],
+    "rsi_overbought": [55, 58, 60, 62, 65, 68, 70, 72, 75],
+    "volume_window": [12, 14, 15, 16, 18, 20, 22, 24, 25, 28, 30],
+    "volume_mult": [1.1, 1.15, 1.2, 1.25, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8],
 }
 
 DESCRIPTION = (

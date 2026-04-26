@@ -1,1326 +1,244 @@
 {
-  "timestamp": "2026-04-26T07:19:30.808950",
-  "total_results": 1684794,
-  "total_winners": 128722,
-  "strategy_stats": {
+  "timestamp": "2026-04-26T07:30:24.694060",
+  "total_results": 1690853,
+  "total_winners": 50,
+  "dead_combos": 8,
+  "strategy_rates": {
     "rsi_crossover": {
-      "tested": 36184,
-      "won": 407,
-      "total_sharpe": 3398.0575020677934,
-      "total_return": 2305.010007338339,
-      "win_rate": 0.011248065443289853,
-      "avg_sharpe": 0.09391049917277784
+      "rate": 0.011248065443289853,
+      "wins": 407,
+      "total": 36184,
+      "avg_sharpe": 0.744525121837427
     },
     "macd_momentum": {
-      "tested": 41211,
-      "won": 945,
-      "total_sharpe": 15272.359097611377,
-      "total_return": 5617.731130222831,
-      "win_rate": 0.022930770910679188,
-      "avg_sharpe": 0.3705893838443954
+      "rate": 0.022930770910679188,
+      "wins": 945,
+      "total": 41211,
+      "avg_sharpe": 0.7792573273089524
     },
     "invented_momentum_rsi_stoch": {
-      "tested": 14,
-      "won": 1,
-      "total_sharpe": 13.758234012593343,
-      "total_return": 4.925203278460628,
-      "win_rate": 0.07142857142857142,
-      "avg_sharpe": 0.9827310008995245
+      "rate": 0.07142857142857142,
+      "wins": 1,
+      "total": 14,
+      "avg_sharpe": 1.0640222561837902
     },
     "volume_breakout": {
-      "tested": 1220,
-      "won": 26,
-      "total_sharpe": 316.31902689955365,
-      "total_return": 115.46923394528451,
-      "win_rate": 0.021311475409836064,
-      "avg_sharpe": 0.25927789090127346
+      "rate": 0.020602218700475437,
+      "wins": 26,
+      "total": 1262,
+      "avg_sharpe": 0.7484874812548858
     },
     "atr_channel_breakout": {
-      "tested": 1517,
-      "won": 56,
-      "total_sharpe": 462.6967802660207,
-      "total_return": 169.4865698140259,
-      "win_rate": 0.03691496374423204,
-      "avg_sharpe": 0.30500776550166164
+      "rate": 0.03686635944700461,
+      "wins": 56,
+      "total": 1519,
+      "avg_sharpe": 0.7542385408058817
     },
     "adx_pullback": {
-      "tested": 1847,
-      "won": 59,
-      "total_sharpe": 1367.0600276847294,
-      "total_return": 705.9985836804498,
-      "win_rate": 0.03194369247428262,
-      "avg_sharpe": 0.7401516121736489
+      "rate": 0.030554117037804248,
+      "wins": 59,
+      "total": 1931,
+      "avg_sharpe": 0.888164408200238
     },
     "bollinger_squeeze": {
-      "tested": 780,
-      "won": 62,
-      "total_sharpe": 863.2450614732893,
-      "total_return": 248.05599252322318,
-      "win_rate": 0.07948717948717948,
-      "avg_sharpe": 1.1067244377862684
+      "rate": 0.07226107226107226,
+      "wins": 62,
+      "total": 858,
+      "avg_sharpe": 1.074437897754745
     },
     "invented_momentum_rsi_atr": {
-      "tested": 3,
-      "won": 0,
-      "total_sharpe": 0.03998233265660067,
-      "total_return": 0.19983951500794161,
-      "win_rate": 0.0,
-      "avg_sharpe": 0.01332744421886689
+      "rate": 0.0,
+      "wins": 0,
+      "total": 3,
+      "avg_sharpe": 2.285832378833058
     },
     "multi_rsi_confluence": {
-      "tested": 10052,
-      "won": 2,
-      "total_sharpe": 2616.6588100896693,
-      "total_return": 367.57929332886476,
-      "win_rate": 0.00019896538002387584,
-      "avg_sharpe": 0.2603122572711569
+      "rate": 0.00019127773527161438,
+      "wins": 2,
+      "total": 10456,
+      "avg_sharpe": 0.764087191263815
     },
     "ema_ribbon_reversal": {
-      "tested": 31,
-      "won": 0,
-      "total_sharpe": -1.579183942806849,
-      "total_return": -0.012385850405041116,
-      "win_rate": 0.0,
-      "avg_sharpe": -0.050941417509898355
+      "rate": 0.0,
+      "wins": 0,
+      "total": 33,
+      "avg_sharpe": 0.6756900971692008
     },
     "ichimoku_trend": {
-      "tested": 1,
-      "won": 0,
-      "total_sharpe": 1.6102394931644963,
-      "total_return": 0.6191197713965266,
-      "win_rate": 0.0,
+      "rate": 0.0,
+      "wins": 0,
+      "total": 1,
       "avg_sharpe": 1.6102394931644963
     },
     "rsi_regime_dip": {
-      "tested": 2579,
-      "won": 71,
-      "total_sharpe": 2091.3602933104494,
-      "total_return": 219.9570681052871,
-      "win_rate": 0.02753005040713455,
-      "avg_sharpe": 0.8109190745678362
+      "rate": 0.02753005040713455,
+      "wins": 71,
+      "total": 2579,
+      "avg_sharpe": 0.9917913673015526
     },
     "roc_ema_volume": {
-      "tested": 1234766,
-      "won": 127035,
-      "total_sharpe": 587984.1827768266,
-      "total_return": 232936.541199943,
-      "win_rate": 0.10288184157970012,
-      "avg_sharpe": 0.4761907784769151
+      "rate": 0.10288184157970012,
+      "wins": 127035,
+      "total": 1234766,
+      "avg_sharpe": 0.9382392665073415
     },
     "bb_stoch_macd": {
-      "tested": 36,
-      "won": 0,
-      "total_sharpe": 8.8983206921692,
-      "total_return": 1.49760039554914,
-      "win_rate": 0.0,
-      "avg_sharpe": 0.24717557478247779
+      "rate": 0.0,
+      "wins": 0,
+      "total": 36,
+      "avg_sharpe": 0.2711305708266195
     },
     "injected_momentum_atr_volume": {
-      "tested": 354294,
-      "won": 0,
-      "total_sharpe": 635713.5067843625,
-      "total_return": 441378.86536236637,
-      "win_rate": 0.0,
-      "avg_sharpe": 1.7943106763997203
+      "rate": 0.0,
+      "wins": 0,
+      "total": 354294,
+      "avg_sharpe": 1.7943106764041825
     },
     "vpt_crossover": {
-      "tested": 243,
-      "won": 46,
-      "total_sharpe": 297.0412122685952,
-      "total_return": 83.9945549760259,
-      "win_rate": 0.18930041152263374,
-      "avg_sharpe": 1.2223918200353712
+      "rate": 0.18930041152263374,
+      "wins": 46,
+      "total": 243,
+      "avg_sharpe": 1.2223918200353718
     },
     "ema_crossover": {
-      "tested": 16,
-      "won": 12,
-      "total_sharpe": 27.986174730109195,
-      "total_return": 7.797180723114972,
-      "win_rate": 0.75,
-      "avg_sharpe": 1.7491359206318247
+      "rate": 0.75,
+      "wins": 12,
+      "total": 16,
+      "avg_sharpe": 1.7491359206318249
+    },
+    "invented_vpt_roc_ema": {
+      "rate": 0.76171875,
+      "wins": 390,
+      "total": 512,
+      "avg_sharpe": 2.0066742407092026
+    },
+    "informed_simple_adaptive": {
+      "rate": 0.16291793313069908,
+      "wins": 804,
+      "total": 4935,
+      "avg_sharpe": 1.1101864729257522
     }
   },
-  "ticker_stats": {
-    "CAT": {
-      "tested": 179359,
-      "won": 1213,
-      "win_rate": 0.006762972585707993
+  "ticker_wins": {
+    "GOOGL": 36,
+    "JNJ": 14
+  },
+  "param_patterns": {
+    "fast_len": {
+      "14": 4,
+      "3": 1
     },
-    "NVDA": {
-      "tested": 1398,
-      "won": 0,
-      "win_rate": 0.0
+    "slow_len": {
+      "21": 3,
+      "35": 1,
+      "28": 1
     },
-    "MA": {
-      "tested": 1775,
-      "won": 0,
-      "win_rate": 0.0
+    "regime_len": {
+      "30": 4,
+      "50": 1
     },
-    "MRK": {
-      "tested": 1371,
-      "won": 0,
-      "win_rate": 0.0
+    "regime_bull": {
+      "65": 2,
+      "60": 2,
+      "55": 1
     },
-    "TSLA": {
-      "tested": 1307,
-      "won": 1,
-      "win_rate": 0.0007651109410864575
+    "exit_level": {
+      "45": 2,
+      "40": 2,
+      "50": 1
     },
-    "JPM": {
-      "tested": 2047,
-      "won": 2,
-      "win_rate": 0.0009770395701025891
+    "roc_len": {
+      "7": 3,
+      "21": 20,
+      "10": 1,
+      "5": 8,
+      "12": 1,
+      "14": 2,
+      "8": 1
     },
-    "TXN": {
-      "tested": 3036,
-      "won": 0,
-      "win_rate": 0.0
+    "ema_len": {
+      "15": 9,
+      "18": 5,
+      "20": 11,
+      "30": 2,
+      "25": 2,
+      "10": 7
     },
-    "PFE": {
-      "tested": 3445,
-      "won": 0,
-      "win_rate": 0.0
+    "vol_sma_len": {
+      "18": 7,
+      "25": 10,
+      "20": 5,
+      "15": 6,
+      "30": 5,
+      "10": 1,
+      "40": 2
     },
-    "AMZN": {
-      "tested": 1775,
-      "won": 1,
-      "win_rate": 0.0005633802816901409
+    "atr_len": {
+      "21": 14,
+      "14": 4,
+      "12": 5,
+      "17": 10,
+      "7": 2,
+      "10": 1
     },
-    "GOOGL": {
-      "tested": 309243,
-      "won": 108729,
-      "win_rate": 0.3515972875699693
+    "atr_mult": {
+      "2.75": 9,
+      "2.0": 9,
+      "2.5": 1,
+      "1.75": 5,
+      "3.0": 9,
+      "2.25": 3
     },
-    "DE": {
-      "tested": 85813,
-      "won": 4,
-      "win_rate": 4.661298404670621e-05
+    "trailing_len": {
+      "7": 9,
+      "10": 7,
+      "12": 5,
+      "15": 14,
+      "25": 1
     },
-    "SPY": {
-      "tested": 131758,
-      "won": 640,
-      "win_rate": 0.004857390063601451
+    "adx_len": {
+      "21": 9
     },
-    "QQQ": {
-      "tested": 439,
-      "won": 0,
-      "win_rate": 0.0
+    "adx_threshold": {
+      "30": 9
     },
-    "CRM": {
-      "tested": 2955,
-      "won": 0,
-      "win_rate": 0.0
+    "rsi_len": {
+      "14": 5,
+      "21": 2,
+      "10": 2
     },
-    "AAPL": {
-      "tested": 82233,
-      "won": 477,
-      "win_rate": 0.005800591003611689
+    "rsi_oversold": {
+      "30": 2,
+      "25": 5,
+      "35": 2
     },
-    "SHOP": {
-      "tested": 1695,
-      "won": 0,
-      "win_rate": 0.0
+    "rsi_overbought": {
+      "60": 3,
+      "65": 4,
+      "70": 2
     },
-    "COP": {
-      "tested": 1459,
-      "won": 0,
-      "win_rate": 0.0
+    "volume_window": {
+      "20": 2,
+      "15": 1,
+      "25": 6
     },
-    "GE": {
-      "tested": 1310,
-      "won": 1,
-      "win_rate": 0.0007633587786259542
-    },
-    "SNOW": {
-      "tested": 1413,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "ADBE": {
-      "tested": 132079,
-      "won": 2,
-      "win_rate": 1.5142452623051356e-05
-    },
-    "MSFT": {
-      "tested": 1303,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "NET": {
-      "tested": 1737,
-      "won": 1,
-      "win_rate": 0.0005757052389176742
-    },
-    "GLD": {
-      "tested": 131687,
-      "won": 10972,
-      "win_rate": 0.08331877861899809
-    },
-    "MDB": {
-      "tested": 4619,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "BLK": {
-      "tested": 1335,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "GS": {
-      "tested": 1775,
-      "won": 557,
-      "win_rate": 0.31380281690140843
-    },
-    "NKE": {
-      "tested": 1775,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "BA": {
-      "tested": 4366,
-      "won": 328,
-      "win_rate": 0.07512597343105817
-    },
-    "META": {
-      "tested": 67437,
-      "won": 89,
-      "win_rate": 0.0013197502854516068
-    },
-    "INTC": {
-      "tested": 4698,
-      "won": 80,
-      "win_rate": 0.017028522775649212
-    },
-    "DDOG": {
-      "tested": 3314,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "UNH": {
-      "tested": 367,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "QCOM": {
-      "tested": 4253,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "TLT": {
-      "tested": 132435,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "ORCL": {
-      "tested": 5200,
-      "won": 148,
-      "win_rate": 0.02846153846153846
-    },
-    "CVX": {
-      "tested": 1659,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "JNJ": {
-      "tested": 6273,
-      "won": 1087,
-      "win_rate": 0.1732823210585047
-    },
-    "V": {
-      "tested": 4416,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "PLTR": {
-      "tested": 4747,
-      "won": 545,
-      "win_rate": 0.1148093532757531
-    },
-    "IWM": {
-      "tested": 4344,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "NFLX": {
-      "tested": 135026,
-      "won": 3329,
-      "win_rate": 0.02465451098306993
-    },
-    "AVGO": {
-      "tested": 1658,
-      "won": 2,
-      "win_rate": 0.0012062726176115801
-    },
-    "F": {
-      "tested": 119,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "AMD": {
-      "tested": 1589,
-      "won": 8,
-      "win_rate": 0.005034612964128383
-    },
-    "RBLX": {
-      "tested": 397,
-      "won": 37,
-      "win_rate": 0.09319899244332494
-    },
-    "GM": {
-      "tested": 4340,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "DIS": {
-      "tested": 4774,
-      "won": 2,
-      "win_rate": 0.00041893590280687055
-    },
-    "XLK": {
-      "tested": 4690,
-      "won": 12,
-      "win_rate": 0.00255863539445629
-    },
-    "XOM": {
-      "tested": 7656,
-      "won": 37,
-      "win_rate": 0.004832810867293626
-    },
-    "HON": {
-      "tested": 135268,
-      "won": 32,
-      "win_rate": 0.00023656740692551084
-    },
-    "T": {
-      "tested": 4682,
-      "won": 254,
-      "win_rate": 0.05425032037590773
-    },
-    "XLE": {
-      "tested": 33936,
-      "won": 131,
-      "win_rate": 0.00386020744931636
-    },
-    "XLF": {
-      "tested": 9437,
-      "won": 0,
-      "win_rate": 0.0
-    },
-    "SCHW": {
-      "tested": 7572,
-      "won": 1,
-      "win_rate": 0.00013206550449022716
+    "volume_mult": {
+      "1.5": 4,
+      "1.2": 2,
+      "1.3": 3
     }
   },
-  "strategies_by_win_rate": [
-    [
-      "ema_crossover",
-      {
-        "tested": 16,
-        "won": 12,
-        "total_sharpe": 27.986174730109195,
-        "total_return": 7.797180723114972,
-        "win_rate": 0.75,
-        "avg_sharpe": 1.7491359206318247
-      }
-    ],
-    [
-      "vpt_crossover",
-      {
-        "tested": 243,
-        "won": 46,
-        "total_sharpe": 297.0412122685952,
-        "total_return": 83.9945549760259,
-        "win_rate": 0.18930041152263374,
-        "avg_sharpe": 1.2223918200353712
-      }
-    ],
-    [
-      "roc_ema_volume",
-      {
-        "tested": 1234766,
-        "won": 127035,
-        "total_sharpe": 587984.1827768266,
-        "total_return": 232936.541199943,
-        "win_rate": 0.10288184157970012,
-        "avg_sharpe": 0.4761907784769151
-      }
-    ],
-    [
-      "bollinger_squeeze",
-      {
-        "tested": 780,
-        "won": 62,
-        "total_sharpe": 863.2450614732893,
-        "total_return": 248.05599252322318,
-        "win_rate": 0.07948717948717948,
-        "avg_sharpe": 1.1067244377862684
-      }
-    ],
-    [
-      "invented_momentum_rsi_stoch",
-      {
-        "tested": 14,
-        "won": 1,
-        "total_sharpe": 13.758234012593343,
-        "total_return": 4.925203278460628,
-        "win_rate": 0.07142857142857142,
-        "avg_sharpe": 0.9827310008995245
-      }
-    ],
-    [
-      "atr_channel_breakout",
-      {
-        "tested": 1517,
-        "won": 56,
-        "total_sharpe": 462.6967802660207,
-        "total_return": 169.4865698140259,
-        "win_rate": 0.03691496374423204,
-        "avg_sharpe": 0.30500776550166164
-      }
-    ],
-    [
-      "adx_pullback",
-      {
-        "tested": 1847,
-        "won": 59,
-        "total_sharpe": 1367.0600276847294,
-        "total_return": 705.9985836804498,
-        "win_rate": 0.03194369247428262,
-        "avg_sharpe": 0.7401516121736489
-      }
-    ],
-    [
-      "rsi_regime_dip",
-      {
-        "tested": 2579,
-        "won": 71,
-        "total_sharpe": 2091.3602933104494,
-        "total_return": 219.9570681052871,
-        "win_rate": 0.02753005040713455,
-        "avg_sharpe": 0.8109190745678362
-      }
-    ],
-    [
-      "macd_momentum",
-      {
-        "tested": 41211,
-        "won": 945,
-        "total_sharpe": 15272.359097611377,
-        "total_return": 5617.731130222831,
-        "win_rate": 0.022930770910679188,
-        "avg_sharpe": 0.3705893838443954
-      }
-    ],
-    [
-      "volume_breakout",
-      {
-        "tested": 1220,
-        "won": 26,
-        "total_sharpe": 316.31902689955365,
-        "total_return": 115.46923394528451,
-        "win_rate": 0.021311475409836064,
-        "avg_sharpe": 0.25927789090127346
-      }
-    ],
-    [
-      "rsi_crossover",
-      {
-        "tested": 36184,
-        "won": 407,
-        "total_sharpe": 3398.0575020677934,
-        "total_return": 2305.010007338339,
-        "win_rate": 0.011248065443289853,
-        "avg_sharpe": 0.09391049917277784
-      }
-    ],
-    [
-      "multi_rsi_confluence",
-      {
-        "tested": 10052,
-        "won": 2,
-        "total_sharpe": 2616.6588100896693,
-        "total_return": 367.57929332886476,
-        "win_rate": 0.00019896538002387584,
-        "avg_sharpe": 0.2603122572711569
-      }
-    ],
-    [
-      "invented_momentum_rsi_atr",
-      {
-        "tested": 3,
-        "won": 0,
-        "total_sharpe": 0.03998233265660067,
-        "total_return": 0.19983951500794161,
-        "win_rate": 0.0,
-        "avg_sharpe": 0.01332744421886689
-      }
-    ],
-    [
-      "ema_ribbon_reversal",
-      {
-        "tested": 31,
-        "won": 0,
-        "total_sharpe": -1.579183942806849,
-        "total_return": -0.012385850405041116,
-        "win_rate": 0.0,
-        "avg_sharpe": -0.050941417509898355
-      }
-    ],
-    [
-      "ichimoku_trend",
-      {
-        "tested": 1,
-        "won": 0,
-        "total_sharpe": 1.6102394931644963,
-        "total_return": 0.6191197713965266,
-        "win_rate": 0.0,
-        "avg_sharpe": 1.6102394931644963
-      }
-    ],
-    [
-      "bb_stoch_macd",
-      {
-        "tested": 36,
-        "won": 0,
-        "total_sharpe": 8.8983206921692,
-        "total_return": 1.49760039554914,
-        "win_rate": 0.0,
-        "avg_sharpe": 0.24717557478247779
-      }
-    ],
-    [
-      "injected_momentum_atr_volume",
-      {
-        "tested": 354294,
-        "won": 0,
-        "total_sharpe": 635713.5067843625,
-        "total_return": 441378.86536236637,
-        "win_rate": 0.0,
-        "avg_sharpe": 1.7943106763997203
-      }
-    ]
+  "insights": [
+    "Best strategy: invented_vpt_roc_ema (76% win rate)",
+    "Weakest strategy: ema_ribbon_reversal (0% win rate) \u2014 consider removing or rewriting",
+    "Most winning ticker: GOOGL (36 wins)",
+    "8 dead combos \u2014 strategy/ticker pairs that produce 0 trades"
   ],
-  "tickers_by_win_rate": [
-    [
-      "GOOGL",
-      {
-        "tested": 309243,
-        "won": 108729,
-        "win_rate": 0.3515972875699693
-      }
-    ],
-    [
-      "GS",
-      {
-        "tested": 1775,
-        "won": 557,
-        "win_rate": 0.31380281690140843
-      }
-    ],
-    [
-      "JNJ",
-      {
-        "tested": 6273,
-        "won": 1087,
-        "win_rate": 0.1732823210585047
-      }
-    ],
-    [
-      "PLTR",
-      {
-        "tested": 4747,
-        "won": 545,
-        "win_rate": 0.1148093532757531
-      }
-    ],
-    [
-      "RBLX",
-      {
-        "tested": 397,
-        "won": 37,
-        "win_rate": 0.09319899244332494
-      }
-    ],
-    [
-      "GLD",
-      {
-        "tested": 131687,
-        "won": 10972,
-        "win_rate": 0.08331877861899809
-      }
-    ],
-    [
-      "BA",
-      {
-        "tested": 4366,
-        "won": 328,
-        "win_rate": 0.07512597343105817
-      }
-    ],
-    [
-      "T",
-      {
-        "tested": 4682,
-        "won": 254,
-        "win_rate": 0.05425032037590773
-      }
-    ],
-    [
-      "ORCL",
-      {
-        "tested": 5200,
-        "won": 148,
-        "win_rate": 0.02846153846153846
-      }
-    ],
-    [
-      "NFLX",
-      {
-        "tested": 135026,
-        "won": 3329,
-        "win_rate": 0.02465451098306993
-      }
-    ],
-    [
-      "INTC",
-      {
-        "tested": 4698,
-        "won": 80,
-        "win_rate": 0.017028522775649212
-      }
-    ],
-    [
-      "CAT",
-      {
-        "tested": 179359,
-        "won": 1213,
-        "win_rate": 0.006762972585707993
-      }
-    ],
-    [
-      "AAPL",
-      {
-        "tested": 82233,
-        "won": 477,
-        "win_rate": 0.005800591003611689
-      }
-    ],
-    [
-      "AMD",
-      {
-        "tested": 1589,
-        "won": 8,
-        "win_rate": 0.005034612964128383
-      }
-    ],
-    [
-      "SPY",
-      {
-        "tested": 131758,
-        "won": 640,
-        "win_rate": 0.004857390063601451
-      }
-    ],
-    [
-      "XOM",
-      {
-        "tested": 7656,
-        "won": 37,
-        "win_rate": 0.004832810867293626
-      }
-    ],
-    [
-      "XLE",
-      {
-        "tested": 33936,
-        "won": 131,
-        "win_rate": 0.00386020744931636
-      }
-    ],
-    [
-      "XLK",
-      {
-        "tested": 4690,
-        "won": 12,
-        "win_rate": 0.00255863539445629
-      }
-    ],
-    [
-      "META",
-      {
-        "tested": 67437,
-        "won": 89,
-        "win_rate": 0.0013197502854516068
-      }
-    ],
-    [
-      "AVGO",
-      {
-        "tested": 1658,
-        "won": 2,
-        "win_rate": 0.0012062726176115801
-      }
-    ],
-    [
-      "JPM",
-      {
-        "tested": 2047,
-        "won": 2,
-        "win_rate": 0.0009770395701025891
-      }
-    ],
-    [
-      "TSLA",
-      {
-        "tested": 1307,
-        "won": 1,
-        "win_rate": 0.0007651109410864575
-      }
-    ],
-    [
-      "GE",
-      {
-        "tested": 1310,
-        "won": 1,
-        "win_rate": 0.0007633587786259542
-      }
-    ],
-    [
-      "NET",
-      {
-        "tested": 1737,
-        "won": 1,
-        "win_rate": 0.0005757052389176742
-      }
-    ],
-    [
-      "AMZN",
-      {
-        "tested": 1775,
-        "won": 1,
-        "win_rate": 0.0005633802816901409
-      }
-    ],
-    [
-      "DIS",
-      {
-        "tested": 4774,
-        "won": 2,
-        "win_rate": 0.00041893590280687055
-      }
-    ],
-    [
-      "HON",
-      {
-        "tested": 135268,
-        "won": 32,
-        "win_rate": 0.00023656740692551084
-      }
-    ],
-    [
-      "SCHW",
-      {
-        "tested": 7572,
-        "won": 1,
-        "win_rate": 0.00013206550449022716
-      }
-    ],
-    [
-      "DE",
-      {
-        "tested": 85813,
-        "won": 4,
-        "win_rate": 4.661298404670621e-05
-      }
-    ],
-    [
-      "ADBE",
-      {
-        "tested": 132079,
-        "won": 2,
-        "win_rate": 1.5142452623051356e-05
-      }
-    ],
-    [
-      "NVDA",
-      {
-        "tested": 1398,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "MA",
-      {
-        "tested": 1775,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "MRK",
-      {
-        "tested": 1371,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "TXN",
-      {
-        "tested": 3036,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "PFE",
-      {
-        "tested": 3445,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "QQQ",
-      {
-        "tested": 439,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "CRM",
-      {
-        "tested": 2955,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "SHOP",
-      {
-        "tested": 1695,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "COP",
-      {
-        "tested": 1459,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "SNOW",
-      {
-        "tested": 1413,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "MSFT",
-      {
-        "tested": 1303,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "MDB",
-      {
-        "tested": 4619,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "BLK",
-      {
-        "tested": 1335,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "NKE",
-      {
-        "tested": 1775,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "DDOG",
-      {
-        "tested": 3314,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "UNH",
-      {
-        "tested": 367,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "QCOM",
-      {
-        "tested": 4253,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "TLT",
-      {
-        "tested": 132435,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "CVX",
-      {
-        "tested": 1659,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "V",
-      {
-        "tested": 4416,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "IWM",
-      {
-        "tested": 4344,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "F",
-      {
-        "tested": 119,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "GM",
-      {
-        "tested": 4340,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "XLF",
-      {
-        "tested": 9437,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ]
+  "actions": [
+    "Expand ema_crossover param grid \u2014 high win rate suggests more winning params exist",
+    "Consider building sector-specific variant of rsi_crossover (works well on JNJ)"
   ],
-  "top_scoring": [
-    {
-      "ticker": "JNJ",
-      "strategy_name": "rsi_crossover",
-      "iteration": 2123,
-      "sharpe": 2.1822910182862096,
-      "total_return": 0.34135480593509737,
-      "max_drawdown": -0.054012602866069015,
-      "win_rate": 1.0,
-      "num_trades": 28,
-      "avg_trade_return": 0.3416961607410323,
-      "calmar_ratio": 4.4169574667260605,
-      "sortino_ratio": 3.858362699344951,
-      "profit_factor": 999.0,
-      "avg_holding_bars": 203.0,
-      "best_trade": 34135.480593509725,
-      "worst_trade": 34135.480593509725,
-      "passed": true,
-      "score": 2.442654448731927,
-      "notes": "Sharpe 2.18 >= 1.5 | MaxDD -5.4% OK | 28 trades | Return 34.1%",
-      "params": {
-        "fast_len": 14,
-        "slow_len": 21,
-        "regime_len": 30,
-        "regime_bull": 65,
-        "exit_level": 45
-      },
-      "timestamp": "2026-04-26T00:51:01.671296"
-    },
-    {
-      "ticker": "GOOGL",
-      "strategy_name": "roc_ema_volume",
-      "iteration": 19810,
-      "sharpe": 2.5228592766489655,
-      "total_return": 1.5330595916191663,
-      "max_drawdown": -0.1391355594614725,
-      "win_rate": 1.0,
-      "num_trades": 25,
-      "avg_trade_return": 0.24551504991013426,
-      "calmar_ratio": 6.95880410088755,
-      "sortino_ratio": 4.121287023991117,
-      "profit_factor": 999.0,
-      "avg_holding_bars": 100.0,
-      "best_trade": 114474.6609663259,
-      "worst_trade": 4071.394733601602,
-      "passed": true,
-      "score": 2.4281907589614526,
-      "notes": "Sharpe 2.52 >= 1.5 | MaxDD -13.9% OK | 25 trades | Return 153.3%",
-      "params": {
-        "roc_len": 7,
-        "ema_len": 15,
-        "vol_sma_len": 18,
-        "atr_len": 21,
-        "atr_mult": 2.75,
-        "trailing_len": 7
-      },
-      "timestamp": "2026-04-26T06:01:00.765135"
-    },
-    {
-      "ticker": "GOOGL",
-      "strategy_name": "roc_ema_volume",
-      "iteration": 19811,
-      "sharpe": 2.379229283381898,
-      "total_return": 1.379848704086599,
-      "max_drawdown": -0.13913555946147282,
-      "win_rate": 1.0,
-      "num_trades": 26,
-      "avg_trade_return": 0.1776370012698998,
-      "calmar_ratio": 6.330197581782105,
-      "sortino_ratio": 3.866423109610391,
-      "profit_factor": 999.0,
-      "avg_holding_bars": 82.5,
-      "best_trade": 93418.90500207481,
-      "worst_trade": 4071.394733601602,
-      "passed": true,
-      "score": 2.3353003346001366,
-      "notes": "Sharpe 2.38 >= 1.5 | MaxDD -13.9% OK | 26 trades | Return 138.0%",
-      "params": {
-        "roc_len": 7,
-        "ema_len": 15,
-        "vol_sma_len": 18,
-        "atr_len": 21,
-        "atr_mult": 2.75,
-        "trailing_len": 10
-      },
-      "timestamp": "2026-04-26T06:01:00.765164"
-    },
-    {
-      "ticker": "JNJ",
-      "strategy_name": "rsi_crossover",
-      "iteration": 2142,
-      "sharpe": 2.0536493078927998,
-      "total_return": 0.3366246917824168,
-      "max_drawdown": -0.05734850501190092,
-      "win_rate": 1.0,
-      "num_trades": 29,
-      "avg_trade_return": 0.3369613164741993,
-      "calmar_ratio": 4.104515282973001,
-      "sortino_ratio": 3.548543945955551,
-      "profit_factor": 999.0,
-      "avg_holding_bars": 230.0,
-      "best_trade": 33662.46917824169,
-      "worst_trade": 33662.46917824169,
-      "passed": true,
-      "score": 2.331102901296849,
-      "notes": "Sharpe 2.05 >= 1.5 | MaxDD -5.7% OK | 29 trades | Return 33.7%",
-      "params": {
-        "fast_len": 14,
-        "slow_len": 21,
-        "regime_len": 50,
-        "regime_bull": 60,
-        "exit_level": 40
-      },
-      "timestamp": "2026-04-26T00:51:01.671930"
-    },
-    {
-      "ticker": "GOOGL",
-      "strategy_name": "roc_ema_volume",
-      "iteration": 120814,
-      "sharpe": 2.5417611502774617,
-      "total_return": 1.3063765757421624,
-      "max_drawdown": -0.09057913627870118,
-      "win_rate": 1.0,
-      "num_trades": 20,
-      "avg_trade_return": 0.11450508322287319,
-      "calmar_ratio": 9.254603329411111,
-      "sortino_ratio": 4.44725561981202,
-      "profit_factor": 999.0,
-      "avg_holding_bars": 51.875,
-      "best_trade": 45565.85028432914,
-      "worst_trade": 3288.8113800851725,
-      "passed": true,
-      "score": 2.311530620658571,
-      "notes": "Sharpe 2.54 >= 1.5 | MaxDD -9.1% OK | 20 trades | Return 130.6%",
-      "params": {
-        "roc_len": 21,
-        "ema_len": 18,
-        "vol_sma_len": 18,
-        "atr_len": 14,
-        "atr_mult": 2.0,
-        "trailing_len": 10
-      },
-      "timestamp": "2026-04-26T06:01:03.983516"
-    },
-    {
-      "ticker": "GOOGL",
-      "strategy_name": "roc_ema_volume",
-      "iteration": 57442,
-      "sharpe": 2.349452383736056,
-      "total_return": 1.2868403271471185,
-      "max_drawdown": -0.12066564217688691,
-      "win_rate": 1.0,
-      "num_trades": 25,
-      "avg_trade_return": 0.22334820896218935,
-      "calmar_ratio": 6.85295836986596,
-      "sortino_ratio": 3.8153896906858167,
-      "profit_factor": 999.0,
-      "avg_holding_bars": 93.4,
-      "best_trade": 102961.134230397,
-      "worst_trade": 1458.452761020723,
-      "passed": true,
-      "score": 2.3098070182536765,
-      "notes": "Sharpe 2.35 >= 1.5 | MaxDD -12.1% OK | 25 trades | Return 128.7%",
-      "params": {
-        "roc_len": 10,
-        "ema_len": 20,
-        "vol_sma_len": 18,
-        "atr_len": 21,
-        "atr_mult": 2.75,
-        "trailing_len": 7
-      },
-      "timestamp": "2026-04-26T06:01:01.930412"
-    },
-    {
-      "ticker": "GOOGL",
-      "strategy_name": "roc_ema_volume",
-      "iteration": 4011,
-      "sharpe": 2.4854531727462614,
-      "total_return": 1.4751854578833041,
-      "max_drawdown": -0.13913555946147282,
-      "win_rate": 1.0,
-      "num_trades": 23,
-      "avg_trade_return": 0.14738809686061774,
-      "calmar_ratio": 6.7226002579598365,
-      "sortino_ratio": 4.0903392857637115,
-      "profit_factor": 999.0,
-      "avg_holding_bars": 67.42857142857143,
-      "best_trade": 59005.9020092695,
-      "worst_trade": 1879.7264010768913,
-      "passed": true,
-      "score": 2.2945064048286565,
-      "notes": "Sharpe 2.49 >= 1.5 | MaxDD -13.9% OK | 23 trades | Return 147.5%",
-      "params": {
-        "roc_len": 5,
-        "ema_len": 15,
-        "vol_sma_len": 25,
-        "atr_len": 21,
-        "atr_mult": 2.5,
-        "trailing_len": 7
-      },
-      "timestamp": "2026-04-26T06:01:00.256665"
-    },
-    {
-      "ticker": "JNJ",
-      "strategy_name": "rsi_crossover",
-      "iteration": 2122,
-      "sharpe": 2.0536493078927998,
-      "total_return": 0.3366246917824168,
-      "max_drawdown": -0.05734850501190092,
-      "win_rate": 1.0,
-      "num_trades": 28,
-      "avg_trade_return": 0.3369613164741993,
-      "calmar_ratio": 4.104515282973001,
-      "sortino_ratio": 3.548543945955551,
-      "profit_factor": 999.0,
-      "avg_holding_bars": 230.0,
-      "best_trade": 33662.46917824169,
-      "worst_trade": 33662.46917824169,
-      "passed": true,
-      "score": 2.290558888434244,
-      "notes": "Sharpe 2.05 >= 1.5 | MaxDD -5.7% OK | 28 trades | Return 33.7%",
-      "params": {
-        "fast_len": 14,
-        "slow_len": 21,
-        "regime_len": 30,
-        "regime_bull": 65,
-        "exit_level": 40
-      },
-      "timestamp": "2026-04-26T00:51:01.671267"
-    },
-    {
-      "ticker": "GOOGL",
-      "strategy_name": "roc_ema_volume",
-      "iteration": 19812,
-      "sharpe": 2.379229283381898,
-      "total_return": 1.379848704086599,
-      "max_drawdown": -0.13913555946147282,
-      "win_rate": 1.0,
-      "num_trades": 25,
-      "avg_trade_return": 0.1776370012698998,
-      "calmar_ratio": 6.330197581782105,
-      "sortino_ratio": 3.866423109610391,
-      "profit_factor": 999.0,
-      "avg_holding_bars": 82.5,
-      "best_trade": 93418.90500207481,
-      "worst_trade": 4071.394733601602,
-      "passed": true,
-      "score": 2.289950380043434,
-      "notes": "Sharpe 2.38 >= 1.5 | MaxDD -13.9% OK | 25 trades | Return 138.0%",
-      "params": {
-        "roc_len": 7,
-        "ema_len": 15,
-        "vol_sma_len": 18,
-        "atr_len": 21,
-        "atr_mult": 2.75,
-        "trailing_len": 12
-      },
-      "timestamp": "2026-04-26T06:01:00.765192"
-    },
-    {
-      "ticker": "JNJ",
-      "strategy_name": "rsi_crossover",
-      "iteration": 314,
-      "sharpe": 1.992331354902743,
-      "total_return": 0.3878114491505513,
-      "max_drawdown": -0.09352683945539175,
-      "win_rate": 0.47619047619047616,
-      "num_trades": 32,
-      "avg_trade_return": 0.052199293182390395,
-      "calmar_ratio": 2.8834370506071028,
-      "sortino_ratio": 2.7910458327614256,
-      "profit_factor": 3.1278118737392697,
-      "avg_holding_bars": 11.047619047619047,
-      "best_trade": 18744.67757271841,
-      "worst_trade": -6643.901319121456,
-      "passed": true,
-      "score": 2.284422930824675,
-      "notes": "Sharpe 1.99 >= 1.5 | MaxDD -9.4% OK | 32 trades | Return 38.8%",
-      "params": {
-        "fast_len": 3,
-        "slow_len": 35,
-        "regime_len": 30,
-        "regime_bull": 55,
-        "exit_level": 50
-      },
-      "timestamp": "2026-04-26T00:51:01.615423"
-    }
-  ]
+  "round": 0,
+  "combos_completed": 427,
+  "combos_remaining": 673
 }
