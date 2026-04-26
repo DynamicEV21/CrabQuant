@@ -192,7 +192,9 @@
     "atr_channel_breakout|AVGO",
     "roc_ema_volume|XLK"
   ],
-  "validated_winners": [],
+  "validated_winners": [
+    "CAT|roc_ema_volume"
+  ],
   "total_runs": 188,
   "total_winners": 2666,
   "best_score": 2.0183239833233593,
@@ -202,5 +204,9 @@
     "ema_ribbon_reversal|JNJ",
     "multi_rsi_confluence|CAT",
     "multi_rsi_confluence|GE"
-  ]
+  ],
+  "last_confirm_key": "roc_ema_volume|CAT|{\"atr_len\": 14, \"atr_mult\": 1.5, \"ema_len\": 15, \"roc_len\": 8, \"trailing_len\": 10, \"vol_sma_len\": 15}",
+  "last_confirm_verdict": "ROBUST",
+  "last_confirm_time": "2026-04-25T22:05:37.460864",
+  "confirmed_count": 1
 }
