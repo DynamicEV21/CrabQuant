@@ -1,26 +1,26 @@
 {
-  "timestamp": "2026-04-25T19:37:05.527057",
-  "total_results": 33,
+  "timestamp": "2026-04-25T19:38:01.798781",
+  "total_results": 53,
   "total_winners": 4,
   "dead_combos": 0,
   "strategy_rates": {
     "rsi_crossover": {
-      "rate": 0.08333333333333333,
+      "rate": 0.05,
       "wins": 1,
-      "total": 12,
-      "avg_sharpe": 0.6482238792911125
+      "total": 20,
+      "avg_sharpe": 0.7564522185742104
     },
     "macd_momentum": {
-      "rate": 0.16666666666666666,
+      "rate": 0.1111111111111111,
       "wins": 2,
-      "total": 12,
-      "avg_sharpe": 0.7687009830332456
+      "total": 18,
+      "avg_sharpe": 0.7665664012316126
     },
     "invented_momentum_rsi_stoch": {
-      "rate": 0.16666666666666666,
+      "rate": 0.125,
       "wins": 1,
-      "total": 6,
-      "avg_sharpe": 1.232376258659418
+      "total": 8,
+      "avg_sharpe": 1.142559642137744
     },
     "volume_breakout": {
       "rate": 0.0,
@@ -31,14 +31,26 @@
     "atr_channel_breakout": {
       "rate": 0.0,
       "wins": 0,
-      "total": 1,
-      "avg_sharpe": 0.5283586202399176
+      "total": 2,
+      "avg_sharpe": 0.38915951774408397
     },
     "adx_pullback": {
       "rate": 0.0,
       "wins": 0,
+      "total": 2,
+      "avg_sharpe": 1.1286187376772476
+    },
+    "bollinger_squeeze": {
+      "rate": 0.0,
+      "wins": 0,
       "total": 1,
-      "avg_sharpe": 1.0532337360889938
+      "avg_sharpe": 0.5133378534722447
+    },
+    "invented_momentum_rsi_atr": {
+      "rate": 0.0,
+      "wins": 0,
+      "total": 1,
+      "avg_sharpe": 0.0
     }
   },
   "ticker_wins": {
@@ -96,14 +108,14 @@
     }
   },
   "insights": [
-    "Best strategy: macd_momentum (17% win rate)",
-    "Weakest strategy: rsi_crossover (8% win rate) \u2014 consider removing or rewriting",
+    "Best strategy: invented_momentum_rsi_stoch (12% win rate)",
+    "Weakest strategy: rsi_crossover (5% win rate) \u2014 consider removing or rewriting",
     "Most winning ticker: CAT (2 wins)"
   ],
   "actions": [
     "Consider building sector-specific variant of rsi_crossover (works well on CAT)"
   ],
   "round": 0,
-  "combos_completed": 30,
-  "combos_remaining": 575
+  "combos_completed": 51,
+  "combos_remaining": 554
 }
