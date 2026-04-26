@@ -40,9 +40,13 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     volume = df["volume"]
 
     bb = pandas_ta.bbands(close, length=p["bb_len"], std=p["bb_std"])
-    bbu = bb[f"BBU_{p['bb_len']}_{p['bb_std']}"]
-    bbl = bb[f"BBL_{p['bb_len']}_{p['bb_std']}"]
-    bbm = bb[f"BBM_{p['bb_len']}_{p['bb_std']}"]
+    # pandas_ta column format: BBU_<len>_<std>_<std> (std duplicated)
+    bbu_col = [c for c in bb.columns if c.startswith("BBU")][0]
+    bbl_col = [c for c in bb.columns if c.startswith("BBL")][0]
+    bbm_col = [c for c in bb.columns if c.startswith("BBM")][0]
+    bbu = bb[bbu_col]
+    bbl = bb[bbl_col]
+    bbm = bb[bbm_col]
 
     bb_width = (bbu - bbl) / bbm
     bb_width_avg = bb_width.rolling(p["squeeze_len"]).mean()

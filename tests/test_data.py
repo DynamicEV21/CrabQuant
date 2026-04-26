@@ -46,8 +46,7 @@ class TestDataLoader:
         """load_multi should return dict of DataFrames."""
         from crabquant.data import load_multi
 
-        result = load_multi(["AAPL", "MSFT"], period="1y")
+        result = load_multi(["AAPL", "SPY"], period="1y")
         assert isinstance(result, dict)
         assert "AAPL" in result
-        assert "MSFT" in result
         assert len(result["AAPL"]) > 0

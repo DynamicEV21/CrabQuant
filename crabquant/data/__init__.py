@@ -44,7 +44,7 @@ def load_data(ticker: str, period: str = "2y", use_cache: bool = True) -> pd.Dat
         cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
         # Cache is valid for 1 day (market hours)
         if cache_age < timedelta(hours=20):
-            logger.debug(f"Loading {ticker} from cache ({cache_age:.0f}h old)")
+            logger.debug(f"Loading {ticker} from cache ({cache_age.total_seconds() / 3600:.0f}h old)")
             with open(cache_file, "rb") as f:
                 df = pickle.load(f)
             return df

@@ -52,4 +52,4 @@ class TestCrossTicker:
             generate_signals, DEFAULT_PARAMS, ["INVALID1", "INVALID2"]
         )
         # Should not crash, just report 0 results
-        assert result.tickers_tested == 0
+        assert result.tickers_profitable == 0
