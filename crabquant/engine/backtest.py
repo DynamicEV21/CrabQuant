@@ -144,19 +144,18 @@ class BacktestEngine:
                 worst_trade = 0.0
                 avg_hold = 0.0
 
+            # Handle edge cases BEFORE computing score to avoid RuntimeWarning
+            if np.isinf(sharpe) or np.isnan(sharpe):
+                sharpe = 0.0
+            if np.isnan(max_dd):
+                max_dd = 0.0
+
             # Composite score: reward consistency and risk management
             # score = sharpe * sqrt(trades/20) * (1 - abs(max_dd))
             # This penalizes low-trade-count and high-drawdown strategies
             trade_factor = np.sqrt(min(num_trades, 100) / 20)
             dd_penalty = max(0, 1 - abs(max_dd))
             score = sharpe * trade_factor * dd_penalty
-
-            # Handle edge cases
-            if np.isinf(sharpe) or np.isnan(sharpe):
-                sharpe = 0.0
-                score = 0.0
-            if np.isnan(max_dd):
-                max_dd = 0.0
 
             passed = (
                 sharpe >= self.sharpe_target
