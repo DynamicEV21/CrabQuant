@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-04-25T19:02:18.781101",
+  "total_results": 2,
+  "total_winners": 1,
+  "dead_combos": 0,
+  "strategy_rates": {
+    "rsi_crossover": {
+      "rate": 1.0,
+      "wins": 1,
+      "total": 1,
+      "avg_sharpe": 1.9912212600983974
+    },
+    "macd_momentum": {
+      "rate": 0.0,
+      "wins": 0,
+      "total": 1,
+      "avg_sharpe": 0.6132984529948656
+    }
+  },
+  "ticker_wins": {
+    "CAT": 1
+  },
+  "param_patterns": {
+    "fast_len": {
+      "5": 1
+    },
+    "slow_len": {
+      "21": 1
+    },
+    "regime_len": {
+      "50": 1
+    },
+    "regime_bull": {
+      "50": 1
+    },
+    "exit_level": {
+      "35": 1
+    }
+  },
+  "insights": [
+    "Best strategy: rsi_crossover (100% win rate)",
+    "Most winning ticker: CAT (1 wins)"
+  ],
+  "actions": [
+    "Consider building sector-specific variant of rsi_crossover (works well on CAT)"
+  ],
+  "round": 0,
+  "combos_completed": 2,
+  "combos_remaining": 493
+}

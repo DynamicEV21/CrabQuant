@@ -1,10 +1,11 @@
 {
   "completed_combos": [
-    "rsi_crossover|CAT"
+    "rsi_crossover|CAT",
+    "macd_momentum|NVDA"
   ],
   "validated_winners": [],
-  "total_runs": 1,
+  "total_runs": 2,
   "total_winners": 1,
   "best_score": 1.3775809483781392,
-  "last_run": "2026-04-25T18:51:52.139189"
+  "last_run": "2026-04-25T19:02:05.496189"
 }
