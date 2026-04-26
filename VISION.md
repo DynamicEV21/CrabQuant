@@ -22,28 +22,59 @@ validates, and improves trading strategies without human intervention.
 - **Self-aware** — tracks what works, adapts strategies accordingly
 - **Transparent** — every decision logged, reproducible
 
-## Current Phase: v0.1 — Foundation
+## The Pipeline
+
+```
+INVENT (LLM agent, every 3h)
+  ↓ Analyzes market data, winner patterns
+  ↓ Writes new strategy Python code
+  ↓ Tests it produces signals
+  ↓ Registers in strategy library
+  ↓
+OPTIMIZE (cron, every 10m)
+  ↓ Tests each strategy across 56 tickers
+  ↓ Directed parameter search (explore → narrow → fine-tune)
+  ↓ Saves winners to winners.json
+  ↓ Runs analysis every 10 cycles
+  ↓
+VALIDATE (improve agent, every 3h)
+  ↓ Walk-forward: train 18mo / test 6mo
+  ↓ Cross-ticker: test on 15+ other tickers
+  ↓ Promotes robust strategies
+  ↓
+EVOLVE (improve agent, every 3h)
+  ↓ Reads insights.json patterns
+  ↓ Expands winning param grids
+  ↓ Fixes dead combos
+  ↓ Combines winning signals into composites
+  ↓
+REPEAT (continuous)
+```
+
+## Current Phase: v0.2 — Invention + Optimization
 
 ### Done
 - [x] 9 strategy archetypes with proven results
 - [x] VectorBT backtest engine with composite scoring
 - [x] Walk-forward + cross-ticker validation
-- [x] Autonomous cron (10min cycles, 504 combos)
+- [x] Autonomous cron v2 (directed search, smart ordering, dead combo tracking)
+- [x] Self-improvement analysis (strategy rates, ticker hotspots, param patterns)
+- [x] Strategy invention module (market analysis + pattern detection)
+- [x] Inventor cron (every 3h, writes + tests + registers new strategies)
 - [x] Full test suite (25/25 passing)
 
 ### In Progress
-- [ ] Directed parameter search (replace random mutation)
-- [ ] Self-improvement agent (analyze → suggest → implement → validate)
-- [ ] Zero-trade early exit with smart strategy skipping
-- [ ] Pattern detection across winners
+- [ ] First invented strategy (sub-agent running)
+- [ ] Verify inventor produces working strategies
+- [ ] Validate initial winners from sweep
 
-### Next (v0.2)
-- [ ] Regime detection layer (trending vs mean-reverting vs volatile)
+### Next (v0.3)
 - [ ] Composite strategy aggregation (combine signals from multiple strategies)
+- [ ] Regime detection layer (trending vs mean-reverting vs volatile)
+- [ ] Strategy decay detection (Sharpe dropping = stop using it)
 - [ ] Position sizing (Kelly criterion / risk parity)
-- [ ] Strategy decay detection (Sharpe dropping over time = stop using it)
 
-### Future (v0.3+)
+### Future (v0.4+)
 - [ ] Multi-timeframe analysis
 - [ ] Sector rotation signals
 - [ ] Paper trading interface
@@ -57,12 +88,12 @@ validates, and improves trading strategies without human intervention.
 - **Generalization** — strategies work across sectors, not just one ticker
 - **No overfit** — composite score penalizes low-trade, high-drawdown results
 - **Self-sustaining** — system improves itself without human input for weeks
+- **Invention rate** — inventor produces at least 1 working strategy per cycle
 
 ## The Dream
 
-You give it a vision. It runs. It finds edges. It validates them. It improves itself.
-You check in, review the results, and decide what to deploy.
-"""
+You give it a vision. It runs. It finds edges. It invents new approaches. It validates them. It improves itself.
+You check in, review the results, and decide what to deploy."""
 
 VISION = """
 CrabQuant should become a self-improving autonomous research engine.
