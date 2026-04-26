@@ -1,0 +1,19 @@
+[
+  {
+    "key": "roc_ema_volume|CAT|de4a4b06ae51",
+    "strategy_name": "roc_ema_volume",
+    "ticker": "CAT",
+    "params_hash": "de4a4b06ae51",
+    "params": {
+      "roc_len": 8,
+      "ema_len": 15,
+      "vol_sma_len": 15,
+      "atr_len": 14,
+      "atr_mult": 1.5,
+      "trailing_len": 10
+    },
+    "promoted_at": "2026-04-25",
+    "verdict": "ROBUST",
+    "report_file": "roc_ema_volume_CAT.md"
+  }
+]
