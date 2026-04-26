@@ -421,7 +421,16 @@
     "informed_simple_adaptive|CRM",
     "informed_simple_adaptive|AMD",
     "informed_simple_adaptive|GOOGL",
-    "bollinger_squeeze|AAPL"
+    "bollinger_squeeze|AAPL",
+    "ema_ribbon_reversal|NKE",
+    "ema_ribbon_reversal|BLK",
+    "bb_stoch_macd|JNJ",
+    "multi_rsi_confluence|MSFT",
+    "ema_ribbon_reversal|JPM",
+    "multi_rsi_confluence|CRM",
+    "bollinger_squeeze|AVGO",
+    "atr_channel_breakout|MDB",
+    "bollinger_squeeze|CRM"
   ],
   "validated_winners": [
     "CAT|roc_ema_volume",
@@ -521,10 +530,10 @@
     "GOOGL|roc_ema_volume|4949c7f76cbe",
     "GOOGL|roc_ema_volume|1029ad9551b2"
   ],
-  "total_runs": 414,
+  "total_runs": 423,
   "total_winners": 8156,
   "best_score": 2.442654448731927,
-  "last_run": "2026-04-26T07:30:30.479263",
+  "last_run": "2026-04-26T08:46:57.173928",
   "dead_combos": [
     "bb_stoch_macd|ORCL",
     "ema_ribbon_reversal|JNJ",
