@@ -70,6 +70,12 @@ from crabquant.strategies.invented_momentum_rsi_atr import (
     PARAM_GRID as invented_mrsa_grid,
     DESCRIPTION as invented_mrsa_desc,
 )
+from crabquant.strategies.invented_momentum_rsi_stoch import (
+    generate_signals as invented_mrss_signals,
+    DEFAULT_PARAMS as invented_mrss_defaults,
+    PARAM_GRID as invented_mrss_grid,
+    DESCRIPTION as invented_mrss_desc,
+)
 
 # Registry: name -> (fn, defaults, grid, description)
 STRATEGY_REGISTRY = {
@@ -84,6 +90,7 @@ STRATEGY_REGISTRY = {
     "ichimoku_trend": (ichimoku_signals, ichimoku_defaults, ichimoku_grid, ichimoku_desc),
     # Invented strategies
     "invented_momentum_rsi_atr": (invented_mrsa_signals, invented_mrsa_defaults, invented_mrsa_grid, invented_mrsa_desc),
+    "invented_momentum_rsi_stoch": (invented_mrss_signals, invented_mrss_defaults, invented_mrss_grid, invented_mrss_desc),
 }
 
 __all__ = ["STRATEGY_REGISTRY"]
