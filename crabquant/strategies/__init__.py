@@ -130,19 +130,12 @@ from crabquant.strategies.injected_momentum_atr_volume import (
     PARAM_GRID as injected_momentum_atr_volume_grid,
     DESCRIPTION as injected_momentum_atr_volume_desc,
 )
-from crabquant.strategies.invented_momentum_rsi_volume import (
-    generate_signals as invented_momentum_rsi_volume_signals,
-    generate_signals_matrix as invented_momentum_rsi_volume_matrix,
-    DEFAULT_PARAMS as invented_momentum_rsi_volume_defaults,
-    PARAM_GRID as invented_momentum_rsi_volume_grid,
-    DESCRIPTION as invented_momentum_rsi_volume_desc,
-)
-from crabquant.strategies.invented_volatility_rsi_breakout import (
-    generate_signals as invented_volatility_rsi_breakout_signals,
-    generate_signals_matrix as invented_volatility_rsi_breakout_matrix,
-    DEFAULT_PARAMS as invented_volatility_rsi_breakout_defaults,
-    PARAM_GRID as invented_volatility_rsi_breakout_grid,
-    DESCRIPTION as invented_volatility_rsi_breakout_desc,
+from crabquant.strategies.informed_simple_adaptive import (
+    generate_signals as informed_simple_adaptive_signals,
+    generate_signals_matrix as informed_simple_adaptive_matrix,
+    DEFAULT_PARAMS as informed_simple_adaptive_defaults,
+    PARAM_GRID as informed_simple_adaptive_grid,
+    DESCRIPTION as informed_simple_adaptive_desc,
 )
 
 # Registry: name -> (fn, defaults, grid, description, matrix_fn)
@@ -159,8 +152,6 @@ STRATEGY_REGISTRY = {
     # Invented strategies
     "invented_momentum_rsi_atr": (invented_mrsa_signals, invented_mrsa_defaults, invented_mrsa_grid, invented_mrsa_desc, invented_mrsa_matrix),
     "invented_momentum_rsi_stoch": (invented_mrss_signals, invented_mrss_defaults, invented_mrss_grid, invented_mrss_desc, invented_mrss_matrix),
-    "invented_momentum_rsi_volume": (invented_momentum_rsi_volume_signals, invented_momentum_rsi_volume_defaults, invented_momentum_rsi_volume_grid, invented_momentum_rsi_volume_desc, invented_momentum_rsi_volume_matrix),
-    "invented_volatility_rsi_breakout": (invented_volatility_rsi_breakout_signals, invented_volatility_rsi_breakout_defaults, invented_volatility_rsi_breakout_grid, invented_volatility_rsi_breakout_desc, invented_volatility_rsi_breakout_matrix),
     # QF proven patterns
     "vpt_crossover": (vpt_crossover_signals, vpt_crossover_defaults, vpt_crossover_grid, vpt_crossover_desc, vpt_crossover_matrix),
     "roc_ema_volume": (roc_ema_volume_signals, roc_ema_volume_defaults, roc_ema_volume_grid, roc_ema_volume_desc, roc_ema_volume_matrix),
@@ -169,6 +160,8 @@ STRATEGY_REGISTRY = {
     "ema_crossover": (ema_crossover_signals, ema_crossover_defaults, ema_crossover_grid, ema_crossover_desc, ema_crossover_matrix),
     # New injected strategy
     "injected_momentum_atr_volume": (injected_momentum_atr_volume_signals, injected_momentum_atr_volume_defaults, injected_momentum_atr_volume_grid, injected_momentum_atr_volume_desc, injected_momentum_atr_volume_matrix),
+    # New informed strategy
+    "informed_simple_adaptive": (informed_simple_adaptive_signals, informed_simple_adaptive_defaults, informed_simple_adaptive_grid, informed_simple_adaptive_desc, informed_simple_adaptive_matrix),
 }
 
 # Diverse ticker list for cross-ticker validation (excludes low-liquidity / meme stocks)
