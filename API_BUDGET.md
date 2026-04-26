@@ -3,123 +3,84 @@
 # Last Updated: 2026-04-25
 # Source: https://docs.bigmodel.cn/cn/coding-plan
 
-## ⚠️ CRITICAL: It's NOT Token Limits — It's PROMPT Limits
+## ⚠️ CRITICAL: It's PROMPT Limits, Not Token Limits
 
 The GLM Coding Plan limits by **prompts per 5 hours**, not raw token count.
 Each cron run = 1 prompt. Each prompt internally calls the model ~15-20 times.
 
 ## Provider
-- **Provider:** Zhipu AI (z.ai) — GLM Coding Plan Pro
+- **Provider:** Zhipu AI (z.ai) — GLM Coding Plan
 - **API Base:** https://api.z.ai/api/coding/paas/v4/v1
-- **Plan:** Pro subscription ($X/month)
+- **Plan:** Grandfathered Pro (no weekly limit confirmed by user)
 
-## Hard Limits (Pro Plan)
+## Hard Limits
 
-| Limit | Amount | Resets |
-|-------|--------|--------|
+| Limit | Amount | Notes |
+|-------|--------|-------|
 | **Per 5 hours** | ~400 prompts | Rolling 5h window |
-| **Per week** | ~2000 prompts | 7-day cycle from subscription |
+| **Per week** | N/A | Grandfathered plan — no weekly cap |
 
 ## Multiplier System
 
-GLM-5-Turbo is a "high-tier model" — each prompt costs MORE than 1x:
+GLM-5-Turbo has a higher cost per prompt:
 
-| Time Period | Multiplier | Effective Prompts per 5h |
-|-------------|-----------|--------------------------|
-| Off-peak (now until Apr 30) | **1x** (limited promo!) | 400 |
-| Off-peak (after Apr 30) | **2x** | 200 |
-| Peak (14:00-18:00 UTC+8 / 02:00-06:00 PST) | **3x** | ~133 |
+| Time Period | Multiplier | Notes |
+|-------------|-----------|-------|
+| Off-peak (now until Apr 30) | **1x** | Limited promo |
+| Off-peak (after Apr 30) | **2x** | Standard |
+| Peak (14:00-18:00 UTC+8 / 02:00-06:00 PST) | **3x** | |
+| **GLM-4.7** | **1x always** | No multiplier! |
 
-**⚠️ OpenClaw is SECONDARY PRIORITY** — Coding Agent tasks (Claude Code, etc.) get priority. Under high load, OpenClaw tasks get queued/rate-limited automatically.
+**⚠️ OpenClaw is SECONDARY PRIORITY** — Coding Agent tasks get priority first.
 
-## Current Cron Schedule (Budget-Optimized)
+## Current Cron Setup (Optimized)
 
-| Agent | Frequency | Prompts/5h | Prompts/Week | Light Ctx |
-|-------|-----------|-----------|--------------|-----------|
-| crabquant-wave | Every 15min | 20 | 672 | ✅ |
-| crabquant-invent | Every 2h | 2-3 | 84 | ❌ |
-| crabquant-validate | Every 2h | 2-3 | 84 | ✅ |
-| crabquant-meta | Every 3h | 1-2 | 56 | ✅ |
-| **CrabQuant Total** | | **~27** | **~896** | |
-| main (CodeCrab) | Heartbeats + chat | ~10 | ~336 | ❌ |
-| bella | Weekday crons | ~2 | ~20 | ❌ |
-| **Grand Total** | | **~39** | **~1252** | |
+| Agent | Model | Frequency | Prompts/5h | Multiplier |
+|-------|-------|-----------|-----------|------------|
+| crabquant-wave | **GLM-4.7** | Every 15min | 20 | 1x |
+| crabquant-invent | **GLM-5-Turbo** | Every 2h | 2-3 | 2-3x |
+| crabquant-validate | **GLM-4.7** | Every 2h | 2-3 | 1x |
+| crabquant-meta | **GLM-4.7** | Every 3h | 1-2 | 1x |
+| **CrabQuant Total** | | | **~27** | **~33 effective** |
+| main (CodeCrab) | GLM-5-Turbo | Chat/heartbeat | ~10 | 2-3x |
+| bella | GLM-5-Turbo | Weekday crons | ~2 | 2-3x |
+| **Grand Total** | | | **~39** | **~52 effective** |
 
-### At 2x multiplier (after April 30):
-- 39 prompts × 2 = **78 effective per 5h** (well under 400)
-- Weekly: 1252 × 2 = **2504 effective** (over 2000 weekly limit!)
+**52 effective prompts per 5h — well under the 400 budget.**
 
-### At 1x multiplier (current, until April 30):
-- 39 prompts × 1 = **39 effective per 5h** (well under 400)
-- Weekly: **1252** (under 2000 weekly limit) ✅
+## Key Optimization: GLM-4.7 for Script-Only Tasks
 
-## Weekly Budget is the Real Constraint
+Wave, validate, and meta agents just run Python scripts — no creative intelligence needed.
+Using GLM-4.7 (1x multiplier always) instead of GLM-5-Turbo (2-3x) saves massive budget.
 
-After April 30, the weekly budget (2000) becomes the bottleneck:
-- 2000 / 2x = 1000 real prompts/week
-- Current schedule: ~1252 real prompts/week = **25% over budget**
-
-### If Over Weekly Budget
-Reduce wave to every 20min → 504/week → total ~1028/week (under budget with 2x)
+Only the **invent** agent stays on GLM-5-Turbo because it actually needs to write novel code.
 
 ## Emergency Procedures
 
-### If you hit rate limits (429 errors, timeouts):
-
-**Quick fix — disable non-essential crons:**
+### If you hit rate limits:
 ```bash
+# Quick — disable non-essential
 openclaw cron edit crabquant-meta --disabled
 openclaw cron edit crabquant-validate --disabled
-openclaw cron edit crabquant-improve --disabled
-# Keep only wave running
-```
 
-**Slower fix — reduce wave frequency:**
-```bash
+# Reduce wave frequency
 openclaw cron edit crabquant-wave --every 30m
-```
 
-**Full stop:**
-```bash
+# Full stop
 openclaw cron edit crabquant-wave --disabled
 openclaw cron edit crabquant-improve --disabled
 openclaw cron edit crabquant-validate --disabled
 openclaw cron edit crabquant-meta --disabled
 ```
 
-### Recovery
-- Wait for 5-hour window to reset
-- Re-enable crons one at a time
-- Check usage: https://www.bigmodel.cn/coding-plan/personal/usage
+### Recovery: Wait for 5h window reset, re-enable one at a time.
 
-## Optimization Strategies
+## Throughput
 
-1. **--light-context** on wave/validate/meta → shorter prompts = less chance of multiplier
-2. **Batch 20 combos per wave run** → 1 prompt does 20 combos worth of work
-3. **NO_REPLY for no-op cycles** → saves output tokens (not prompt count though)
-4. **Minimal prompt text** → reduces internal model calls per prompt
-5. **Avoid peak hours** (02:00-06:00 PST) for non-urgent tasks
-6. **GLM-4.7 for simple tasks** → if we add it as a model option, 1x multiplier always
-
-## Future Improvement: Use GLM-4.7 for Wave
-
-GLM-4.7 doesn't have the 2x/3x multiplier. The wave agent just runs a script —
-it doesn't need GLM-5-Turbo's intelligence. If we switch wave to GLM-4.7:
-- Wave cost: 1x instead of 2-3x
-- Frees up budget for invent/meta to stay on GLM-5-Turbo
-- Can run wave more frequently
-
-To implement:
-```bash
-openclaw cron edit crabquant-wave --model zai/glm-4.7
-```
-
-## Throughput Summary
-
-| Config | Wave Combos/Day | Prompts/Week | Effective/Week (2x) |
-|--------|----------------|--------------|---------------------|
-| Current (safe) | 1,920 | 1,252 | 2,504 |
-| Wave every 20min | 1,440 | 1,028 | 2,056 |
-| Wave on GLM-4.7 | 1,920 | 896 | 1,792 ✅ |
-
-Current config works at 1x (until April 30). After that, consider switching wave to GLM-4.7 or reducing frequency.
+| Metric | Value |
+|--------|-------|
+| Wave combos/day | 1,920 (20 combos × 96 runs) |
+| Inventions/day | 12 |
+| Validations/day | 12 |
+| Meta analyses/day | 8 |
+| Full sweep time | ~616 combos ÷ 20/cycle × 15min ≈ **8 hours** |
