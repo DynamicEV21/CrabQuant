@@ -1,0 +1,27 @@
+[
+  {
+    "key": "roc_ema_volume|CAT|{\"atr_len\": 14, \"atr_mult\": 1.5, \"ema_len\": 15, \"roc_len\": 8, \"trailing_len\": 10, \"vol_sma_len\": 15}",
+    "strategy": "roc_ema_volume",
+    "ticker": "CAT",
+    "vbt_score": 2.0183239833233593,
+    "vbt_sharpe": 2.6576223219722452,
+    "vbt_return": 1.5999390361426409,
+    "confirm_sharpe": 1.6247,
+    "confirm_return": 1.1442,
+    "confirm_max_dd": -0.1105,
+    "confirm_trades": 18,
+    "confirm_win_rate": 0.5,
+    "confirm_profit_factor": 5.5853,
+    "confirm_expectancy": 635.68,
+    "verdict": "ROBUST",
+    "confirmed_at": "2026-04-25T22:05:37.460278",
+    "params": {
+      "roc_len": 8,
+      "ema_len": 15,
+      "vol_sma_len": 15,
+      "atr_len": 14,
+      "atr_mult": 1.5,
+      "trailing_len": 10
+    }
+  }
+]

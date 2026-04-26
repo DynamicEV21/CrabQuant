@@ -253,14 +253,14 @@ class CrabQuantBacktest(Strategy):
     """Base class for all converted CrabQuant strategies.
 
     Subclasses must set:
-        _params: dict of strategy parameters
-        _position_pct: fraction of portfolio to use per trade (default 0.95)
-        _slippage_pct: slippage as fraction (default 0.001)
+        _cq_params: dict of strategy parameters
+        _cq_position_pct: fraction of portfolio to use per trade (default 0.95)
+        _cq_slippage_pct: slippage as fraction (default 0.001)
     """
 
-    _params: dict = {}
-    _position_pct: float = 0.95
-    _slippage_pct: float = 0.001
+    _cq_params: dict = {}
+    _cq_position_pct: float = 0.95
+    _cq_slippage_pct: float = 0.001
 
     def init(self):
         """Compute all indicators. Override in subclasses."""
@@ -274,7 +274,7 @@ class CrabQuantBacktest(Strategy):
         """Enter long if condition is True and not already in position."""
         if condition and not self.position:
             # Adjust size for slippage
-            size = self._position_pct
+            size = self._cq_position_pct
             self.buy(size=size)
 
     def _safe_exit(self, condition: bool):
@@ -320,19 +320,19 @@ def _make_strategy_class(name: str, params: dict, position_pct: float = 0.95,
 def _convert_rsi_crossover(params, pos_pct, slip_pct):
     """RSI Crossover: fast/slow RSI cross with regime filter."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             self.rsi_fast = self.I(_rsi, c, p["fast_len"])
             self.rsi_slow = self.I(_rsi, c, p["slow_len"])
             self.regime = self.I(_rsi, c, p["regime_len"])
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             i = len(self.data) - 1
             if i < 2:
                 return
@@ -358,12 +358,12 @@ def _convert_rsi_crossover(params, pos_pct, slip_pct):
 def _convert_macd_momentum(params, pos_pct, slip_pct):
     """MACD Momentum: histogram momentum shift with trend and volume filter."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             v = self.data.Volume
             self.hist = self.I(_macd, c, p["macd_fast"], p["macd_slow"], p["macd_signal"])
@@ -371,7 +371,7 @@ def _convert_macd_momentum(params, pos_pct, slip_pct):
             self.vol_avg = self.I(_sma, v, p["volume_window"])
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             i = len(self.data) - 1
             if i < 3:
                 return
@@ -403,12 +403,12 @@ def _convert_macd_momentum(params, pos_pct, slip_pct):
 def _convert_adx_pullback(params, pos_pct, slip_pct):
     """ADX Pullback: ADX trend + pullback to EMA entry, ATR take-profit exit."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             h = self.data.High
             l = self.data.Low
@@ -417,7 +417,7 @@ def _convert_adx_pullback(params, pos_pct, slip_pct):
             self.atr = self.I(_atr, h, l, c, 14)
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             i = len(self.data) - 1
             if i < 2:
                 return
@@ -446,12 +446,12 @@ def _convert_adx_pullback(params, pos_pct, slip_pct):
 def _convert_atr_channel_breakout(params, pos_pct, slip_pct):
     """ATR Channel Breakout: Keltner Channel breakout with volume and trend."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             h = self.data.High
             l = self.data.Low
@@ -462,7 +462,7 @@ def _convert_atr_channel_breakout(params, pos_pct, slip_pct):
             self.trend_ema = self.I(_ewm_mean, c, 50)
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             i = len(self.data) - 1
             if i < 2:
                 return
@@ -495,12 +495,12 @@ def _convert_atr_channel_breakout(params, pos_pct, slip_pct):
 def _convert_volume_breakout(params, pos_pct, slip_pct):
     """Volume Breakout: Donchian Channel breakout with volume spike."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             h = self.data.High
             l = self.data.Low
             v = self.data.Volume
@@ -509,7 +509,7 @@ def _convert_volume_breakout(params, pos_pct, slip_pct):
             self.vol_avg = self.I(_sma, v, p["vol_len"])
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             i = len(self.data) - 1
             if i < 2:
                 return
@@ -538,12 +538,12 @@ def _convert_volume_breakout(params, pos_pct, slip_pct):
 def _convert_multi_rsi_confluence(params, pos_pct, slip_pct):
     """Multi-RSI Confluence: three timeframe RSI oversold + turning up."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             v = self.data.Volume
             self.rsi1 = self.I(_rsi, c, p["rsi1"])
@@ -552,7 +552,7 @@ def _convert_multi_rsi_confluence(params, pos_pct, slip_pct):
             self.vol_avg = self.I(_sma, v, 20)
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             i = len(self.data) - 1
             if i < 2:
                 return
@@ -582,12 +582,12 @@ def _convert_multi_rsi_confluence(params, pos_pct, slip_pct):
 def _convert_ema_ribbon_reversal(params, pos_pct, slip_pct):
     """EMA Ribbon: 10/20/30/50 EMA alignment with RSI dip entry."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             self.ema10 = self.I(_ewm_mean, c, 10)
             self.ema20 = self.I(_ewm_mean, c, 20)
@@ -596,7 +596,7 @@ def _convert_ema_ribbon_reversal(params, pos_pct, slip_pct):
             self.rsi = self.I(_rsi, c, 14)
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             i = len(self.data) - 1
             if i < 2:
                 return
@@ -624,19 +624,19 @@ def _convert_ema_ribbon_reversal(params, pos_pct, slip_pct):
 def _convert_bollinger_squeeze(params, pos_pct, slip_pct):
     """Bollinger Squeeze: BB squeeze followed by breakout with volume."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             v = self.data.Volume
             self.bbu, self.bbm, self.bbl = self.I(_bbands, c, p["bb_len"], p["bb_std"])
             self.vol_avg = self.I(_sma, v, 20)
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             i = len(self.data) - 1
             if i < p["squeeze_len"] + 2:
                 return
@@ -682,9 +682,9 @@ def _convert_bollinger_squeeze(params, pos_pct, slip_pct):
 def _convert_ichimoku_trend(params, pos_pct, slip_pct):
     """Ichimoku Trend: Tenkan/Kijun cross above cloud."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
             h = self.data.High
@@ -731,12 +731,12 @@ def _convert_ichimoku_trend(params, pos_pct, slip_pct):
 def _convert_invented_momentum_rsi_atr(params, pos_pct, slip_pct):
     """Momentum RSI ATR: ROC+RSI pullback entry in uptrend, ATR trailing stop."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             h = self.data.High
             l = self.data.Low
@@ -747,7 +747,7 @@ def _convert_invented_momentum_rsi_atr(params, pos_pct, slip_pct):
             self.adx_val = self.I(_adx, h, l, c, 14)
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             i = len(self.data) - 1
             if i < 3:
                 return
@@ -789,19 +789,19 @@ def _convert_invented_momentum_rsi_atr(params, pos_pct, slip_pct):
 def _convert_invented_momentum_rsi_stoch(params, pos_pct, slip_pct):
     """Simple RSI oversold with volume spike entry."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             v = self.data.Volume
             self.rsi = self.I(_rsi, c, p["rsi_len"])
             self.vol_avg = self.I(_sma, v, p["volume_window"])
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             rsi = self.rsi[-1]
             vol = self.data.Volume[-1]
             va = self.vol_avg[-1]
@@ -821,12 +821,12 @@ def _convert_invented_momentum_rsi_stoch(params, pos_pct, slip_pct):
 def _convert_vpt_crossover(params, pos_pct, slip_pct):
     """VPT Crossover: VPT signal cross with RSI and volume filter."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             v = self.data.Volume
             self.vpt = self.I(_vpt, c, v)
@@ -838,7 +838,7 @@ def _convert_vpt_crossover(params, pos_pct, slip_pct):
             self.vol_sma = self.I(_sma, v, p["vol_sma_len"])
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             i = len(self.data) - 1
             if i < 2:
                 return
@@ -865,12 +865,12 @@ def _convert_vpt_crossover(params, pos_pct, slip_pct):
 def _convert_roc_ema_volume(params, pos_pct, slip_pct):
     """ROC + EMA + Volume entry with ATR trailing stop exit."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             h = self.data.High
             l = self.data.Low
@@ -882,7 +882,7 @@ def _convert_roc_ema_volume(params, pos_pct, slip_pct):
             self.trailing_high = self.I(_rolling_max, c, p["trailing_len"])
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             close = self.data.Close[-1]
             roc = self.roc[-1]
             ema = self.ema[-1]
@@ -908,12 +908,12 @@ def _convert_roc_ema_volume(params, pos_pct, slip_pct):
 def _convert_bb_stoch_macd(params, pos_pct, slip_pct):
     """BB + Stochastic + MACD triple confluence mean reversion."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             h = self.data.High
             l = self.data.Low
@@ -922,7 +922,7 @@ def _convert_bb_stoch_macd(params, pos_pct, slip_pct):
             self.macd_h = self.I(_macd, c, p["macd_fast"], p["macd_slow"], p["macd_signal"])
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             i = len(self.data) - 1
             if i < 2:
                 return
@@ -949,18 +949,18 @@ def _convert_bb_stoch_macd(params, pos_pct, slip_pct):
 def _convert_rsi_regime_dip(params, pos_pct, slip_pct):
     """RSI Regime Dip: long RSI regime + short RSI dip timing."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             self.regime_rsi = self.I(_rsi, c, p["regime_len"])
             self.timing_rsi = self.I(_rsi, c, p["timing_len"])
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             regime = self.regime_rsi[-1]
             timing = self.timing_rsi[-1]
 
@@ -980,12 +980,12 @@ def _convert_rsi_regime_dip(params, pos_pct, slip_pct):
 def _convert_ema_crossover(params, pos_pct, slip_pct):
     """EMA Crossover: fast/slow EMA golden/death cross."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             self.ema_fast = self.I(_ewm_mean, c, p["fast_len"])
             self.ema_slow = self.I(_ewm_mean, c, p["slow_len"])
@@ -1014,12 +1014,12 @@ def _convert_ema_crossover(params, pos_pct, slip_pct):
 def _convert_injected_momentum_atr_volume(params, pos_pct, slip_pct):
     """Injected Momentum ATR Volume: ROC + volume + RSI regime + ATR trailing stop."""
     class S(CrabQuantBacktest):
-        _params = params
-        _position_pct = pos_pct
-        _slippage_pct = slip_pct
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
 
         def init(self):
-            p = self._params
+            p = self._cq_params
             c = self.data.Close
             h = self.data.High
             l = self.data.Low
@@ -1032,7 +1032,7 @@ def _convert_injected_momentum_atr_volume(params, pos_pct, slip_pct):
             self.ema_long = self.I(_ewm_mean, c, p["ema_long_len"])
 
         def next(self):
-            p = self._params
+            p = self._cq_params
             close = self.data.Close[-1]
             roc = self.roc[-1]
             vol = self.data.Volume[-1]

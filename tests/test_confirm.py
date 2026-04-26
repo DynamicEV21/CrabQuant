@@ -189,15 +189,15 @@ class TestStrategyConverter:
 
     def test_converter_sets_params(self):
         cls = convert_strategy("ema_crossover", {"fast_len": 9, "slow_len": 21})
-        assert cls._params == {"fast_len": 9, "slow_len": 21}
-        assert cls._position_pct == 0.95
-        assert cls._slippage_pct == 0.001
+        assert cls._cq_params == {"fast_len": 9, "slow_len": 21}
+        assert cls._cq_position_pct == 0.95
+        assert cls._cq_slippage_pct == 0.001
 
     def test_converter_custom_position_size(self):
         cls = convert_strategy("ema_crossover", {"fast_len": 9, "slow_len": 21},
                                position_pct=0.8, slippage_pct=0.002)
-        assert cls._position_pct == 0.8
-        assert cls._slippage_pct == 0.002
+        assert cls._cq_position_pct == 0.8
+        assert cls._cq_slippage_pct == 0.002
 
 
 # ---------------------------------------------------------------------------

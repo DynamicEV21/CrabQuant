@@ -19,15 +19,21 @@ from crabquant.data import load_data
 logger = logging.getLogger(__name__)
 
 
-def _apply_slippage(df: pd.DataFrame, slippage_pct: float) -> pd.DataFrame:
+def _slippage_commission(size, price, _slippage_pct):
+    """Custom commission function that adds slippage to entries.
+    
+    backtesting.py calls commission(size, price) where:
+    - size > 0 means buying (entry)
+    - size < 0 means selling (exit)
+    We add slippage cost only on entries (buying at worse price).
     """
-    Adjust OHLCV data to simulate slippage on entries.
-    Buy at close: effective price = close * (1 + slippage).
-    We don't modify the data directly — instead we pass slippage via
-    the Backtest commission parameter or a custom broker.
-    For simplicity, we use a small additional commission-like drag.
-    """
-    return df
+    # Base commission (0.1%)
+    base = abs(size) * price * 0.001
+    # Slippage: only on entries (size > 0 means we're buying)
+    if size > 0:
+        slip_cost = abs(size) * price * _slippage_pct
+        return base + slip_cost
+    return base
 
 
 def _compute_profit_factor(trades_df: pd.DataFrame) -> float:
@@ -141,18 +147,24 @@ def run_confirmation(
     if bt_df.index.tz is not None:
         bt_df.index = bt_df.index.tz_localize(None)
 
-    # Total commission includes both exchange commission and slippage impact
-    total_commission = commission + slippage_pct
+    # Create slippage-aware commission function
+    slip = slippage_pct
+    slippage_fn = lambda size, price: _slippage_commission(size, price, slip)
 
     # Run backtest
+    # - commission: custom function that adds slippage on entries
+    # - exclusive_orders: can't be in two positions at once
+    # - hedging=False: long-only, no short selling
+    # - finalize_trades: close open positions at end for accurate stats
     try:
         bt = Backtest(
             bt_df,
             strategy_class,
             cash=cash,
-            commission=commission,
+            commission=slippage_fn,
             exclusive_orders=True,
             hedging=False,
+            finalize_trades=True,
         )
         stats = bt.run()
     except Exception as e:

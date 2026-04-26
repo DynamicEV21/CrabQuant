@@ -112,25 +112,37 @@ class BacktestEngine:
 
             sharpe = float(stats.get("Sharpe Ratio", 0))
             total_return = float(stats.get("Total Return [%]", 0)) / 100
-            max_dd = float(stats.get("Max Drawdown [%]", 0)) / 100
-            win_rate = float(stats.get("Win Rate [%]", 0)) / 100
+            # Max Drawdown [%] from stats is positive (e.g. 23.6); negate to match
+            # VectorBT's pf.max_drawdown() convention of negative values (e.g. -0.236)
+            max_dd = -float(stats.get("Max Drawdown [%]", 0)) / 100
             num_trades = int(stats.get("Total Trades", 0))
             calmar = float(stats.get("Calmar Ratio", 0))
             sortino = float(stats.get("Sortino Ratio", 0))
-            avg_trade = float(stats.get("Avg Winning Trade [%]", 0)) / 100 if "Avg Winning Trade [%]" in stats else 0
-            avg_hold = float(stats.get("Avg Holding Duration [# Bars]", 0)) if "Avg Holding Duration [# Bars]" in stats else 0
 
-            # Profit factor
+            # Trade-level metrics computed directly from records for consistency
+            # with run_vectorized() and to avoid pf.stats() quirks (e.g. Win Rate
+            # counts differently, Holding Duration returns 0 for daily freq)
             if len(trades) > 0 and "PnL" in trades.columns:
-                winning = trades[trades["PnL"] > 0]["PnL"].sum()
-                losing = abs(trades[trades["PnL"] < 0]["PnL"].sum())
-                profit_factor = winning / losing if losing > 0 else 999.0
-                best_trade = float(trades["PnL"].max()) if len(trades) > 0 else 0
-                worst_trade = float(trades["PnL"].min()) if len(trades) > 0 else 0
+                winners = trades[trades["PnL"] > 0]
+                losers = trades[trades["PnL"] < 0]
+                win_rate = len(winners) / len(trades) if len(trades) > 0 else 0
+                avg_trade = float(winners["Return"].mean()) if len(winners) > 0 and "Return" in winners.columns else 0
+                profit_factor = float(winners["PnL"].sum()) / abs(losers["PnL"].sum()) if len(losers) > 0 and losers["PnL"].sum() != 0 else (999.0 if len(winners) > 0 else 0.0)
+                best_trade = float(trades["PnL"].max())
+                worst_trade = float(trades["PnL"].min())
+                # Holding duration in bars (trading days)
+                if "Entry Timestamp" in trades.columns and "Exit Timestamp" in trades.columns:
+                    hold_days = (trades["Exit Timestamp"] - trades["Entry Timestamp"]).dt.days
+                    avg_hold = float(hold_days.mean()) if len(hold_days) > 0 else 0
+                else:
+                    avg_hold = 0.0
             else:
+                win_rate = 0.0
+                avg_trade = 0.0
                 profit_factor = 0.0
                 best_trade = 0.0
                 worst_trade = 0.0
+                avg_hold = 0.0
 
             # Composite score: reward consistency and risk management
             # score = sharpe * sqrt(trades/20) * (1 - abs(max_dd))
@@ -237,7 +249,6 @@ class BacktestEngine:
             sharpes = pf.sharpe_ratio().fillna(0).replace([np.inf, -np.inf], 0)
             total_returns = pf.total_return().fillna(0)
             max_drawdowns = pf.max_drawdown().fillna(0)
-            win_rates = pf.trades.win_rate().fillna(0)
             trade_counts = pf.trades.count().fillna(0).astype(int)
             calmars = pf.calmar_ratio().fillna(0).replace([np.inf, -np.inf], 0)
             sortinos = pf.sortino_ratio().fillna(0).replace([np.inf, -np.inf], 0)
@@ -247,7 +258,9 @@ class BacktestEngine:
 
             # Profit factor — manual calculation to avoid read-only array bug in vbt
             profit_factors = pd.Series(0.0, index=entries_df.columns)
-            if len(records) > 0 and "PnL" in records.columns:
+            # Win rate per column (count-based: wins / total trades)
+            win_rates_per_col = pd.Series(0.0, index=entries_df.columns)
+            if len(records) > 0 and "PnL" in records.columns and "Column" in records.columns:
                 win_pnl = records[records["PnL"] > 0].groupby("Column")["PnL"].sum()
                 lose_pnl = records[records["PnL"] < 0].groupby("Column")["PnL"].sum().abs()
                 for col in entries_df.columns:
@@ -255,33 +268,41 @@ class BacktestEngine:
                     l = float(lose_pnl.get(col, 0))
                     profit_factors[col] = w / l if l > 0 else (999.0 if w > 0 else 0.0)
 
-            # ── Trade-level details via groupby (457x faster than per-column loop) ──
+                # Win rate: count of trades with PnL > 0 / total trades per column
+                trade_counts = records.groupby("Column").size()
+                win_counts = records[records["PnL"] > 0].groupby("Column").size()
+                for col in entries_df.columns:
+                    tc = int(trade_counts.get(col, 0))
+                    wc = int(win_counts.get(col, 0))
+                    win_rates_per_col[col] = wc / tc if tc > 0 else 0.0
+
+            # ── Trade-level details via groupby ──
             trade_details = {}
             if len(records) > 0 and "PnL" in records.columns and "Column" in records.columns:
                 grouped = records.groupby("Column")
                 trade_details["best"] = grouped["PnL"].max().to_dict()
                 trade_details["worst"] = grouped["PnL"].min().to_dict()
-                trade_details["avg_win"] = (
-                    records[records["PnL"] > 0].groupby("Column")["PnL"].mean().to_dict()
-                    if (records["PnL"] > 0).any() else {}
+                # avg_trade_return: mean Return (pct) of winning trades per column
+                trade_details["avg_win_pct"] = (
+                    records[records["PnL"] > 0].groupby("Column")["Return"].mean().to_dict()
+                    if "Return" in records.columns and (records["PnL"] > 0).any() else {}
                 )
+                # avg_holding_bars: mean holding days per column
                 trade_details["avg_hold"] = {}
                 if "Entry Timestamp" in records.columns and "Exit Timestamp" in records.columns:
-                    hold_days = (records["Exit Timestamp"] - records["Entry Timestamp"]).dt.days
-                    trade_details["avg_hold"] = records.groupby("Column")["_hold"] if "_hold" in records.columns else {}
-                    # Compute holding duration per column
                     records_copy = records.copy()
-                    records_copy["_hold"] = hold_days
+                    records_copy["_hold"] = (
+                        records_copy["Exit Timestamp"] - records_copy["Entry Timestamp"]
+                    ).dt.days
                     trade_details["avg_hold"] = records_copy.groupby("Column")["_hold"].mean().to_dict()
 
                 # Build lookup with defaults for columns that had no trades
-                _empty = {"best_trade": 0.0, "worst_trade": 0.0, "avg_trade_return": 0.0, "avg_holding_bars": 0.0}
                 col_trades = {}
                 for col in entries_df.columns:
                     col_trades[col] = {
                         "best_trade": float(trade_details["best"].get(col, 0.0)),
                         "worst_trade": float(trade_details["worst"].get(col, 0.0)),
-                        "avg_trade_return": float(trade_details["avg_win"].get(col, 0.0)),
+                        "avg_trade_return": float(trade_details["avg_win_pct"].get(col, 0.0)),
                         "avg_holding_bars": float(trade_details["avg_hold"].get(col, 0.0)),
                     }
             else:
@@ -293,7 +314,7 @@ class BacktestEngine:
                 sharpe = float(sharpes.iloc[i]) if i < len(sharpes) else 0.0
                 total_return = float(total_returns.iloc[i]) if i < len(total_returns) else 0.0
                 max_dd = float(max_drawdowns.iloc[i]) if i < len(max_drawdowns) else 0.0
-                win_rate = float(win_rates.iloc[i]) if i < len(win_rates) else 0.0
+                win_rate = float(win_rates_per_col.iloc[i]) if i < len(win_rates_per_col) else 0.0
                 num_trades = int(trade_counts.iloc[i]) if i < len(trade_counts) else 0
                 calmar = float(calmars.iloc[i]) if i < len(calmars) else 0.0
                 sortino = float(sortinos.iloc[i]) if i < len(sortinos) else 0.0

@@ -30,7 +30,9 @@ class ConfirmationResult:
             "sharpe": self.sharpe,
             "total_return": self.total_return,
             "max_dd": self.max_dd,
+            "max_drawdown": self.max_dd,
             "trades": self.trades,
+            "num_trades": self.trades,
             "win_rate": self.win_rate,
             "profit_factor": self.profit_factor,
             "expectancy": self.expectancy,
@@ -38,6 +40,14 @@ class ConfirmationResult:
             "verdict": self.verdict,
             "notes": self.notes,
         }
+
+    @property
+    def num_trades(self) -> int:
+        return self.trades
+
+    @property
+    def max_drawdown(self) -> float:
+        return self.max_dd
 
 
 # Confirmation thresholds — more lenient than VectorBT because realistic fills are harsher
