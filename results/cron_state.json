@@ -430,7 +430,10 @@
     "multi_rsi_confluence|CRM",
     "bollinger_squeeze|AVGO",
     "atr_channel_breakout|MDB",
-    "bollinger_squeeze|CRM"
+    "bollinger_squeeze|CRM",
+    "volume_breakout|UNH",
+    "volume_breakout|MSFT",
+    "atr_channel_breakout|QCOM"
   ],
   "validated_winners": [
     "CAT|roc_ema_volume",
@@ -530,10 +533,10 @@
     "GOOGL|roc_ema_volume|4949c7f76cbe",
     "GOOGL|roc_ema_volume|1029ad9551b2"
   ],
-  "total_runs": 423,
+  "total_runs": 426,
   "total_winners": 8156,
   "best_score": 2.442654448731927,
-  "last_run": "2026-04-26T08:46:57.173928",
+  "last_run": "2026-04-26T10:00:10.611080",
   "dead_combos": [
     "bb_stoch_macd|ORCL",
     "ema_ribbon_reversal|JNJ",
@@ -548,5 +551,5 @@
   "last_confirm_verdict": "ROBUST",
   "last_confirm_time": "2026-04-26T00:46:49.245432",
   "confirmed_count": 2,
-  "total_passing_iterations": 128568
+  "total_passing_iterations": 128575
 }
