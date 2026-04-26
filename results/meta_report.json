@@ -1,15 +1,23 @@
 {
-  "timestamp": "2026-04-25T22:42:24.848274",
+  "timestamp": "2026-04-26T01:44:22.149134",
   "system": {
-    "total_combos_tested": 191,
-    "dead_combos": 4,
-    "total_winners": 2666,
+    "total_combos_tested": 301,
+    "dead_combos": 5,
+    "total_winners": 4117,
     "validated_robust": 0,
-    "coverage_pct": 97.9
+    "coverage_pct": 98.4
   },
   "strategy_analysis": {
+    "rsi_crossover": {
+      "wins": 22,
+      "best_sharpe": 2.8099354363009112,
+      "best_score": 2.442654448731927,
+      "tickers": [
+        "JNJ"
+      ]
+    },
     "roc_ema_volume": {
-      "wins": 50,
+      "wins": 28,
       "best_sharpe": 2.915618325650432,
       "best_score": 2.0183239833233593,
       "tickers": [
@@ -18,8 +26,14 @@
     }
   },
   "ticker_analysis": {
+    "JNJ": {
+      "wins": 22,
+      "strategies": [
+        "rsi_crossover"
+      ]
+    },
     "CAT": {
-      "wins": 50,
+      "wins": 28,
       "strategies": [
         "roc_ema_volume"
       ]
@@ -27,20 +41,20 @@
   },
   "strategy_stats": {
     "rsi_crossover": {
-      "tested": 15042,
-      "won": 62,
-      "total_sharpe": 73.11430480964074,
-      "total_return": 154.0571531077658,
-      "win_rate": 0.004121792314851749,
-      "avg_sharpe": 0.0048606770914533136
+      "tested": 33042,
+      "won": 393,
+      "total_sharpe": 1504.0312062630394,
+      "total_return": 1915.585327012552,
+      "win_rate": 0.011893953150535682,
+      "avg_sharpe": 0.04551877023978692
     },
     "macd_momentum": {
-      "tested": 14613,
-      "won": 471,
-      "total_sharpe": 6867.777515568174,
-      "total_return": 2659.2398974718026,
-      "win_rate": 0.03223157462533361,
-      "avg_sharpe": 0.46997724735291685
+      "tested": 35025,
+      "won": 848,
+      "total_sharpe": 10882.478972740226,
+      "total_return": 4689.2379264853425,
+      "win_rate": 0.02421127765881513,
+      "avg_sharpe": 0.31070603776560246
     },
     "invented_momentum_rsi_stoch": {
       "tested": 14,
@@ -51,36 +65,36 @@
       "avg_sharpe": 0.9827310008995245
     },
     "volume_breakout": {
-      "tested": 110,
-      "won": 4,
-      "total_sharpe": 85.85747337521536,
-      "total_return": 26.106934660478554,
-      "win_rate": 0.03636363636363636,
-      "avg_sharpe": 0.7805224852292306
+      "tested": 902,
+      "won": 17,
+      "total_sharpe": 146.25899525882386,
+      "total_return": 75.84523944146221,
+      "win_rate": 0.018847006651884702,
+      "avg_sharpe": 0.16214966214947213
     },
     "atr_channel_breakout": {
-      "tested": 726,
-      "won": 40,
-      "total_sharpe": 201.75771788423677,
-      "total_return": 76.56585277637662,
-      "win_rate": 0.05509641873278237,
-      "avg_sharpe": 0.27790319267801206
+      "tested": 1266,
+      "won": 53,
+      "total_sharpe": 399.88219728692286,
+      "total_return": 152.46529860757482,
+      "win_rate": 0.04186413902053712,
+      "avg_sharpe": 0.31586271507655833
     },
     "adx_pullback": {
-      "tested": 835,
-      "won": 10,
-      "total_sharpe": 418.93114045693136,
-      "total_return": 343.71019090292504,
-      "win_rate": 0.011976047904191617,
-      "avg_sharpe": 0.5017139406669837
+      "tested": 1564,
+      "won": 59,
+      "total_sharpe": 1109.2195690342496,
+      "total_return": 620.5256346949619,
+      "win_rate": 0.037723785166240406,
+      "avg_sharpe": 0.709219673295556
     },
     "bollinger_squeeze": {
-      "tested": 2,
-      "won": 0,
-      "total_sharpe": 0.7736159491890848,
-      "total_return": 0.11994447154493595,
-      "win_rate": 0.0,
-      "avg_sharpe": 0.3868079745945424
+      "tested": 164,
+      "won": 5,
+      "total_sharpe": 136.66556521455087,
+      "total_return": 35.441631656068296,
+      "win_rate": 0.03048780487804878,
+      "avg_sharpe": 0.8333266171618955
     },
     "invented_momentum_rsi_atr": {
       "tested": 3,
@@ -91,20 +105,20 @@
       "avg_sharpe": 0.01332744421886689
     },
     "multi_rsi_confluence": {
-      "tested": 325,
-      "won": 0,
-      "total_sharpe": -37.97569932242041,
-      "total_return": -5.3463252078961245,
-      "win_rate": 0.0,
-      "avg_sharpe": -0.11684830560744741
+      "tested": 6481,
+      "won": 2,
+      "total_sharpe": 1427.45638885106,
+      "total_return": 182.79183369253036,
+      "win_rate": 0.00030859435272334514,
+      "avg_sharpe": 0.22025249017914827
     },
     "ema_ribbon_reversal": {
-      "tested": 4,
+      "tested": 10,
       "won": 0,
-      "total_sharpe": 0.9280960397813521,
-      "total_return": 0.15817717783622864,
+      "total_sharpe": 1.886282011382045,
+      "total_return": 0.21804334724107874,
       "win_rate": 0.0,
-      "avg_sharpe": 0.23202400994533803
+      "avg_sharpe": 0.1886282011382045
     },
     "ichimoku_trend": {
       "tested": 1,
@@ -115,27 +129,51 @@
       "avg_sharpe": 1.6102394931644963
     },
     "rsi_regime_dip": {
-      "tested": 432,
-      "won": 0,
-      "total_sharpe": 128.11999424342366,
-      "total_return": 26.122197618103403,
-      "win_rate": 0.0,
-      "avg_sharpe": 0.2965740607486659
+      "tested": 864,
+      "won": 37,
+      "total_sharpe": 442.11997330978903,
+      "total_return": 85.09140006865707,
+      "win_rate": 0.04282407407407408,
+      "avg_sharpe": 0.5117129320715151
     },
     "roc_ema_volume": {
-      "tested": 14256,
-      "won": 2078,
-      "total_sharpe": 6770.208276185316,
-      "total_return": 5005.570320899623,
-      "win_rate": 0.14576318742985409,
-      "avg_sharpe": 0.4749023762756254
+      "tested": 46656,
+      "won": 2922,
+      "total_sharpe": 20221.69371776348,
+      "total_return": 11820.070750703531,
+      "win_rate": 0.06262860082304526,
+      "avg_sharpe": 0.43342107591228307
+    },
+    "bb_stoch_macd": {
+      "tested": 36,
+      "won": 0,
+      "total_sharpe": 8.8983206921692,
+      "total_return": 1.49760039554914,
+      "win_rate": 0.0,
+      "avg_sharpe": 0.24717557478247779
+    },
+    "injected_momentum_atr_volume": {
+      "tested": 177147,
+      "won": 0,
+      "total_sharpe": 359044.7418072811,
+      "total_return": 274536.57320649613,
+      "win_rate": 0.0,
+      "avg_sharpe": 2.0268180765538286
+    },
+    "vpt_crossover": {
+      "tested": 243,
+      "won": 46,
+      "total_sharpe": 297.0412122685952,
+      "total_return": 83.9945549760259,
+      "win_rate": 0.18930041152263374,
+      "avg_sharpe": 1.2223918200353712
     }
   },
   "ticker_stats": {
     "CAT": {
-      "tested": 1303,
-      "won": 1113,
-      "win_rate": 0.8541826554105909
+      "tested": 179359,
+      "won": 1213,
+      "win_rate": 0.006762972585707993
     },
     "NVDA": {
       "tested": 1300,
@@ -143,47 +181,47 @@
       "win_rate": 0.0
     },
     "MA": {
-      "tested": 38,
+      "tested": 1739,
       "won": 0,
       "win_rate": 0.0
     },
     "MRK": {
-      "tested": 1299,
+      "tested": 1371,
       "won": 0,
       "win_rate": 0.0
     },
     "TSLA": {
-      "tested": 11,
+      "tested": 1307,
       "won": 1,
-      "win_rate": 0.09090909090909091
+      "win_rate": 0.0007651109410864575
     },
     "JPM": {
-      "tested": 1333,
+      "tested": 1693,
       "won": 0,
       "win_rate": 0.0
     },
     "TXN": {
-      "tested": 3,
+      "tested": 3036,
       "won": 0,
       "win_rate": 0.0
     },
     "PFE": {
-      "tested": 82,
+      "tested": 3082,
       "won": 0,
       "win_rate": 0.0
     },
     "AMZN": {
-      "tested": 2,
-      "won": 0,
-      "win_rate": 0.0
+      "tested": 1775,
+      "won": 1,
+      "win_rate": 0.0005633802816901409
     },
     "GOOGL": {
-      "tested": 4,
+      "tested": 364,
       "won": 0,
       "win_rate": 0.0
     },
     "DE": {
-      "tested": 3,
+      "tested": 75,
       "won": 0,
       "win_rate": 0.0
     },
@@ -193,84 +231,84 @@
       "win_rate": 0.0
     },
     "QQQ": {
-      "tested": 4,
+      "tested": 364,
       "won": 0,
       "win_rate": 0.0
     },
     "CRM": {
-      "tested": 3,
+      "tested": 2955,
       "won": 0,
       "win_rate": 0.0
     },
     "AAPL": {
-      "tested": 3003,
+      "tested": 3006,
       "won": 6,
-      "win_rate": 0.001998001998001998
+      "win_rate": 0.001996007984031936
     },
     "SHOP": {
-      "tested": 39,
+      "tested": 1695,
       "won": 0,
       "win_rate": 0.0
     },
     "COP": {
-      "tested": 38,
+      "tested": 1334,
       "won": 0,
       "win_rate": 0.0
     },
     "GE": {
-      "tested": 7,
+      "tested": 1303,
       "won": 1,
-      "win_rate": 0.14285714285714285
+      "win_rate": 0.0007674597083653108
     },
     "SNOW": {
-      "tested": 3,
+      "tested": 1371,
       "won": 0,
       "win_rate": 0.0
     },
     "ADBE": {
-      "tested": 4,
-      "won": 0,
-      "win_rate": 0.0
+      "tested": 364,
+      "won": 2,
+      "win_rate": 0.005494505494505495
     },
     "MSFT": {
-      "tested": 4,
+      "tested": 1303,
       "won": 0,
       "win_rate": 0.0
     },
     "NET": {
-      "tested": 39,
+      "tested": 1371,
       "won": 1,
-      "win_rate": 0.02564102564102564
+      "win_rate": 0.0007293946024799417
     },
     "GLD": {
-      "tested": 38,
-      "won": 0,
-      "win_rate": 0.0
+      "tested": 155,
+      "won": 36,
+      "win_rate": 0.23225806451612904
     },
     "MDB": {
-      "tested": 1378,
+      "tested": 4618,
       "won": 0,
       "win_rate": 0.0
     },
     "BLK": {
-      "tested": 39,
+      "tested": 1335,
       "won": 0,
       "win_rate": 0.0
     },
     "GS": {
-      "tested": 38,
-      "won": 0,
-      "win_rate": 0.0
+      "tested": 1775,
+      "won": 557,
+      "win_rate": 0.31380281690140843
     },
     "NKE": {
-      "tested": 83,
+      "tested": 1451,
       "won": 0,
       "win_rate": 0.0
     },
     "BA": {
-      "tested": 2953,
+      "tested": 4366,
       "won": 328,
-      "win_rate": 0.1110734845919404
+      "win_rate": 0.07512597343105817
     },
     "META": {
       "tested": 119,
@@ -278,12 +316,12 @@
       "win_rate": 0.0
     },
     "INTC": {
-      "tested": 3,
-      "won": 1,
-      "win_rate": 0.3333333333333333
+      "tested": 4695,
+      "won": 80,
+      "win_rate": 0.01703940362087327
     },
     "DDOG": {
-      "tested": 2954,
+      "tested": 2990,
       "won": 0,
       "win_rate": 0.0
     },
@@ -293,54 +331,54 @@
       "win_rate": 0.0
     },
     "QCOM": {
-      "tested": 2,
+      "tested": 4250,
       "won": 0,
       "win_rate": 0.0
     },
     "TLT": {
-      "tested": 3,
+      "tested": 363,
       "won": 0,
       "win_rate": 0.0
     },
     "ORCL": {
-      "tested": 4681,
+      "tested": 5086,
       "won": 148,
-      "win_rate": 0.031617175817133095
+      "win_rate": 0.02909948879276445
     },
     "CVX": {
-      "tested": 39,
+      "tested": 1659,
       "won": 0,
       "win_rate": 0.0
     },
     "JNJ": {
-      "tested": 1301,
-      "won": 694,
-      "win_rate": 0.5334358186010761
+      "tested": 4301,
+      "won": 993,
+      "win_rate": 0.23087654033945593
     },
     "V": {
-      "tested": 1297,
+      "tested": 4369,
       "won": 0,
       "win_rate": 0.0
     },
     "PLTR": {
-      "tested": 1415,
-      "won": 269,
-      "win_rate": 0.19010600706713782
+      "tested": 4331,
+      "won": 535,
+      "win_rate": 0.12352805356730547
     },
     "IWM": {
-      "tested": 2,
+      "tested": 4298,
       "won": 0,
       "win_rate": 0.0
     },
     "NFLX": {
-      "tested": 362,
-      "won": 5,
-      "win_rate": 0.013812154696132596
+      "tested": 3314,
+      "won": 83,
+      "win_rate": 0.02504526252263126
     },
     "AVGO": {
-      "tested": 38,
+      "tested": 1334,
       "won": 2,
-      "win_rate": 0.05263157894736842
+      "win_rate": 0.0014992503748125937
     },
     "F": {
       "tested": 118,
@@ -348,44 +386,44 @@
       "win_rate": 0.0
     },
     "AMD": {
-      "tested": 38,
+      "tested": 1370,
       "won": 1,
-      "win_rate": 0.02631578947368421
+      "win_rate": 0.00072992700729927
     },
     "RBLX": {
-      "tested": 37,
-      "won": 24,
-      "win_rate": 0.6486486486486487
+      "tested": 397,
+      "won": 37,
+      "win_rate": 0.09319899244332494
     },
     "GM": {
-      "tested": 4298,
+      "tested": 4334,
       "won": 0,
       "win_rate": 0.0
     },
     "DIS": {
-      "tested": 3082,
-      "won": 0,
-      "win_rate": 0.0
+      "tested": 4414,
+      "won": 1,
+      "win_rate": 0.00022655188038060717
     },
     "XLK": {
-      "tested": 4330,
+      "tested": 4690,
       "won": 12,
-      "win_rate": 0.002771362586605081
+      "win_rate": 0.00255863539445629
     },
     "XOM": {
-      "tested": 36,
-      "won": 0,
-      "win_rate": 0.0
+      "tested": 1737,
+      "won": 4,
+      "win_rate": 0.002302820955670697
     },
     "HON": {
-      "tested": 117,
-      "won": 0,
-      "win_rate": 0.0
+      "tested": 3393,
+      "won": 32,
+      "win_rate": 0.009431181844974948
     },
     "T": {
-      "tested": 2916,
-      "won": 6,
-      "win_rate": 0.00205761316872428
+      "tested": 4293,
+      "won": 254,
+      "win_rate": 0.05916608432331703
     },
     "XLE": {
       "tested": 3081,
@@ -393,22 +431,39 @@
       "win_rate": 0.017526777020447908
     },
     "XLF": {
-      "tested": 3000,
+      "tested": 3036,
       "won": 0,
       "win_rate": 0.0
+    },
+    "SCHW": {
+      "tested": 7536,
+      "won": 1,
+      "win_rate": 0.0001326963906581741
     }
   },
   "recommendations": [
     {
+      "action": "expand_grid",
+      "strategy": "vpt_crossover",
+      "reason": "Win rate 19% (46/243)",
+      "priority": "medium"
+    },
+    {
       "action": "retire",
-      "strategy": "multi_rsi_confluence",
-      "reason": "0% win rate after 325 tests",
+      "strategy": "ema_ribbon_reversal",
+      "reason": "0% win rate after 10 tests",
       "priority": "low"
     },
     {
       "action": "retire",
-      "strategy": "rsi_regime_dip",
-      "reason": "0% win rate after 432 tests",
+      "strategy": "bb_stoch_macd",
+      "reason": "0% win rate after 36 tests",
+      "priority": "low"
+    },
+    {
+      "action": "retire",
+      "strategy": "injected_momentum_atr_volume",
+      "reason": "0% win rate after 177147 tests",
       "priority": "low"
     },
     {
@@ -420,43 +475,43 @@
     {
       "action": "deprioritize_ticker",
       "ticker": "MA",
-      "reason": "0% win rate after 38 tests",
+      "reason": "0% win rate after 1739 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "MRK",
-      "reason": "0% win rate after 1299 tests",
+      "reason": "0% win rate after 1371 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "JPM",
-      "reason": "0% win rate after 1333 tests",
+      "reason": "0% win rate after 1693 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "TXN",
-      "reason": "0% win rate after 3 tests",
+      "reason": "0% win rate after 3036 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "PFE",
-      "reason": "0% win rate after 82 tests",
+      "reason": "0% win rate after 3082 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "GOOGL",
-      "reason": "0% win rate after 4 tests",
+      "reason": "0% win rate after 364 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "DE",
-      "reason": "0% win rate after 3 tests",
+      "reason": "0% win rate after 75 tests",
       "priority": "low"
     },
     {
@@ -468,73 +523,55 @@
     {
       "action": "deprioritize_ticker",
       "ticker": "QQQ",
-      "reason": "0% win rate after 4 tests",
+      "reason": "0% win rate after 364 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "CRM",
-      "reason": "0% win rate after 3 tests",
+      "reason": "0% win rate after 2955 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "SHOP",
-      "reason": "0% win rate after 39 tests",
+      "reason": "0% win rate after 1695 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "COP",
-      "reason": "0% win rate after 38 tests",
+      "reason": "0% win rate after 1334 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "SNOW",
-      "reason": "0% win rate after 3 tests",
-      "priority": "low"
-    },
-    {
-      "action": "deprioritize_ticker",
-      "ticker": "ADBE",
-      "reason": "0% win rate after 4 tests",
+      "reason": "0% win rate after 1371 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "MSFT",
-      "reason": "0% win rate after 4 tests",
-      "priority": "low"
-    },
-    {
-      "action": "deprioritize_ticker",
-      "ticker": "GLD",
-      "reason": "0% win rate after 38 tests",
+      "reason": "0% win rate after 1303 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "MDB",
-      "reason": "0% win rate after 1378 tests",
+      "reason": "0% win rate after 4618 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "BLK",
-      "reason": "0% win rate after 39 tests",
-      "priority": "low"
-    },
-    {
-      "action": "deprioritize_ticker",
-      "ticker": "GS",
-      "reason": "0% win rate after 38 tests",
+      "reason": "0% win rate after 1335 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "NKE",
-      "reason": "0% win rate after 83 tests",
+      "reason": "0% win rate after 1451 tests",
       "priority": "low"
     },
     {
@@ -546,7 +583,7 @@
     {
       "action": "deprioritize_ticker",
       "ticker": "DDOG",
-      "reason": "0% win rate after 2954 tests",
+      "reason": "0% win rate after 2990 tests",
       "priority": "low"
     },
     {
@@ -557,20 +594,32 @@
     },
     {
       "action": "deprioritize_ticker",
+      "ticker": "QCOM",
+      "reason": "0% win rate after 4250 tests",
+      "priority": "low"
+    },
+    {
+      "action": "deprioritize_ticker",
       "ticker": "TLT",
-      "reason": "0% win rate after 3 tests",
+      "reason": "0% win rate after 363 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "CVX",
-      "reason": "0% win rate after 39 tests",
+      "reason": "0% win rate after 1659 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "V",
-      "reason": "0% win rate after 1297 tests",
+      "reason": "0% win rate after 4369 tests",
+      "priority": "low"
+    },
+    {
+      "action": "deprioritize_ticker",
+      "ticker": "IWM",
+      "reason": "0% win rate after 4298 tests",
       "priority": "low"
     },
     {
@@ -582,55 +631,31 @@
     {
       "action": "deprioritize_ticker",
       "ticker": "GM",
-      "reason": "0% win rate after 4298 tests",
-      "priority": "low"
-    },
-    {
-      "action": "deprioritize_ticker",
-      "ticker": "DIS",
-      "reason": "0% win rate after 3082 tests",
-      "priority": "low"
-    },
-    {
-      "action": "deprioritize_ticker",
-      "ticker": "XOM",
-      "reason": "0% win rate after 36 tests",
-      "priority": "low"
-    },
-    {
-      "action": "deprioritize_ticker",
-      "ticker": "HON",
-      "reason": "0% win rate after 117 tests",
+      "reason": "0% win rate after 4334 tests",
       "priority": "low"
     },
     {
       "action": "deprioritize_ticker",
       "ticker": "XLF",
-      "reason": "0% win rate after 3000 tests",
+      "reason": "0% win rate after 3036 tests",
       "priority": "low"
     },
     {
       "action": "prioritize_ticker",
-      "ticker": "CAT",
-      "reason": "Win rate 85% (1113/1303)",
+      "ticker": "GS",
+      "reason": "Win rate 31% (557/1775)",
       "priority": "medium"
     },
     {
       "action": "prioritize_ticker",
-      "ticker": "RBLX",
-      "reason": "Win rate 65% (24/37)",
+      "ticker": "GLD",
+      "reason": "Win rate 23% (36/155)",
       "priority": "medium"
     },
     {
       "action": "prioritize_ticker",
       "ticker": "JNJ",
-      "reason": "Win rate 53% (694/1301)",
-      "priority": "medium"
-    },
-    {
-      "action": "prioritize_ticker",
-      "ticker": "INTC",
-      "reason": "Win rate 33% (1/3)",
+      "reason": "Win rate 23% (993/4301)",
       "priority": "medium"
     }
   ],

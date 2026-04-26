@@ -23,11 +23,11 @@ DEFAULT_PARAMS = {
 }
 
 PARAM_GRID = {
-    "regime_len": [30, 40, 50, 60],
-    "timing_len": [10, 14, 21],
-    "dip_level": [30, 35, 40, 45],
-    "recovery_level": [55, 60, 65],
-    "regime_bull": [45, 50, 55],
+    "regime_len": [30, 40, 50, 60, 70, 80],
+    "timing_len": [7, 10, 12, 14, 17, 21, 25],
+    "dip_level": [25, 30, 32, 35, 38, 40, 42, 45],
+    "recovery_level": [50, 52, 55, 58, 60, 62, 65, 68],
+    "regime_bull": [40, 45, 48, 50, 52, 55, 58],
 }
 
 DESCRIPTION = (

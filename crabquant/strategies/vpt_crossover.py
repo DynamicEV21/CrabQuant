@@ -24,11 +24,11 @@ DEFAULT_PARAMS = {
 }
 
 PARAM_GRID = {
-    "vpt_signal_len": [10, 20, 30],
-    "rsi_len": [10, 14, 21],
-    "vol_sma_len": [15, 20, 30],
-    "rsi_entry": [35, 40, 45],
-    "rsi_exit": [75, 80, 85],
+    "vpt_signal_len": [5, 10, 15, 20, 25, 30, 35],
+    "rsi_len": [7, 10, 12, 14, 17, 21, 25],
+    "vol_sma_len": [10, 15, 20, 25, 30, 40],
+    "rsi_entry": [25, 30, 35, 38, 40, 42, 45],
+    "rsi_exit": [70, 75, 80, 82, 85, 88],
 }
 
 DESCRIPTION = (
