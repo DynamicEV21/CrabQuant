@@ -4,11 +4,15 @@
     "macd_momentum|NVDA",
     "macd_momentum|MA",
     "rsi_crossover|MRK",
-    "rsi_crossover|TSLA"
+    "rsi_crossover|TSLA",
+    "rsi_crossover|JPM",
+    "macd_momentum|TXN",
+    "macd_momentum|PFE",
+    "invented_momentum_rsi_stoch|CAT"
   ],
   "validated_winners": [],
-  "total_runs": 5,
-  "total_winners": 1,
+  "total_runs": 9,
+  "total_winners": 2,
   "best_score": 1.3775809483781392,
-  "last_run": "2026-04-25T19:16:36.846358"
+  "last_run": "2026-04-25T19:24:36.705993"
 }

@@ -529,6 +529,7 @@ def main():
     parser.add_argument("--analyze", action="store_true", help="Run self-improvement analysis")
     parser.add_argument("--status", action="store_true", help="Print current progress")
     parser.add_argument("--max-iters", type=int, default=10, help="Max optimization iterations")
+    parser.add_argument("--combos", type=int, default=1, help="Number of combos to run this cycle")
     args = parser.parse_args()
 
     if args.status:
@@ -565,74 +566,73 @@ def main():
             save_state(state)
         return
 
-    # Discovery mode
-    combo = get_next_combo(state, args.strategy, args.ticker)
-    if combo is None:
-        print("No combo to run.")
-        return
+    # Discovery mode — run N combos
+    for cycle in range(args.combos):
+        combo = get_next_combo(state, args.strategy, args.ticker)
+        if combo is None:
+            print("No combo to run.")
+            break
 
-    strategy_name, ticker = combo
-    strategy_fn, defaults, param_grid, desc = STRATEGY_REGISTRY[strategy_name]
+        strategy_name, ticker = combo
+        strategy_fn, defaults, param_grid, desc = STRATEGY_REGISTRY[strategy_name]
 
-    print(f"\n🦀 CrabQuant Cron v2 — {datetime.now().strftime('%H:%M:%S')}")
-    print(f"Round {state.get('round', 0)} | {ticker}/{strategy_name}")
-    print(f"Desc: {desc[:70]}...")
+        print(f"\n🦀 CrabQuant Cron v2 — {datetime.now().strftime('%H:%M:%S')}")
+        print(f"Round {state.get('round', 0)} | {ticker}/{strategy_name} | Cycle {cycle+1}/{args.combos}")
+        print(f"Desc: {desc[:70]}...")
 
-    start = time.time()
+        start = time.time()
 
-    try:
-        df = load_data(ticker)
-    except Exception as e:
-        print(f"❌ Data load failed: {e}")
+        try:
+            df = load_data(ticker)
+        except Exception as e:
+            print(f"❌ Data load failed: {e}")
+            state["completed_combos"].append(f"{strategy_name}|{ticker}")
+            save_state(state)
+            continue
+
+        engine = BacktestEngine()
+        result = directed_search(
+            strategy_fn, defaults, param_grid, df, engine,
+            strategy_name, ticker, max_iters=args.max_iters
+        )
+
+        elapsed = time.time() - start
+
+        # Update state
         state["completed_combos"].append(f"{strategy_name}|{ticker}")
+        state["total_runs"] += 1
+        state["last_run"] = datetime.now().isoformat()
+
+        if result and result.num_trades == 0:
+            dead = set(state.get("dead_combos", []))
+            dead.add(f"{strategy_name}|{ticker}")
+            state["dead_combos"] = sorted(dead)
+            print(f"\n💀 Zero trades — marked as dead combo")
+            save_result(result)
+        elif result and result.passed:
+            state["total_winners"] += 1
+            if result.score > state["best_score"]:
+                state["best_score"] = result.score
+            save_result(result)
+            save_winner(result)
+            print(f"\n🏆 WINNER! {ticker}/{strategy_name} | "
+                  f"Sharpe {result.sharpe:.2f} | Return {result.total_return:.1%} | "
+                  f"Score {result.score:.2f} | ({elapsed:.0f}s)")
+        elif result:
+            save_result(result)
+            print(f"\n❌ No pass — best: Sharpe {result.sharpe:.2f} | ({elapsed:.0f}s)")
+        else:
+            dead = set(state.get("dead_combos", []))
+            dead.add(f"{strategy_name}|{ticker}")
+            state["dead_combos"] = sorted(dead)
+            print(f"\n⏭️ Skipped — dead combo | ({elapsed:.0f}s)")
+
         save_state(state)
-        return
 
-    engine = BacktestEngine()
-    result = directed_search(
-        strategy_fn, defaults, param_grid, df, engine,
-        strategy_name, ticker, max_iters=args.max_iters
-    )
-
-    elapsed = time.time() - start
-
-    # Update state
-    state["completed_combos"].append(f"{strategy_name}|{ticker}")
-    state["total_runs"] += 1
-    state["last_run"] = datetime.now().isoformat()
-
-    if result and result.num_trades == 0:
-        # Mark as dead combo — skip in future rounds
-        dead = set(state.get("dead_combos", []))
-        dead.add(f"{strategy_name}|{ticker}")
-        state["dead_combos"] = sorted(dead)
-        print(f"\n💀 Zero trades — marked as dead combo")
-        save_result(result)
-    elif result and result.passed:
-        state["total_winners"] += 1
-        if result.score > state["best_score"]:
-            state["best_score"] = result.score
-        save_result(result)
-        save_winner(result)
-        print(f"\n🏆 WINNER! {ticker}/{strategy_name} | "
-              f"Sharpe {result.sharpe:.2f} | Return {result.total_return:.1%} | "
-              f"Score {result.score:.2f} | ({elapsed:.0f}s)")
-    elif result:
-        save_result(result)
-        print(f"\n❌ No pass — best: Sharpe {result.sharpe:.2f} | ({elapsed:.0f}s)")
-    else:
-        # Mark dead
-        dead = set(state.get("dead_combos", []))
-        dead.add(f"{strategy_name}|{ticker}")
-        state["dead_combos"] = sorted(dead)
-        print(f"\n⏭️ Skipped — dead combo | ({elapsed:.0f}s)")
-
-    save_state(state)
-
-    # Run analysis every 10 combos
-    if state["total_runs"] % 10 == 0:
-        print(f"\n📊 Running analysis (every 10 runs)...")
-        run_analysis()
+        # Run analysis every 10 combos
+        if state["total_runs"] % 10 == 0:
+            print(f"\n📊 Running analysis (every 10 runs)...")
+            run_analysis()
 
 
 if __name__ == "__main__":

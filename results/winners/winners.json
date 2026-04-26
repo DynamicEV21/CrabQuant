@@ -20,5 +20,26 @@
       "exit_level": 35
     },
     "discovered": "2026-04-25T18:51:52.139720"
+  },
+  {
+    "key": "invented_momentum_rsi_stoch|CAT|{\"rsi_len\": 7, \"rsi_oversold\": 35, \"volume_mult\": 1.5, \"volume_window\": 20}",
+    "ticker": "CAT",
+    "strategy": "invented_momentum_rsi_stoch",
+    "sharpe": 1.7302217253152359,
+    "return": 0.5410726925866858,
+    "max_dd": 0.1049635658645351,
+    "trades": 6,
+    "score": 0.8482094422093911,
+    "win_rate": 1.0,
+    "calmar": 3.5285386020551837,
+    "sortino": 3.5161869938441987,
+    "profit_factor": 999.0,
+    "params": {
+      "rsi_len": 7,
+      "rsi_oversold": 35,
+      "volume_window": 20,
+      "volume_mult": 1.5
+    },
+    "discovered": "2026-04-25T19:24:36.706275"
   }
 ]
