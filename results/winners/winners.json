@@ -22,6 +22,54 @@
     "discovered": "2026-04-25T18:51:52.139720"
   },
   {
+    "key": "macd_momentum|GE|{\"exit_hist\": -0.2, \"macd_fast\": 12, \"macd_signal\": 9, \"macd_slow\": 26, \"sma_len\": 20, \"volume_mult\": 1.2, \"volume_window\": 20}",
+    "ticker": "GE",
+    "strategy": "macd_momentum",
+    "sharpe": 1.9715258486997598,
+    "return": 0.521185037426929,
+    "max_dd": 0.08205999632259103,
+    "trades": 5,
+    "score": 0.9048712224027822,
+    "win_rate": 0.8,
+    "calmar": 4.356096225007416,
+    "sortino": 3.1096443702049004,
+    "profit_factor": 7.423118430453732,
+    "params": {
+      "macd_fast": 12,
+      "macd_slow": 26,
+      "macd_signal": 9,
+      "exit_hist": -0.2,
+      "sma_len": 20,
+      "volume_window": 20,
+      "volume_mult": 1.2
+    },
+    "discovered": "2026-04-25T19:33:50.190120"
+  },
+  {
+    "key": "macd_momentum|TSLA|{\"exit_hist\": -0.5, \"macd_fast\": 12, \"macd_signal\": 11, \"macd_slow\": 26, \"sma_len\": 50, \"volume_mult\": 1.2, \"volume_window\": 10}",
+    "ticker": "TSLA",
+    "strategy": "macd_momentum",
+    "sharpe": 1.8057918414126113,
+    "return": 1.1243797932477841,
+    "max_dd": 0.1712648839055163,
+    "trades": 7,
+    "score": 0.8853550123913595,
+    "win_rate": 0.5714285714285714,
+    "calmar": 4.270700168685,
+    "sortino": 3.3850563653859838,
+    "profit_factor": 22.938633996457497,
+    "params": {
+      "macd_fast": 12,
+      "macd_slow": 26,
+      "macd_signal": 11,
+      "exit_hist": -0.5,
+      "sma_len": 50,
+      "volume_window": 10,
+      "volume_mult": 1.2
+    },
+    "discovered": "2026-04-25T19:33:06.234542"
+  },
+  {
     "key": "invented_momentum_rsi_stoch|CAT|{\"rsi_len\": 7, \"rsi_oversold\": 35, \"volume_mult\": 1.5, \"volume_window\": 20}",
     "ticker": "CAT",
     "strategy": "invented_momentum_rsi_stoch",

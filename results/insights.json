@@ -1,256 +1,109 @@
 {
-  "timestamp": "2026-04-25T19:18:59.381330",
-  "total_results": 5,
-  "total_winners": 1,
-  "strategy_stats": {
+  "timestamp": "2026-04-25T19:37:05.527057",
+  "total_results": 33,
+  "total_winners": 4,
+  "dead_combos": 0,
+  "strategy_rates": {
     "rsi_crossover": {
-      "tested": 3,
-      "won": 1,
-      "total_sharpe": 1.8580955518535567,
-      "total_return": 0.9622841316966493,
-      "win_rate": 0.3333333333333333,
-      "avg_sharpe": 0.6193651839511856
+      "rate": 0.08333333333333333,
+      "wins": 1,
+      "total": 12,
+      "avg_sharpe": 0.6482238792911125
     },
     "macd_momentum": {
-      "tested": 2,
-      "won": 0,
-      "total_sharpe": 0.04273636195419672,
-      "total_return": 0.0637933279211707,
-      "win_rate": 0.0,
-      "avg_sharpe": 0.02136818097709836
+      "rate": 0.16666666666666666,
+      "wins": 2,
+      "total": 12,
+      "avg_sharpe": 0.7687009830332456
+    },
+    "invented_momentum_rsi_stoch": {
+      "rate": 0.16666666666666666,
+      "wins": 1,
+      "total": 6,
+      "avg_sharpe": 1.232376258659418
+    },
+    "volume_breakout": {
+      "rate": 0.0,
+      "wins": 0,
+      "total": 1,
+      "avg_sharpe": 1.2072975412785725
+    },
+    "atr_channel_breakout": {
+      "rate": 0.0,
+      "wins": 0,
+      "total": 1,
+      "avg_sharpe": 0.5283586202399176
+    },
+    "adx_pullback": {
+      "rate": 0.0,
+      "wins": 0,
+      "total": 1,
+      "avg_sharpe": 1.0532337360889938
     }
   },
-  "ticker_stats": {
-    "CAT": {
-      "tested": 1,
-      "won": 1,
-      "win_rate": 1.0
+  "ticker_wins": {
+    "CAT": 2,
+    "GE": 1,
+    "TSLA": 1
+  },
+  "param_patterns": {
+    "fast_len": {
+      "5": 1
     },
-    "NVDA": {
-      "tested": 1,
-      "won": 0,
-      "win_rate": 0.0
+    "slow_len": {
+      "21": 1
     },
-    "MA": {
-      "tested": 1,
-      "won": 0,
-      "win_rate": 0.0
+    "regime_len": {
+      "50": 1
     },
-    "MRK": {
-      "tested": 1,
-      "won": 0,
-      "win_rate": 0.0
+    "regime_bull": {
+      "50": 1
     },
-    "TSLA": {
-      "tested": 1,
-      "won": 0,
-      "win_rate": 0.0
+    "exit_level": {
+      "35": 1
+    },
+    "macd_fast": {
+      "12": 2
+    },
+    "macd_slow": {
+      "26": 2
+    },
+    "macd_signal": {
+      "9": 1,
+      "11": 1
+    },
+    "exit_hist": {
+      "-0.2": 1,
+      "-0.5": 1
+    },
+    "sma_len": {
+      "20": 1,
+      "50": 1
+    },
+    "volume_window": {
+      "20": 2,
+      "10": 1
+    },
+    "volume_mult": {
+      "1.2": 2,
+      "1.5": 1
+    },
+    "rsi_len": {
+      "7": 1
+    },
+    "rsi_oversold": {
+      "35": 1
     }
   },
-  "strategies_by_win_rate": [
-    [
-      "rsi_crossover",
-      {
-        "tested": 3,
-        "won": 1,
-        "total_sharpe": 1.8580955518535567,
-        "total_return": 0.9622841316966493,
-        "win_rate": 0.3333333333333333,
-        "avg_sharpe": 0.6193651839511856
-      }
-    ],
-    [
-      "macd_momentum",
-      {
-        "tested": 2,
-        "won": 0,
-        "total_sharpe": 0.04273636195419672,
-        "total_return": 0.0637933279211707,
-        "win_rate": 0.0,
-        "avg_sharpe": 0.02136818097709836
-      }
-    ]
+  "insights": [
+    "Best strategy: macd_momentum (17% win rate)",
+    "Weakest strategy: rsi_crossover (8% win rate) \u2014 consider removing or rewriting",
+    "Most winning ticker: CAT (2 wins)"
   ],
-  "tickers_by_win_rate": [
-    [
-      "CAT",
-      {
-        "tested": 1,
-        "won": 1,
-        "win_rate": 1.0
-      }
-    ],
-    [
-      "NVDA",
-      {
-        "tested": 1,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "MA",
-      {
-        "tested": 1,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "MRK",
-      {
-        "tested": 1,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ],
-    [
-      "TSLA",
-      {
-        "tested": 1,
-        "won": 0,
-        "win_rate": 0.0
-      }
-    ]
+  "actions": [
+    "Consider building sector-specific variant of rsi_crossover (works well on CAT)"
   ],
-  "top_scoring": [
-    {
-      "ticker": "CAT",
-      "strategy_name": "rsi_crossover",
-      "iteration": 2,
-      "sharpe": 1.9912212600983974,
-      "total_return": 1.02848081164007,
-      "max_drawdown": 0.14189401885559913,
-      "win_rate": 0.5833333333333334,
-      "num_trades": 13,
-      "avg_trade_return": 0.11979351181758782,
-      "calmar_ratio": 4.750886055432461,
-      "sortino_ratio": 3.3900728885578255,
-      "profit_factor": 4.893175453350855,
-      "avg_holding_bars": 0,
-      "best_trade": 31887.169977814083,
-      "worst_trade": -9402.287580122338,
-      "passed": true,
-      "score": 1.3775809483781392,
-      "notes": "Sharpe 1.99 >= 1.5 | MaxDD 14.2% OK | 13 trades | Return 102.8%",
-      "params": {
-        "fast_len": 5,
-        "slow_len": 21,
-        "regime_len": 50,
-        "regime_bull": 50,
-        "exit_level": 35
-      },
-      "timestamp": "2026-04-25T18:51:52.139511"
-    },
-    {
-      "ticker": "NVDA",
-      "strategy_name": "macd_momentum",
-      "iteration": 0,
-      "sharpe": 0.6132984529948656,
-      "total_return": 0.16408089058797645,
-      "max_drawdown": 0.20690924935071345,
-      "win_rate": 0.5,
-      "num_trades": 5,
-      "avg_trade_return": 0.15444912062482824,
-      "calmar_ratio": 0.5656939048849423,
-      "sortino_ratio": 0.8696898146649159,
-      "profit_factor": 2.043370159761709,
-      "avg_holding_bars": 0,
-      "best_trade": 25943.842174130838,
-      "worst_trade": -8337.544210960505,
-      "passed": false,
-      "score": 0.2432006652288721,
-      "notes": "Sharpe 0.61 < 1.5 | MaxDD 20.7% OK | 5 trades | Return 16.4%",
-      "params": {
-        "macd_fast": 12,
-        "macd_slow": 26,
-        "macd_signal": 9,
-        "exit_hist": -1
-      },
-      "timestamp": "2026-04-25T19:02:05.496318"
-    },
-    {
-      "ticker": "TSLA",
-      "strategy_name": "rsi_crossover",
-      "iteration": 0,
-      "sharpe": 0.18927297124153006,
-      "total_return": 0.01095575419279834,
-      "max_drawdown": 0.34619239539905267,
-      "win_rate": 0.2,
-      "num_trades": 5,
-      "avg_trade_return": 0.5478181024482833,
-      "calmar_ratio": 0.02302165804667452,
-      "sortino_ratio": 0.28540274348396466,
-      "profit_factor": 1.0244082660598492,
-      "avg_holding_bars": 0,
-      "best_trade": 45981.00138905015,
-      "worst_trade": -15981.267897615035,
-      "passed": false,
-      "score": 0.06187405397156438,
-      "notes": "Sharpe 0.19 < 1.5 | MaxDD 34.6% OK | 5 trades | Return 1.1% < 10%",
-      "params": {
-        "fast_len": 7,
-        "slow_len": 21,
-        "regime_len": 50,
-        "regime_bull": 55,
-        "exit_level": 40
-      },
-      "timestamp": "2026-04-25T19:16:36.846496"
-    },
-    {
-      "ticker": "MRK",
-      "strategy_name": "rsi_crossover",
-      "iteration": 0,
-      "sharpe": -0.32239867948637063,
-      "total_return": -0.07715243413621924,
-      "max_drawdown": 0.19167563076726293,
-      "win_rate": 0.42857142857142855,
-      "num_trades": 7,
-      "avg_trade_return": 0.039032099588322676,
-      "calmar_ratio": -0.29642579581460327,
-      "sortino_ratio": -0.4005839484600569,
-      "profit_factor": 0.5634983524195794,
-      "avg_holding_bars": 0,
-      "best_trade": 4557.564385350947,
-      "worst_trade": -9133.100224032645,
-      "passed": false,
-      "score": -0.15417464195397065,
-      "notes": "Sharpe -0.32 < 1.5 | MaxDD 19.2% OK | 7 trades | Return -7.7% < 10%",
-      "params": {
-        "fast_len": 7,
-        "slow_len": 21,
-        "regime_len": 50,
-        "regime_bull": 55,
-        "exit_level": 40
-      },
-      "timestamp": "2026-04-25T19:12:38.533283"
-    },
-    {
-      "ticker": "MA",
-      "strategy_name": "macd_momentum",
-      "iteration": 0,
-      "sharpe": -0.5705620910406689,
-      "total_return": -0.10028756266680575,
-      "max_drawdown": 0.1369276733786666,
-      "win_rate": 0.33333333333333326,
-      "num_trades": 6,
-      "avg_trade_return": 0.0585855905164238,
-      "calmar_ratio": -0.5411848190846342,
-      "sortino_ratio": -0.6900265481711404,
-      "profit_factor": 0.5168525264726344,
-      "avg_holding_bars": 0,
-      "best_trade": 7820.590991004483,
-      "worst_trade": -10339.824421013831,
-      "passed": false,
-      "score": -0.26971849779535056,
-      "notes": "Sharpe -0.57 < 1.5 | MaxDD 13.7% OK | 6 trades | Return -10.0% < 10%",
-      "params": {
-        "macd_fast": 12,
-        "macd_slow": 26,
-        "macd_signal": 9,
-        "exit_hist": -1
-      },
-      "timestamp": "2026-04-25T19:02:38.869080"
-    }
-  ]
+  "round": 0,
+  "combos_completed": 30,
+  "combos_remaining": 575
 }
