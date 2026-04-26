@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-04-26T11:20:35.106656",
-  "total_results": 1693428,
-  "total_winners": 130048,
+  "timestamp": "2026-04-26T14:20:54.553158",
+  "total_results": 1695142,
+  "total_winners": 130140,
   "strategy_stats": {
     "rsi_crossover": {
       "tested": 36184,
@@ -12,12 +12,12 @@
       "avg_sharpe": 0.09391049917277784
     },
     "macd_momentum": {
-      "tested": 41211,
-      "won": 945,
-      "total_sharpe": 15272.359097611377,
-      "total_return": 5617.731130222831,
-      "win_rate": 0.022930770910679188,
-      "avg_sharpe": 0.3705893838443954
+      "tested": 42925,
+      "won": 1037,
+      "total_sharpe": 17378.720636617105,
+      "total_return": 6856.531495392415,
+      "win_rate": 0.02415841584158416,
+      "avg_sharpe": 0.4048624493096588
     },
     "invented_momentum_rsi_stoch": {
       "tested": 14,
@@ -378,9 +378,9 @@
       "win_rate": 0.010757314974182444
     },
     "RBLX": {
-      "tested": 411,
-      "won": 37,
-      "win_rate": 0.09002433090024331
+      "tested": 2125,
+      "won": 129,
+      "win_rate": 0.06070588235294118
     },
     "GM": {
       "tested": 4340,
@@ -553,12 +553,12 @@
     [
       "macd_momentum",
       {
-        "tested": 41211,
-        "won": 945,
-        "total_sharpe": 15272.359097611377,
-        "total_return": 5617.731130222831,
-        "win_rate": 0.022930770910679188,
-        "avg_sharpe": 0.3705893838443954
+        "tested": 42925,
+        "won": 1037,
+        "total_sharpe": 17378.720636617105,
+        "total_return": 6856.531495392415,
+        "win_rate": 0.02415841584158416,
+        "avg_sharpe": 0.4048624493096588
       }
     ],
     [
@@ -673,14 +673,6 @@
       }
     ],
     [
-      "RBLX",
-      {
-        "tested": 411,
-        "won": 37,
-        "win_rate": 0.09002433090024331
-      }
-    ],
-    [
       "GLD",
       {
         "tested": 131687,
@@ -694,6 +686,14 @@
         "tested": 4366,
         "won": 328,
         "win_rate": 0.07512597343105817
+      }
+    ],
+    [
+      "RBLX",
+      {
+        "tested": 2125,
+        "won": 129,
+        "win_rate": 0.06070588235294118
       }
     ],
     [
