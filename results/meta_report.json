@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-04-26T10:45:31.472236",
+  "timestamp": "2026-04-26T14:25:59.466765",
   "system": {
-    "total_combos_tested": 434,
+    "total_combos_tested": 435,
     "dead_combos": 8,
     "total_winners": 8156,
     "validated_robust": 3,
@@ -58,12 +58,12 @@
       "avg_sharpe": 0.09391049917277784
     },
     "macd_momentum": {
-      "tested": 41211,
-      "won": 945,
-      "total_sharpe": 15272.359097611377,
-      "total_return": 5617.731130222831,
-      "win_rate": 0.022930770910679188,
-      "avg_sharpe": 0.3705893838443954
+      "tested": 42925,
+      "won": 1037,
+      "total_sharpe": 17378.720636617105,
+      "total_return": 6856.531495392415,
+      "win_rate": 0.02415841584158416,
+      "avg_sharpe": 0.4048624493096588
     },
     "invented_momentum_rsi_stoch": {
       "tested": 14,
@@ -74,12 +74,12 @@
       "avg_sharpe": 0.9827310008995245
     },
     "volume_breakout": {
-      "tested": 1262,
-      "won": 26,
-      "total_sharpe": 355.6840985552363,
-      "total_return": 127.32531539279174,
-      "win_rate": 0.020602218700475437,
-      "avg_sharpe": 0.2818415994890937
+      "tested": 1306,
+      "won": 33,
+      "total_sharpe": 417.9531710345347,
+      "total_return": 136.15557046260534,
+      "win_rate": 0.02526799387442573,
+      "avg_sharpe": 0.32002539895446763
     },
     "atr_channel_breakout": {
       "tested": 1519,
@@ -304,9 +304,9 @@
       "win_rate": 1.5142452623051356e-05
     },
     "MSFT": {
-      "tested": 1547,
-      "won": 1,
-      "win_rate": 0.0006464124111182935
+      "tested": 1583,
+      "won": 8,
+      "win_rate": 0.00505369551484523
     },
     "NET": {
       "tested": 2853,
@@ -359,7 +359,7 @@
       "win_rate": 0.0
     },
     "UNH": {
-      "tested": 367,
+      "tested": 375,
       "won": 0,
       "win_rate": 0.0
     },
@@ -424,9 +424,9 @@
       "win_rate": 0.010757314974182444
     },
     "RBLX": {
-      "tested": 411,
-      "won": 37,
-      "win_rate": 0.09002433090024331
+      "tested": 2125,
+      "won": 129,
+      "win_rate": 0.06070588235294118
     },
     "GM": {
       "tested": 4340,
@@ -580,7 +580,7 @@
     {
       "action": "deprioritize_ticker",
       "ticker": "UNH",
-      "reason": "0% win rate after 367 tests",
+      "reason": "0% win rate after 375 tests",
       "priority": "low"
     },
     {
