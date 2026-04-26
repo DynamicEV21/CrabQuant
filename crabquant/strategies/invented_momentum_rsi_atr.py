@@ -61,11 +61,11 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     low = df["low"]
 
     # Indicators
-    rsi = pandas_ta.rsi(close, length=p["rsi_len"])
-    roc = pandas_ta.roc(close, length=p["roc_len"])
-    ema = pandas_ta.ema(close, length=p["ema_len"])
-    atr = pandas_ta.atr(high, low, close, length=p["atr_len"])
-    adx = pandas_ta.adx(high, low, close, length=14)
+    rsi = cached_indicator("rsi", close, length=p["rsi_len"])
+    roc = cached_indicator("roc", close, length=p["roc_len"])
+    ema = cached_indicator("ema", close, length=p["ema_len"])
+    atr = cached_indicator("atr", high, low, close, length=p["atr_len"])
+    adx = cached_indicator("adx", high, low, close, length=14)
     adx_col = [c for c in adx.columns if "ADX" in c and "DI" not in c][0]
 
     # Entry conditions

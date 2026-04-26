@@ -49,7 +49,8 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     volume = df["volume"]
 
     # MACD calculation
-    macd = pandas_ta.macd(
+    macd = cached_indicator(
+        "macd",
         close,
         fast=p["macd_fast"],
         slow=p["macd_slow"],
@@ -59,11 +60,11 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     hist = macd[hist_col]
 
     # Trend filter
-    sma = pandas_ta.sma(close, length=p["sma_len"])
+    sma = cached_indicator("sma", close, length=p["sma_len"])
     trend_ok = close > sma
 
     # Volume confirmation
-    volume_avg = pandas_ta.sma(volume, length=p["volume_window"])
+    volume_avg = cached_indicator("sma", volume, length=p["volume_window"])
     volume_ok = volume > (volume_avg * p["volume_mult"])
 
     # Entry conditions: MACD histogram turns positive or strengthens

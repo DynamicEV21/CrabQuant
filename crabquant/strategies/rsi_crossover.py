@@ -52,9 +52,9 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     p = {**DEFAULT_PARAMS, **(params or {})}
     close = df["close"]
 
-    rsi_fast = pandas_ta.rsi(close, length=p["fast_len"])
-    rsi_slow = pandas_ta.rsi(close, length=p["slow_len"])
-    regime = pandas_ta.rsi(close, length=p["regime_len"])
+    rsi_fast = cached_indicator("rsi", close, length=p["fast_len"])
+    rsi_slow = cached_indicator("rsi", close, length=p["slow_len"])
+    regime = cached_indicator("rsi", close, length=p["regime_len"])
 
     entries = (
         (rsi_fast.shift(1) < rsi_slow.shift(1))
