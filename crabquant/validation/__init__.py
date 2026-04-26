@@ -31,6 +31,9 @@ class WalkForwardResult:
     degradation: float  # How much Sharpe dropped from train to test
     robust: bool  # True if strategy holds up out-of-sample
     notes: str
+    train_regime: str = ""  # Regime during train period
+    test_regime: str = ""   # Regime during test period
+    regime_shift: bool = False  # True if train and test regimes differ
 
 
 @dataclass
@@ -49,6 +52,34 @@ class CrossTickerResult:
     win_rate_across_tickers: float
     robust: bool
     notes: str
+
+
+def _detect_regime_for_period(df: pd.DataFrame, full_spy_df: pd.DataFrame | None = None) -> str:
+    """Detect market regime for a given time period.
+    
+    Uses SPY data sliced to match the period of the given DataFrame.
+    Falls back to the DataFrame's own close column if SPY data unavailable.
+    Returns the regime value as a string.
+    """
+    try:
+        from crabquant.regime import detect_regime
+        
+        if full_spy_df is not None and len(full_spy_df) > 0 and hasattr(df.index, 'min'):
+            # Slice SPY to match the DataFrame's date range
+            start = df.index.min()
+            end = df.index.max()
+            spy_slice = full_spy_df.loc[start:end]
+            if len(spy_slice) >= 20:
+                regime, _ = detect_regime(spy_slice)
+                return regime.value
+        
+        # Fallback: use the ticker's own data as a proxy
+        if len(df) >= 20:
+            regime, _ = detect_regime(df)
+            return regime.value
+    except Exception:
+        pass
+    return "unknown"
 
 
 def walk_forward_test(
@@ -71,7 +102,7 @@ def walk_forward_test(
         engine: BacktestEngine instance
 
     Returns:
-        WalkForwardResult with train vs test comparison
+        WalkForwardResult with train vs test comparison, including regime context
     """
     if engine is None:
         engine = BacktestEngine()
@@ -120,14 +151,37 @@ def walk_forward_test(
     else:
         degradation = 1.0
 
+    # Detect regimes for train and test periods
+    train_regime = ""
+    test_regime = ""
+    regime_shift = False
+    try:
+        full_spy_df = load_data("SPY", period="3y")
+        train_regime = _detect_regime_for_period(train_df, full_spy_df)
+        test_regime = _detect_regime_for_period(test_df, full_spy_df)
+        regime_shift = train_regime != test_regime and train_regime != "unknown" and test_regime != "unknown"
+    except Exception:
+        pass
+
     # Robust if test Sharpe > 0.5 and degradation < 50%
-    robust = test_result.sharpe > 0.5 and degradation < 0.5
+    # BUT: be more lenient if regime shifted — a 60% degradation with regime change
+    # is more understandable than 60% degradation in the same regime
+    if regime_shift:
+        robust = test_result.sharpe > 0.3 and degradation < 0.7
+    else:
+        robust = test_result.sharpe > 0.5 and degradation < 0.5
 
     notes_parts = [
         f"Train: Sharpe {train_result.sharpe:.2f}, Return {train_result.total_return:.1%}",
         f"Test: Sharpe {test_result.sharpe:.2f}, Return {test_result.total_return:.1%}",
         f"Degradation: {degradation:.1%}",
     ]
+    if train_regime:
+        notes_parts.append(f"Train regime: {train_regime}")
+    if test_regime:
+        notes_parts.append(f"Test regime: {test_regime}")
+    if regime_shift:
+        notes_parts.append("⚠️ Regime shift detected")
     if test_result.num_trades < 3:
         notes_parts.append(f"⚠️ Only {test_result.num_trades} OOS trades")
 
@@ -142,6 +196,9 @@ def walk_forward_test(
         degradation=degradation,
         robust=robust,
         notes=" | ".join(notes_parts),
+        train_regime=train_regime,
+        test_regime=test_regime,
+        regime_shift=regime_shift,
     )
 
 

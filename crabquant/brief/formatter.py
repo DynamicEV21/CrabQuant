@@ -8,6 +8,19 @@ No markdown tables — bullet lists and bold text only.
 from crabquant.brief.models import BriefData
 
 
+def _regime_short_tag(regime_value: str) -> str:
+    """Convert regime value to a short display tag. e.g. 'trending_up' → 'BULL'."""
+    mapping = {
+        "trending_up": "BULL",
+        "trending_down": "BEAR",
+        "mean_reversion": "MR",
+        "high_volatility": "HVOL",
+        "low_volatility": "LVOL",
+        "unknown": "???",
+    }
+    return mapping.get(regime_value, regime_value.upper()[:5])
+
+
 def format_brief(brief: BriefData) -> str:
     """
     Format brief data into a Telegram-friendly string.
@@ -37,16 +50,25 @@ def format_brief(brief: BriefData) -> str:
 
     lines.append("Market: " + " | ".join(parts))
 
-    # ── Top production strategies ──
+    # ── Top production strategies (with regime tags) ──
     if brief.top_production:
         lines.append("")
         lines.append("🏆 Top Production:")
         for s in brief.top_production:
             sign = "+" if s["total_return"] >= 0 else ""
+            regime_tag = s.get("discovery_regime", "")
+            tag_str = f" [{_regime_short_tag(regime_tag)}]" if regime_tag and regime_tag != "unknown" else ""
             lines.append(
                 f"• {s['ticker']}/{s['strategy_name']} — "
-                f"Sharpe {s['sharpe']}, {sign}{s['total_return']}%"
+                f"Sharpe {s['sharpe']}, {sign}{s['total_return']}%{tag_str}"
             )
+
+        # Suggest best strategies for current regime
+        if brief.regime_strategy_suggestions:
+            lines.append("")
+            current_tag = _regime_short_tag(brief.regime)
+            top_names = [name for name, _ in brief.regime_strategy_suggestions[:3]]
+            lines.append(f"💡 Best for [{current_tag}]: {', '.join(top_names)}")
     else:
         lines.append("")
         lines.append("No production strategies yet — system still discovering")

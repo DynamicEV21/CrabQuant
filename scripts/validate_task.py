@@ -87,6 +87,18 @@ def log_result(entry: dict):
         f.write(json.dumps(entry) + "\n")
 
 
+def _detect_current_regime() -> str:
+    """Detect current market regime. Returns regime value string or 'unknown'."""
+    try:
+        from crabquant.regime import detect_regime
+        from crabquant.data import load_data
+        spy_data = load_data("SPY", period="2mo")
+        regime, _ = detect_regime(spy_data)
+        return regime.value
+    except Exception:
+        return "unknown"
+
+
 def validate_winner(winner: dict) -> dict:
     """Run full validation on a winner."""
     strategy_name = winner["strategy"]
@@ -98,6 +110,9 @@ def validate_winner(winner: dict) -> dict:
 
     strategy_fn = STRATEGY_REGISTRY[strategy_name][0]
 
+    # Detect current regime at validation time
+    current_regime = _detect_current_regime()
+
     result = {
         "ticker": ticker,
         "strategy": strategy_name,
@@ -105,6 +120,8 @@ def validate_winner(winner: dict) -> dict:
         "original_sharpe": winner.get("sharpe", 0),
         "original_return": winner.get("return", 0),
         "original_score": winner.get("score", 0),
+        "discovery_regime": winner.get("regime", "unknown"),
+        "validation_regime": current_regime,
         "timestamp": datetime.now().isoformat(),
     }
 
@@ -118,9 +135,14 @@ def validate_winner(winner: dict) -> dict:
         result["wf_test_return"] = wf.test_return
         result["wf_degradation"] = wf.degradation
         result["wf_robust"] = wf.robust
+        result["wf_train_regime"] = wf.train_regime
+        result["wf_test_regime"] = wf.test_regime
+        result["wf_regime_shift"] = wf.regime_shift
         print(f"    Train: Sharpe {wf.train_sharpe:.2f}, Return {wf.train_return:.1%}")
         print(f"    Test:  Sharpe {wf.test_sharpe:.2f}, Return {wf.test_return:.1%}")
         print(f"    Degradation: {wf.degradation:.1%} {'✅' if wf.robust else '❌'}")
+        if wf.regime_shift:
+            print(f"    ⚠️ Regime shift: {wf.train_regime} → {wf.test_regime}")
     except Exception as e:
         result["wf_error"] = str(e)
         result["wf_robust"] = False
@@ -143,15 +165,20 @@ def validate_winner(winner: dict) -> dict:
         result["ct_generalizes"] = False
         print(f"    ❌ Cross-ticker failed: {e}")
 
-    # Verdict
+    # Verdict — regime-aware logic
     wf_pass = result.get("wf_robust", False)
     ct_pass = result.get("ct_generalizes", False)
+    regime_shift = result.get("wf_regime_shift", False)
 
     if wf_pass and ct_pass:
         result["verdict"] = "ROBUST"
         result["status"] = "passed"
     elif wf_pass or ct_pass:
         result["verdict"] = "MIXED"
+        result["status"] = "partial"
+    elif regime_shift:
+        # Walk-forward failed but regime changed — mark as regime shift, not curve-fit
+        result["verdict"] = "REGIME_SHIFT"
         result["status"] = "partial"
     else:
         result["verdict"] = "CURVE_FIT"

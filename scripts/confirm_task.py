@@ -62,6 +62,18 @@ def save_cron_state(state: dict):
     save_json(CRON_STATE_FILE, state)
 
 
+def _detect_current_regime() -> str:
+    """Detect current market regime. Returns regime value string or 'unknown'."""
+    try:
+        from crabquant.regime import detect_regime
+        from crabquant.data import load_data
+        spy_data = load_data("SPY", period="2mo")
+        regime, _ = detect_regime(spy_data)
+        return regime.value
+    except Exception:
+        return "unknown"
+
+
 def get_confirmed_keys() -> set:
     """Get set of already-confirmed winner keys."""
     confirmed = load_json(CONFIRMED_FILE, [])
@@ -147,6 +159,8 @@ def main():
         "verdict": result.verdict,
         "confirmed_at": datetime.now().isoformat(),
         "params": winner["params"],
+        "discovery_regime": winner.get("regime", "unknown"),
+        "validation_regime": _detect_current_regime(),
     }
 
     # File result

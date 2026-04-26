@@ -112,6 +112,7 @@ def get_best_strategies_for_regime(regime_name: str, top_n: int = 5) -> list[dic
             "sharpe": round(s.get("confirm_sharpe", 0), 2),
             "total_return": round(s.get("confirm_return", 0) * 100, 1),
             "verdict": s.get("verdict", ""),
+            "discovery_regime": s.get("discovery_regime", ""),
         })
 
     return result

@@ -497,12 +497,25 @@ def save_result(result):
         }, default=str) + "\n")
 
 
+def _detect_current_regime() -> str:
+    """Detect current market regime. Returns regime value string or 'unknown'."""
+    try:
+        from crabquant.regime import detect_regime
+        from crabquant.data import load_data
+        spy_data = load_data("SPY", period="2mo")
+        regime, _ = detect_regime(spy_data)
+        return regime.value
+    except Exception:
+        return "unknown"
+
+
 def save_winner(result):
     WINNERS_FILE.parent.mkdir(parents=True, exist_ok=True)
     winners = load_winners()
 
     key = f"{result.strategy_name}|{result.ticker}|{json.dumps(result.params, sort_keys=True)}"
     if not any(w.get("key") == key for w in winners):
+        regime = _detect_current_regime()
         winners.append({
             "key": key,
             "ticker": result.ticker,
@@ -518,6 +531,7 @@ def save_winner(result):
             "profit_factor": result.profit_factor,
             "params": result.params,
             "discovered": datetime.now().isoformat(),
+            "regime": regime,
         })
 
     winners.sort(key=lambda w: w.get("score", 0), reverse=True)

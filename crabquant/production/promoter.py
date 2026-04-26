@@ -54,18 +54,24 @@ def _save_registry(registry: list[dict]):
 def _infer_regime(strategy_name: str) -> RegimeInfo:
     """
     Infer regime affinity from the strategy registry's regime affinity scores.
-
-    Returns the top regime as best, regimes with score >= 0.6 as works_in,
-    and regimes with score < 0.5 as avoid_in.
+    
+    Looks up the strategy across all regimes and returns the top regime as best,
+    regimes with score >= 0.6 as works_in, and regimes with score < 0.5 as avoid_in.
     """
     try:
         from crabquant.regime import REGIME_STRATEGY_AFFINITY, MarketRegime
 
-        if strategy_name not in REGIME_STRATEGY_AFFINITY:
+        # REGIME_STRATEGY_AFFINITY is keyed by MarketRegime, each value is a
+        # dict of {strategy_name: score}. Build reverse lookup: strategy -> [(regime, score)]
+        strategy_regimes = []
+        for regime, strategies in REGIME_STRATEGY_AFFINITY.items():
+            if strategy_name in strategies:
+                strategy_regimes.append((regime, strategies[strategy_name]))
+
+        if not strategy_regimes:
             return RegimeInfo()
 
-        affinity = REGIME_STRATEGY_AFFINITY[strategy_name]
-        ranked = sorted(affinity.items(), key=lambda x: x[1], reverse=True)
+        ranked = sorted(strategy_regimes, key=lambda x: x[1], reverse=True)
 
         best_regime = ranked[0][0].value.upper() if ranked else ""
         works_in = [r[0].value.upper() for r in ranked if r[1] >= 0.6]
@@ -150,6 +156,15 @@ def promote_strategy(
     # Build regime info
     regime_info = _infer_regime(strategy_name)
 
+    # Extract regime tags from winner and confirm data
+    discovery_regime = vbt_result.get("regime", "")
+    validation_regime = ""
+    if hasattr(confirm_result, "verdict"):
+        # Object-style: won't have regime tags directly
+        validation_regime = ""
+    else:
+        validation_regime = confirm_result.get("validation_regime", "")
+
     # Build report
     report = StrategyReport(
         strategy_name=strategy_name,
@@ -173,6 +188,8 @@ def promote_strategy(
         slippage_results=slippage_results,
         period_results=period_results,
         regime_info=regime_info,
+        discovery_regime=discovery_regime,
+        validation_regime=validation_regime,
         key=key,
     )
 

@@ -77,8 +77,12 @@ class StrategyReport:
     # Period performance
     period_results: list = field(default_factory=list)  # list[PeriodResult]
 
-    # Regime affinity
+    # Regime affinity (from strategy characteristics)
     regime_info: RegimeInfo = field(default_factory=RegimeInfo)
+
+    # Regime tags (from actual pipeline data)
+    discovery_regime: str = ""  # Regime when this strategy was discovered
+    validation_regime: str = ""  # Regime when confirmed
 
     # Key for dedup
     key: str = ""
@@ -152,7 +156,11 @@ class StrategyReport:
         # Regime
         if self.regime_info and self.regime_info.best_regime:
             lines.append("## Regime")
-            lines.append(f"- Best in: {self.regime_info.best_regime}")
+            if self.discovery_regime:
+                lines.append(f"- Discovered in: **{self.discovery_regime.upper()}**")
+            if self.validation_regime:
+                lines.append(f"- Confirmed in: **{self.validation_regime.upper()}**")
+            lines.append(f"- Best affinity: {self.regime_info.best_regime}")
             if self.regime_info.works_in:
                 lines.append(f"- Works in: {', '.join(self.regime_info.works_in)}")
             if self.regime_info.avoid_in:
