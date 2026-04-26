@@ -10,6 +10,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "bb_len": 20,
@@ -41,7 +43,7 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     close = df["close"]
     volume = df["volume"]
 
-    bb = pandas_ta.bbands(close, length=p["bb_len"], std=p["bb_std"])
+    bb = cached_indicator("bbands", close, length=p["bb_len"], std=p["bb_std"])
     # pandas_ta column format: BBU_<len>_<std>_<std> (std duplicated)
     bbu_col = [c for c in bb.columns if c.startswith("BBU")][0]
     bbl_col = [c for c in bb.columns if c.startswith("BBL")][0]
@@ -82,7 +84,7 @@ def generate_signals_matrix(
 
     bb_cache = {}
     for bl, bs in all_bb_combos:
-        bb = pandas_ta.bbands(close, length=bl, std=bs)
+        bb = cached_indicator("bbands", close, length=bl, std=bs)
         bbu_col = [c for c in bb.columns if c.startswith("BBU")][0]
         bbl_col = [c for c in bb.columns if c.startswith("BBL")][0]
         bbm_col = [c for c in bb.columns if c.startswith("BBM")][0]

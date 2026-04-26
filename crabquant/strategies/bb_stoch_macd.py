@@ -11,6 +11,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "bb_len": 20,
@@ -40,30 +42,13 @@ DESCRIPTION = (
 )
 
 
-def _bb_col(bb_len, bb_std):
-    """Build the pandas_ta BB column name (std is duplicated in the name)."""
-    return f"BBM_{bb_len}_{bb_std}_{bb_std}"
-
-
-def _bb_lower_col(bb_len, bb_std):
-    return f"BBL_{bb_len}_{bb_std}_{bb_std}"
-
-
-def _bb_upper_col(bb_len, bb_std):
-    return f"BBU_{bb_len}_{bb_std}_{bb_std}"
-
-
-def _stoch_k_col(k, d):
-    # pandas_ta Stoch default smooth=3
-    return f"STOCHk_{k}_{d}_3"
-
-
-def _stoch_d_col(k, d):
-    return f"STOCHd_{k}_{d}_3"
-
-
-def _macd_h_col(fast, slow, signal):
-    return f"MACDh_{fast}_{slow}_{signal}"
+# pandas_ta column indices (positional, immune to naming quirks):
+# bbands: 0=BBL, 1=BBM, 2=BBU, 3=BBB, 4=BBP
+# stoch:  0=STOCHk, 1=STOCHd, 2=STOCHh
+# macd:   0=MACD, 1=MACDh, 2=MACDs
+_BB_LOWER, _BB_MID, _BB_UPPER = 0, 1, 2
+_STOCH_K, _STOCH_D = 0, 1
+_MACD_HIST = 1
 
 
 def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:
@@ -82,15 +67,15 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     high = df["high"]
     low = df["low"]
 
-    bb = pandas_ta.bbands(close, length=p["bb_len"], std=p["bb_std"])
-    stoch = pandas_ta.stoch(high, low, close, k=p["stoch_k"], d=p["stoch_d"])
-    macd = pandas_ta.macd(close, fast=p["macd_fast"], slow=p["macd_slow"], signal=p["macd_signal"])
+    bb = cached_indicator("bbands", close, length=p["bb_len"], std=p["bb_std"])
+    stoch = cached_indicator("stoch", high, low, close, k=p["stoch_k"], d=p["stoch_d"])
+    macd = cached_indicator("macd", close, fast=p["macd_fast"], slow=p["macd_slow"], signal=p["macd_signal"])
 
-    bb_mid = bb[_bb_col(p["bb_len"], p["bb_std"])]
-    bb_upper = bb[_bb_upper_col(p["bb_len"], p["bb_std"])]
-    stoch_k = stoch[_stoch_k_col(p["stoch_k"], p["stoch_d"])]
-    stoch_d = stoch[_stoch_d_col(p["stoch_k"], p["stoch_d"])]
-    macd_h = macd[_macd_h_col(p["macd_fast"], p["macd_slow"], p["macd_signal"])]
+    bb_mid = bb.iloc[:, _BB_MID]
+    bb_upper = bb.iloc[:, _BB_UPPER]
+    stoch_k = stoch.iloc[:, _STOCH_K]
+    stoch_d = stoch.iloc[:, _STOCH_D]
+    macd_h = macd.iloc[:, _MACD_HIST]
 
     entries = (
         (close < bb_mid)
@@ -128,20 +113,20 @@ def generate_signals_matrix(
     all_bb_configs = sorted(set((bl, bs) for bl in pg["bb_len"] for bs in pg["bb_std"]))
     bb_cache = {}
     for bl, bs in all_bb_configs:
-        bb = pandas_ta.bbands(close, length=bl, std=bs)
+        bb = cached_indicator("bbands", close, length=bl, std=bs)
         bb_cache[(bl, bs)] = {
-            "mid": bb[_bb_col(bl, bs)],
-            "lower": bb[_bb_lower_col(bl, bs)],
-            "upper": bb[_bb_upper_col(bl, bs)],
+            "mid": bb.iloc[:, _BB_MID],
+            "lower": bb.iloc[:, _BB_LOWER],
+            "upper": bb.iloc[:, _BB_UPPER],
         }
 
     all_stoch_configs = sorted(set((sk, sd) for sk in pg["stoch_k"] for sd in pg["stoch_d"]))
     stoch_cache = {}
     for sk, sd in all_stoch_configs:
-        stoch = pandas_ta.stoch(high, low, close, k=sk, d=sd)
+        stoch = cached_indicator("stoch", high, low, close, k=sk, d=sd)
         stoch_cache[(sk, sd)] = {
-            "k": stoch[_stoch_k_col(sk, sd)],
-            "d": stoch[_stoch_d_col(sk, sd)],
+            "k": stoch.iloc[:, _STOCH_K],
+            "d": stoch.iloc[:, _STOCH_D],
         }
 
     # MACD params are fixed in the grid but compute once anyway
@@ -153,8 +138,8 @@ def generate_signals_matrix(
     )
     macd_cache = {}
     for mf, ms, msi in all_macd_configs:
-        macd = pandas_ta.macd(close, fast=mf, slow=ms, signal=msi)
-        macd_cache[(mf, ms, msi)] = macd[_macd_h_col(mf, ms, msi)]
+        macd = cached_indicator("macd", close, fast=mf, slow=ms, signal=msi)
+        macd_cache[(mf, ms, msi)] = macd.iloc[:, _MACD_HIST]
 
     entries_cols = {}
     exits_cols = {}

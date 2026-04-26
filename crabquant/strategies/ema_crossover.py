@@ -11,6 +11,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "fast_len": 9,
@@ -57,8 +59,8 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     p = {**DEFAULT_PARAMS, **(params or {})}
     close = df["close"]
 
-    ema_fast = pandas_ta.ema(close, length=p["fast_len"])
-    ema_slow = pandas_ta.ema(close, length=p["slow_len"])
+    ema_fast = cached_indicator("ema", close, length=p["fast_len"])
+    ema_slow = cached_indicator("ema", close, length=p["slow_len"])
 
     entries = (
         (ema_fast.shift(1) < ema_slow.shift(1))
@@ -93,7 +95,7 @@ def generate_signals_matrix(
     all_slow_lens = sorted(set(c["slow_len"] for c in valid_combos))
     all_lens = sorted(set(all_fast_lens) | set(all_slow_lens))
 
-    ema_cache = {l: pandas_ta.ema(close, length=l) for l in all_lens}
+    ema_cache = {l: cached_indicator("ema", close, length=l) for l in all_lens}
 
     entries_cols = {}
     exits_cols = {}

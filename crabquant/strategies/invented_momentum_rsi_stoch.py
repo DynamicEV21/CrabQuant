@@ -11,6 +11,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "rsi_len": 14,
@@ -50,10 +52,10 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     volume = df["volume"]
 
     # Calculate indicators
-    rsi = pandas_ta.rsi(close, length=p["rsi_len"])
-    
+    rsi = cached_indicator("rsi", close, length=p["rsi_len"])
+
     # Volume filter
-    volume_avg = pandas_ta.sma(volume, length=p["volume_window"])
+    volume_avg = cached_indicator("sma", volume, length=p["volume_window"])
     volume_spike = volume > (volume_avg * p["volume_mult"])
 
     # Entry conditions: RSI oversold with volume spike
@@ -83,8 +85,8 @@ def generate_signals_matrix(
     all_rsi_lens = sorted(set(pg["rsi_len"]))
     all_vol_windows = sorted(set(pg["volume_window"]))
 
-    rsi_cache = {l: pandas_ta.rsi(close, length=l) for l in all_rsi_lens}
-    vol_avg_cache = {w: pandas_ta.sma(volume, length=w) for w in all_vol_windows}
+    rsi_cache = {l: cached_indicator("rsi", close, length=l) for l in all_rsi_lens}
+    vol_avg_cache = {w: cached_indicator("sma", volume, length=w) for w in all_vol_windows}
 
     entries_cols = {}
     exits_cols = {}

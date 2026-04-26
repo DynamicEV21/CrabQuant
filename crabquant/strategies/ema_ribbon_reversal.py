@@ -10,6 +10,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "dip_level": 40,
@@ -32,16 +34,16 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     p = {**DEFAULT_PARAMS, **(params or {})}
     close = df["close"]
 
-    ema10 = pandas_ta.ema(close, length=10)
-    ema20 = pandas_ta.ema(close, length=20)
-    ema30 = pandas_ta.ema(close, length=30)
-    ema50 = pandas_ta.ema(close, length=50)
+    ema10 = cached_indicator("ema", close, length=10)
+    ema20 = cached_indicator("ema", close, length=20)
+    ema30 = cached_indicator("ema", close, length=30)
+    ema50 = cached_indicator("ema", close, length=50)
 
     # Perfect bullish alignment
     aligned = (ema10 > ema20) & (ema20 > ema30) & (ema30 > ema50)
 
     # RSI dip
-    rsi = pandas_ta.rsi(close, length=14)
+    rsi = cached_indicator("rsi", close, length=14)
     dip = rsi < p["dip_level"]
 
     entries = (aligned & dip).fillna(False)
@@ -60,11 +62,11 @@ def generate_signals_matrix(
 
     close = df["close"]
 
-    ema10 = pandas_ta.ema(close, length=10)
-    ema20 = pandas_ta.ema(close, length=20)
-    ema30 = pandas_ta.ema(close, length=30)
-    ema50 = pandas_ta.ema(close, length=50)
-    rsi = pandas_ta.rsi(close, length=14)
+    ema10 = cached_indicator("ema", close, length=10)
+    ema20 = cached_indicator("ema", close, length=20)
+    ema30 = cached_indicator("ema", close, length=30)
+    ema50 = cached_indicator("ema", close, length=50)
+    rsi = cached_indicator("rsi", close, length=14)
 
     aligned = (ema10 > ema20) & (ema20 > ema30) & (ema30 > ema50)
 

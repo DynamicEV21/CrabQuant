@@ -11,6 +11,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "roc_len": 10,
@@ -55,10 +57,10 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     low = df["low"]
     volume = df["volume"]
 
-    roc = pandas_ta.roc(close, length=p["roc_len"])
-    ema = pandas_ta.ema(close, length=p["ema_len"])
+    roc = cached_indicator("roc", close, length=p["roc_len"])
+    ema = cached_indicator("ema", close, length=p["ema_len"])
     vol_sma = volume.rolling(window=p["vol_sma_len"]).mean()
-    atr = pandas_ta.atr(high, low, close, length=p["atr_len"])
+    atr = cached_indicator("atr", high, low, close, length=p["atr_len"])
 
     # ATR trailing stop: rolling max of close minus ATR * multiplier
     atr_stop = close.rolling(window=p["trailing_len"]).max() - atr * p["atr_mult"]
@@ -94,11 +96,11 @@ def generate_signals_matrix(
 
     # Pre-compute ROC for all unique lengths
     all_roc_lens = sorted(set(pg["roc_len"]))
-    roc_cache = {l: pandas_ta.roc(close, length=l) for l in all_roc_lens}
+    roc_cache = {l: cached_indicator("roc", close, length=l) for l in all_roc_lens}
 
     # Pre-compute EMA for all unique lengths
     all_ema_lens = sorted(set(pg["ema_len"]))
-    ema_cache = {l: pandas_ta.ema(close, length=l) for l in all_ema_lens}
+    ema_cache = {l: cached_indicator("ema", close, length=l) for l in all_ema_lens}
 
     # Pre-compute volume SMA for all unique lengths
     all_vol_sma_lens = sorted(set(pg["vol_sma_len"]))
@@ -106,7 +108,7 @@ def generate_signals_matrix(
 
     # Pre-compute ATR for all unique lengths
     all_atr_lens = sorted(set(pg["atr_len"]))
-    atr_cache = {l: pandas_ta.atr(high, low, close, length=l) for l in all_atr_lens}
+    atr_cache = {l: cached_indicator("atr", high, low, close, length=l) for l in all_atr_lens}
 
     # Pre-compute rolling max for all unique trailing lengths
     all_trailing_lens = sorted(set(pg["trailing_len"]))

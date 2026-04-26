@@ -10,6 +10,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "dc_len": 20,
@@ -73,7 +75,7 @@ def generate_signals_matrix(
 
     donch_high_cache = {l: high.rolling(l).max() for l in all_dc_lens}
     donch_low_cache = {l: low.rolling(l).min() for l in all_dc_lens}
-    atr_cache = {l: pandas_ta.atr(high, low, close, length=l) for l in all_atr_lens}
+    atr_cache = {l: cached_indicator("atr", high, low, close, length=l) for l in all_atr_lens}
     vol_avg_cache = {w: volume.rolling(w).mean() for w in all_vol_lens}
 
     entries_cols = {}

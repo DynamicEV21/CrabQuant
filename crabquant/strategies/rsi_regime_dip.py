@@ -11,6 +11,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "regime_len": 50,
@@ -51,8 +53,8 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     p = {**DEFAULT_PARAMS, **(params or {})}
     close = df["close"]
 
-    regime_rsi = pandas_ta.rsi(close, length=p["regime_len"])
-    timing_rsi = pandas_ta.rsi(close, length=p["timing_len"])
+    regime_rsi = cached_indicator("rsi", close, length=p["regime_len"])
+    timing_rsi = cached_indicator("rsi", close, length=p["timing_len"])
 
     bullish = regime_rsi > p["regime_bull"]
 
@@ -86,11 +88,11 @@ def generate_signals_matrix(
 
     # Pre-compute RSI for all unique regime lengths
     all_regime_lens = sorted(set(pg["regime_len"]))
-    regime_rsi_cache = {l: pandas_ta.rsi(close, length=l) for l in all_regime_lens}
+    regime_rsi_cache = {l: cached_indicator("rsi", close, length=l) for l in all_regime_lens}
 
     # Pre-compute RSI for all unique timing lengths
     all_timing_lens = sorted(set(pg["timing_len"]))
-    timing_rsi_cache = {l: pandas_ta.rsi(close, length=l) for l in all_timing_lens}
+    timing_rsi_cache = {l: cached_indicator("rsi", close, length=l) for l in all_timing_lens}
 
     entries_cols = {}
     exits_cols = {}

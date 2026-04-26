@@ -11,6 +11,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "adx_len": 14,
@@ -40,11 +42,11 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     high = df["high"]
     low = df["low"]
 
-    adx = pandas_ta.adx(high, low, close, length=p["adx_len"])
+    adx = cached_indicator("adx", high, low, close, length=p["adx_len"])
     adx_col = [c for c in adx.columns if "ADX" in c and "DI" not in c][0]
 
-    ema = pandas_ta.ema(close, length=p["ema_len"])
-    atr = pandas_ta.atr(high, low, close, length=14)
+    ema = cached_indicator("ema", close, length=p["ema_len"])
+    atr = cached_indicator("atr", high, low, close, length=14)
 
     # Strong trend
     strong_trend = adx[adx_col] > p["adx_threshold"]
@@ -75,12 +77,12 @@ def generate_signals_matrix(
 
     adx_cache = {}
     for l in all_adx_lens:
-        adx = pandas_ta.adx(high, low, close, length=l)
+        adx = cached_indicator("adx", high, low, close, length=l)
         adx_col = [c for c in adx.columns if "ADX" in c and "DI" not in c][0]
         adx_cache[l] = adx[adx_col]
 
-    ema_cache = {l: pandas_ta.ema(close, length=l) for l in all_ema_lens}
-    atr = pandas_ta.atr(high, low, close, length=14)
+    ema_cache = {l: cached_indicator("ema", close, length=l) for l in all_ema_lens}
+    atr = cached_indicator("atr", high, low, close, length=14)
 
     entries_cols = {}
     exits_cols = {}

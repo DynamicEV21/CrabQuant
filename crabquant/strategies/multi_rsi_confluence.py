@@ -10,6 +10,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "rsi1": 7,
@@ -43,9 +45,9 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     close = df["close"]
     volume = df["volume"]
 
-    rsi1 = pandas_ta.rsi(close, length=p["rsi1"])
-    rsi2 = pandas_ta.rsi(close, length=p["rsi2"])
-    rsi3 = pandas_ta.rsi(close, length=p["rsi3"])
+    rsi1 = cached_indicator("rsi", close, length=p["rsi1"])
+    rsi2 = cached_indicator("rsi", close, length=p["rsi2"])
+    rsi3 = cached_indicator("rsi", close, length=p["rsi3"])
 
     all_oversold = (rsi1 < p["thresh"]) & (rsi2 < p["thresh"]) & (rsi3 < p["thresh"])
     rsi_turning = rsi1 > rsi1.shift(1)
@@ -71,7 +73,7 @@ def generate_signals_matrix(
 
     # Deduplicate RSI lengths
     all_rsi_lens = sorted(set(pg["rsi1"]) | set(pg["rsi2"]) | set(pg["rsi3"]))
-    rsi_cache = {l: pandas_ta.rsi(close, length=l) for l in all_rsi_lens}
+    rsi_cache = {l: cached_indicator("rsi", close, length=l) for l in all_rsi_lens}
     vol_avg_20 = volume.rolling(20).mean()
 
     entries_cols = {}

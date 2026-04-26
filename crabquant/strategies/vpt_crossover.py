@@ -12,6 +12,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "vpt_signal_len": 20,
@@ -56,7 +58,7 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     vpt = (volume * ((close - close.shift(1)) / close.shift(1))).cumsum()
     vpt_signal = vpt.rolling(window=p["vpt_signal_len"]).mean()
 
-    rsi = pandas_ta.rsi(close, length=p["rsi_len"])
+    rsi = cached_indicator("rsi", close, length=p["rsi_len"])
     vol_sma = volume.rolling(window=p["vol_sma_len"]).mean()
 
     entries = (
@@ -99,7 +101,7 @@ def generate_signals_matrix(
 
     # Pre-compute RSI for all unique lengths
     all_rsi_lens = sorted(set(pg["rsi_len"]))
-    rsi_cache = {l: pandas_ta.rsi(close, length=l) for l in all_rsi_lens}
+    rsi_cache = {l: cached_indicator("rsi", close, length=l) for l in all_rsi_lens}
 
     # Pre-compute volume SMA for all unique lengths
     all_vol_sma_lens = sorted(set(pg["vol_sma_len"]))

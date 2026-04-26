@@ -10,6 +10,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator
+
 
 DEFAULT_PARAMS = {
     "ema_len": 20,
@@ -41,8 +43,8 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     low = df["low"]
     volume = df["volume"]
 
-    ema = pandas_ta.ema(close, length=p["ema_len"])
-    atr = pandas_ta.atr(high, low, close, length=p["atr_len"])
+    ema = cached_indicator("ema", close, length=p["ema_len"])
+    atr = cached_indicator("atr", high, low, close, length=p["atr_len"])
 
     upper = ema + atr * p["mult"]
 
@@ -51,7 +53,7 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     # Volume confirmation
     vol_confirm = volume > volume.rolling(20).mean() * p["vol_mult"]
     # Trend filter
-    trend = close > pandas_ta.ema(close, length=50)
+    trend = close > cached_indicator("ema", close, length=50)
 
     entries = (breakout & vol_confirm & trend).fillna(False)
     exits = (close < ema).fillna(False)
@@ -75,9 +77,9 @@ def generate_signals_matrix(
     # Deduplicate
     all_ema_lens = sorted(set(pg["ema_len"]))
     all_atr_lens = sorted(set(pg["atr_len"]))
-    ema_cache = {l: pandas_ta.ema(close, length=l) for l in all_ema_lens}
-    atr_cache = {l: pandas_ta.atr(high, low, close, length=l) for l in all_atr_lens}
-    trend_ema = pandas_ta.ema(close, length=50)
+    ema_cache = {l: cached_indicator("ema", close, length=l) for l in all_ema_lens}
+    atr_cache = {l: cached_indicator("atr", high, low, close, length=l) for l in all_atr_lens}
+    trend_ema = cached_indicator("ema", close, length=50)
     vol_avg_20 = volume.rolling(20).mean()
 
     entries_cols = {}
