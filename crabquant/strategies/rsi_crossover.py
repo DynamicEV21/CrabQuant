@@ -11,6 +11,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator, clear_cache
+
 
 DEFAULT_PARAMS = {
     "fast_len": 7,
@@ -84,9 +86,9 @@ def generate_signals_matrix(
     all_regime_lens = sorted(set(pg["regime_len"]))
 
     close = df["close"]
-    rsi_fast = {l: pandas_ta.rsi(close, length=l) for l in all_fast_lens}
-    rsi_slow = {l: pandas_ta.rsi(close, length=l) for l in all_slow_lens}
-    regime = {l: pandas_ta.rsi(close, length=l) for l in all_regime_lens}
+    rsi_fast = {l: cached_indicator("rsi", close, length=l) for l in all_fast_lens}
+    rsi_slow = {l: cached_indicator("rsi", close, length=l) for l in all_slow_lens}
+    regime = {l: cached_indicator("rsi", close, length=l) for l in all_regime_lens}
 
     entries_cols = {}
     exits_cols = {}

@@ -11,6 +11,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator, clear_cache
+
 
 DEFAULT_PARAMS = {
     "macd_fast": 12,
@@ -100,15 +102,15 @@ def generate_signals_matrix(
 
     macd_cache = {}
     for mf, ms, msig in all_macd_combos:
-        macd = pandas_ta.macd(close, fast=mf, slow=ms, signal=msig)
+        macd = cached_indicator("macd", close, fast=mf, slow=ms, signal=msig)
         hist_col = f"MACDh_{mf}_{ms}_{msig}"
         macd_cache[(mf, ms, msig)] = macd[hist_col]
 
     # Deduplicate SMA and volume windows
     all_sma_lens = sorted(set(pg["sma_len"]))
     all_vol_windows = sorted(set(pg["volume_window"]))
-    sma_cache = {l: pandas_ta.sma(close, length=l) for l in all_sma_lens}
-    vol_avg_cache = {w: pandas_ta.sma(volume, length=w) for w in all_vol_windows}
+    sma_cache = {l: cached_indicator("sma", close, length=l) for l in all_sma_lens}
+    vol_avg_cache = {w: cached_indicator("sma", volume, length=w) for w in all_vol_windows}
 
     entries_cols = {}
     exits_cols = {}

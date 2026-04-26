@@ -19,6 +19,8 @@ from itertools import product
 import pandas as pd
 import pandas_ta
 
+from crabquant.indicator_cache import cached_indicator, clear_cache
+
 
 DEFAULT_PARAMS = {
     "rsi_len": 14,
@@ -100,17 +102,17 @@ def generate_signals_matrix(
     high = df["high"]
     low = df["low"]
 
-    # Deduplicate indicators
+    # Deduplicate indicators (cached across calls)
     all_rsi_lens = sorted(set(pg["rsi_len"]))
     all_roc_lens = sorted(set(pg["roc_len"]))
     all_ema_lens = sorted(set(pg["ema_len"]))
     all_atr_lens = sorted(set(pg["atr_len"]))
 
-    rsi_cache = {l: pandas_ta.rsi(close, length=l) for l in all_rsi_lens}
-    roc_cache = {l: pandas_ta.roc(close, length=l) for l in all_roc_lens}
-    ema_cache = {l: pandas_ta.ema(close, length=l) for l in all_ema_lens}
-    atr_cache = {l: pandas_ta.atr(high, low, close, length=l) for l in all_atr_lens}
-    adx = pandas_ta.adx(high, low, close, length=14)
+    rsi_cache = {l: cached_indicator("rsi", close, length=l) for l in all_rsi_lens}
+    roc_cache = {l: cached_indicator("roc", close, length=l) for l in all_roc_lens}
+    ema_cache = {l: cached_indicator("ema", close, length=l) for l in all_ema_lens}
+    atr_cache = {l: cached_indicator("atr", high, low, close, length=l) for l in all_atr_lens}
+    adx = cached_indicator("adx", high, low, close, length=14)
     adx_col = [c for c in adx.columns if "ADX" in c and "DI" not in c][0]
     adx_val = adx[adx_col]
 
