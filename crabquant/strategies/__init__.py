@@ -165,6 +165,13 @@ from crabquant.strategies.invented_volume_adx_ema import (
     PARAM_GRID as invented_volume_adx_ema_grid,
     DESCRIPTION as invented_volume_adx_ema_desc,
 )
+from crabquant.strategies.invented_momentum_confluence import (
+    generate_signals as invented_momentum_confluence_signals,
+    generate_signals_matrix as invented_momentum_confluence_matrix,
+    DEFAULT_PARAMS as invented_momentum_confluence_defaults,
+    PARAM_GRID as invented_momentum_confluence_grid,
+    DESCRIPTION as invented_momentum_confluence_desc,
+)
 
 # Registry: name -> (fn, defaults, grid, description, matrix_fn)
 STRATEGY_REGISTRY = {
@@ -183,6 +190,7 @@ STRATEGY_REGISTRY = {
     "invented_vpt_roc_ema": (invented_vpt_roc_ema_signals, invented_vpt_roc_ema_defaults, invented_vpt_roc_ema_grid, invented_vpt_roc_ema_desc, invented_vpt_roc_ema_matrix),
     "invented_volume_momentum_trend": (invented_volume_momentum_trend_signals, invented_volume_momentum_trend_defaults, invented_volume_momentum_trend_grid, invented_volume_momentum_trend_desc, invented_volume_momentum_trend_matrix),
     "invented_volume_adx_ema": (invented_volume_adx_ema_signals, invented_volume_adx_ema_defaults, invented_volume_adx_ema_grid, invented_volume_adx_ema_desc, invented_volume_adx_ema_matrix),
+    "invented_momentum_confluence": (invented_momentum_confluence_signals, invented_momentum_confluence_defaults, invented_momentum_confluence_grid, invented_momentum_confluence_desc, invented_momentum_confluence_matrix),
     # QF proven patterns
     "vpt_crossover": (vpt_crossover_signals, vpt_crossover_defaults, vpt_crossover_grid, vpt_crossover_desc, vpt_crossover_matrix),
     "roc_ema_volume": (roc_ema_volume_signals, roc_ema_volume_defaults, roc_ema_volume_grid, roc_ema_volume_desc, roc_ema_volume_matrix),
