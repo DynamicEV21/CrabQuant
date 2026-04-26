@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-04-26T09:19:50.079667",
-  "total_results": 1693384,
-  "total_winners": 130041,
+  "timestamp": "2026-04-26T11:20:35.106656",
+  "total_results": 1693428,
+  "total_winners": 130048,
   "strategy_stats": {
     "rsi_crossover": {
       "tested": 36184,
@@ -28,12 +28,12 @@
       "avg_sharpe": 0.9827310008995245
     },
     "volume_breakout": {
-      "tested": 1262,
-      "won": 26,
-      "total_sharpe": 355.6840985552363,
-      "total_return": 127.32531539279174,
-      "win_rate": 0.020602218700475437,
-      "avg_sharpe": 0.2818415994890937
+      "tested": 1306,
+      "won": 33,
+      "total_sharpe": 417.9531710345347,
+      "total_return": 136.15557046260534,
+      "win_rate": 0.02526799387442573,
+      "avg_sharpe": 0.32002539895446763
     },
     "atr_channel_breakout": {
       "tested": 1519,
@@ -258,9 +258,9 @@
       "win_rate": 1.5142452623051356e-05
     },
     "MSFT": {
-      "tested": 1547,
-      "won": 1,
-      "win_rate": 0.0006464124111182935
+      "tested": 1583,
+      "won": 8,
+      "win_rate": 0.00505369551484523
     },
     "NET": {
       "tested": 2853,
@@ -313,7 +313,7 @@
       "win_rate": 0.0
     },
     "UNH": {
-      "tested": 367,
+      "tested": 375,
       "won": 0,
       "win_rate": 0.0
     },
@@ -540,6 +540,17 @@
       }
     ],
     [
+      "volume_breakout",
+      {
+        "tested": 1306,
+        "won": 33,
+        "total_sharpe": 417.9531710345347,
+        "total_return": 136.15557046260534,
+        "win_rate": 0.02526799387442573,
+        "avg_sharpe": 0.32002539895446763
+      }
+    ],
+    [
       "macd_momentum",
       {
         "tested": 41211,
@@ -548,17 +559,6 @@
         "total_return": 5617.731130222831,
         "win_rate": 0.022930770910679188,
         "avg_sharpe": 0.3705893838443954
-      }
-    ],
-    [
-      "volume_breakout",
-      {
-        "tested": 1262,
-        "won": 26,
-        "total_sharpe": 355.6840985552363,
-        "total_return": 127.32531539279174,
-        "win_rate": 0.020602218700475437,
-        "avg_sharpe": 0.2818415994890937
       }
     ],
     [
@@ -785,6 +785,14 @@
       }
     ],
     [
+      "MSFT",
+      {
+        "tested": 1583,
+        "won": 8,
+        "win_rate": 0.00505369551484523
+      }
+    ],
+    [
       "SPY",
       {
         "tested": 131758,
@@ -862,14 +870,6 @@
         "tested": 1310,
         "won": 1,
         "win_rate": 0.0007633587786259542
-      }
-    ],
-    [
-      "MSFT",
-      {
-        "tested": 1547,
-        "won": 1,
-        "win_rate": 0.0006464124111182935
       }
     ],
     [
@@ -1011,7 +1011,7 @@
     [
       "UNH",
       {
-        "tested": 367,
+        "tested": 375,
         "won": 0,
         "win_rate": 0.0
       }

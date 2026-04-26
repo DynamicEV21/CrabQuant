@@ -1,140 +1,159 @@
-"""
-Invented Volume Momentum Trend Strategy
-
-Combines ROC momentum with volume confirmation and ATR-based exits.
-Trend filter ensures we only trade with the broader market direction.
-"""
-
 import pandas as pd
 import pandas_ta as ta
+import itertools
+
+# Strategy: Volume Momentum Trend
+# Combines volume breakout with trend filtering and momentum confirmation
+# Works well in trending markets with volume confirmation
 
 def generate_signals(df, params):
     """
-    Generate entry/exit signals using volume momentum trend strategy.
+    Generate trading signals based on volume momentum trend strategy.
     
-    Args:
-        df: DataFrame with columns ['open', 'high', 'low', 'close', 'volume']
-        params: Dict with strategy parameters
-        
-    Returns:
-        entries: pd.Series[bool] - entry signals
-        exits: pd.Series[bool] - exit signals  
+    Entry conditions:
+    1. Volume breakout above moving average
+    2. ADX > trend_threshold (confirming trend)
+    3. RSI confirms momentum direction
+    
+    Exit conditions:
+    1. ATR-based trailing stop
+    2. RSI reversal signal
+    
+    Parameters:
+    - volume_sma_len: period for volume moving average
+    - volume_mult: volume multiplier for breakout
+    - adx_len: ADX period
+    - adx_threshold: ADX value to confirm trend
+    - rsi_len: RSI period
+    - rsi_oversold: RSI oversold threshold
+    - rsi_overbought: RSI overbought threshold
+    - atr_len: ATR period for stop loss
+    - atr_mult: ATR multiplier for stop loss
     """
     # Calculate indicators
-    roc = ta.roc(df['close'], length=params['roc_len'])
-    volume_sma = ta.sma(df['volume'], length=params['volume_window'])
+    volume_sma = df['volume'].rolling(window=params['volume_sma_len']).mean()
+    volume_breakout = df['volume'] > volume_sma * params['volume_mult']
+    
+    adx = ta.adx(df['high'], df['low'], df['close'], length=params['adx_len'])
+    adx_trend = adx[f'ADX_{params["adx_len"]}'] > params['adx_threshold']
+    
+    rsi = ta.rsi(df['close'], length=params['rsi_len'])
+    
+    # ATR for trailing stop
     atr = ta.atr(df['high'], df['low'], df['close'], length=params['atr_len'])
+    atr_stop = df['close'] - atr * params['atr_mult']
     
-    # Trend filter using EMA
-    ema_fast = ta.ema(df['close'], length=params['ema_fast'])
-    ema_slow = ta.ema(df['close'], length=params['ema_slow'])
-    trend = ema_fast > ema_slow
+    # Entry signals - only when volume confirms and trend is established
+    entries = pd.Series(False, index=df.index)
     
-    # Volume confirmation
-    volume_ratio = df['volume'] / volume_sma
-    volume_surge = volume_ratio > params['volume_threshold']
+    # Bullish entries: uptrend + momentum + volume
+    bullish_entries = (
+        (df['close'] > df['open']) &  # green candle
+        adx_trend &                   # strong trend
+        (rsi > params['rsi_oversold']) &  # not oversold
+        volume_breakout &            # volume breakout
+        (df['close'] > df['close'].shift(params['adx_len']))  # price above X bars ago
+    )
     
-    # Entry conditions: ROC positive + volume surge + trend filter
-    entries = (roc > params['roc_threshold']) & volume_surge & trend
+    # Bearish entries: downtrend + momentum + volume
+    bearish_entries = (
+        (df['close'] < df['open']) &  # red candle
+        adx_trend &                   # strong trend
+        (rsi < params['rsi_overbought']) &  # not overbought
+        volume_breakout &            # volume breakout
+        (df['close'] < df['close'].shift(params['adx_len']))  # price below X bars ago
+    )
     
-    # Exit conditions: ROC reversal + ATR stop-loss
-    roc_reversal = roc < -params['roc_exit_threshold']
-    atr_stop = (df['close'] < (df['close'].rolling(params['atr_len']).max() - 
-                              params['atr_mult'] * atr))
+    entries[bullish_entries] = True
+    entries[bearish_entries] = True
     
-    exits = roc_reversal | atr_stop
+    # Exit signals
+    exits = pd.Series(False, index=df.index)
     
-    # Prevent consecutive entries
-    entries = entries & ~entries.shift(1).fillna(False)
+    # Trailing stop exit
+    long_trail = df['close'] < atr_stop
+    short_trail = df['close'] > atr_stop
+    
+    # RSI reversal exits
+    rsi_oversold = rsi < params['rsi_oversold']
+    rsi_overbought = rsi > params['rsi_overbought']
+    
+    # Exit long positions
+    exits[long_trail] = True
+    exits[rsi_oversold] = True
+    
+    # Exit short positions  
+    exits[short_trail] = True
+    exits[rsi_overbought] = True
     
     return entries, exits
-
-# Default parameters for the strategy
-DEFAULT_PARAMS = {
-    'roc_len': 12,
-    'roc_threshold': 0.5,
-    'roc_exit_threshold': 0.3,
-    'volume_window': 20,
-    'volume_threshold': 1.5,
-    'atr_len': 14,
-    'atr_mult': 2.0,
-    'ema_fast': 10,
-    'ema_slow': 30,
-}
-
-# Parameter grid for optimization
-PARAM_GRID = {
-    'roc_len': [8, 12, 16, 20],
-    'roc_threshold': [0.3, 0.5, 0.7, 1.0],
-    'roc_exit_threshold': [0.2, 0.3, 0.5],
-    'volume_window': [15, 20, 25, 30],
-    'volume_threshold': [1.2, 1.5, 2.0, 2.5],
-    'atr_len': [10, 14, 20],
-    'atr_mult': [1.5, 2.0, 2.5, 3.0],
-    'ema_fast': [5, 10, 15, 20],
-    'ema_slow': [20, 30, 40, 50],
-}
-
-# Strategy description
-DESCRIPTION = """
-Volume Momentum Trend Strategy
-
-This strategy combines ROC momentum with volume confirmation and trend filtering to identify high-probability trading opportunities.
-
-Key Components:
-1. ROC (Rate of Change) for momentum detection
-2. Volume SMA ratio for volume confirmation 
-3. Dual EMA crossover for trend direction
-4. ATR-based stop-loss for risk management
-
-Best For:
-- Medium-term trend following
-- Volume-confirmed breakouts
-- Stocks with consistent volume patterns
-
-Parameters:
-- roc_len: ROC lookback period
-- roc_threshold: Minimum ROC for entry signal
-- volume_window: Volume moving average length
-- volume_threshold: Volume surge multiplier
-- atr_mult: ATR multiplier for stop-loss
-- ema_fast/slow: Trend filter EMA periods
-"""
 
 def generate_signals_matrix(df, param_grid):
     """
     Generate signals matrix for parameter optimization.
-    
-    Args:
-        df: DataFrame with price data
-        param_grid: Dict of parameter options
-        
-    Returns:
-        entries_df: DataFrame of entry signals for each parameter set
-        exits_df: DataFrame of exit signals for each parameter set  
-        param_list: List of parameter dicts tested
+    Returns entries_df, exits_df, and param_list.
     """
-    import itertools
-    
-    # Get all parameter combinations
     param_names = list(param_grid.keys())
     param_values = list(param_grid.values())
+    
+    # Generate all parameter combinations
     param_combinations = list(itertools.product(*param_values))
     
-    entries_list = []
-    exits_list = []
+    entries_dfs = []
+    exits_dfs = []
     param_list = []
     
     for i, param_combo in enumerate(param_combinations):
         params = dict(zip(param_names, param_combo))
+        
         entries, exits = generate_signals(df, params)
         
-        entries_list.append(entries)
-        exits_list.append(exits)
+        entries_dfs.append(entries)
+        exits_dfs.append(exits)
         param_list.append(params)
     
-    # Convert to DataFrames
-    entries_df = pd.DataFrame(entries_list).T
-    exits_df = pd.DataFrame(exits_list).T
+    # Combine all signals
+    entries_df = pd.DataFrame(entries_dfs).T
+    exits_df = pd.DataFrame(exits_dfs).T
     
     return entries_df, exits_df, param_list
+
+DEFAULT_PARAMS = {
+    'volume_sma_len': 20,
+    'volume_mult': 1.5,
+    'adx_len': 14,
+    'adx_threshold': 25,
+    'rsi_len': 14,
+    'rsi_oversold': 35,
+    'rsi_overbought': 65,
+    'atr_len': 14,
+    'atr_mult': 2.0
+}
+
+PARAM_GRID = {
+    'volume_sma_len': [10, 20, 30],
+    'volume_mult': [1.3, 1.5, 2.0],
+    'adx_len': [14, 21],
+    'adx_threshold': [20, 25, 30],
+    'rsi_len': [14, 21],
+    'rsi_oversold': [30, 35, 40],
+    'rsi_overbought': [60, 65, 70],
+    'atr_len': [14, 21],
+    'atr_mult': [1.5, 2.0, 2.5]
+}
+
+DESCRIPTION = """
+Invented Volume Momentum Trend Strategy
+
+This strategy combines volume confirmation with trend filtering and momentum analysis:
+- Uses volume breakout above moving average to confirm interest
+- ADX indicator to establish trend strength and direction
+- RSI to time entries and identify reversals
+- ATR-based trailing stops for risk management
+
+Ideal for trending markets where volume precedes price movements.
+Works well on liquid stocks with consistent volume patterns.
+
+Entry: Volume breakout + ADX trend + RSI momentum confirmation
+Exit: ATR trailing stop or RSI reversal signal
+"""

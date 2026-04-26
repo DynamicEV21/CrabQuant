@@ -52,9 +52,16 @@
       ]
     },
     "context_builder": {
-      "state": "pending",
-      "attempts": 0,
-      "log": []
+      "state": "fix_failed",
+      "attempts": 3,
+      "log": [
+        "2026-04-26T10:47:41.296292: Starting build attempt 1",
+        "2026-04-26T10:47:45.129520: Agent failed: You've hit your limit \u00b7 resets 2pm (America/Los_Angeles)\n\n",
+        "2026-04-26T11:03:06.199770: Starting fix attempt 2",
+        "2026-04-26T11:03:09.049442: Fix agent failed: You've hit your limit \u00b7 resets 2pm (America/Los_Angeles)\n\n",
+        "2026-04-26T11:03:55.516096: Starting fix attempt 3",
+        "2026-04-26T11:03:57.856171: Fix agent failed: You've hit your limit \u00b7 resets 2pm (America/Los_Angeles)\n\n"
+      ]
     },
     "orchestrator": {
       "state": "pending",
@@ -64,5 +71,5 @@
   },
   "phase1_passed": false,
   "started_at": "2026-04-26T16:01:44.963192+00:00",
-  "updated_at": "2026-04-26T17:46:23.612363+00:00"
+  "updated_at": "2026-04-26T18:03:57.856350+00:00"
 }
