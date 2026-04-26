@@ -163,4 +163,15 @@ STRATEGY_REGISTRY = {
     "injected_momentum_atr_volume": (injected_momentum_atr_volume_signals, injected_momentum_atr_volume_defaults, injected_momentum_atr_volume_grid, injected_momentum_atr_volume_desc, injected_momentum_atr_volume_matrix),
 }
 
-__all__ = ["STRATEGY_REGISTRY"]
+# Diverse ticker list for cross-ticker validation (excludes low-liquidity / meme stocks)
+DEFAULT_TICKERS = [
+    "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA",      # mega-cap tech
+    "JPM", "GS", "V", "MA",                         # financials
+    "JNJ", "UNH", "PFE", "ABBV",                     # healthcare
+    "XOM", "CVX", "COP",                              # energy
+    "CAT", "DE", "HON",                               # industrials
+    "WMT", "TGT", "COST",                             # retail
+    "PLD", "AMT",                                       # real estate
+]
+
+__all__ = ["STRATEGY_REGISTRY", "DEFAULT_TICKERS"]

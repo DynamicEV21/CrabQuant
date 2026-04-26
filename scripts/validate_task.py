@@ -6,8 +6,8 @@ Validates winning strategies using walk-forward and cross-ticker tests.
 Designed to be run by the crabquant-validate agent.
 
 Usage:
-    python scripts/validate_task.py                  # Validate next unvalidated winner
-    python scripts/validate_task.py --all            # Validate all unvalidated
+    python scripts/validate_task.py                  # Validate up to 5 pending winners
+    python scripts/validate_task.py --all            # Validate all pending
     python scripts/validate_task.py --status         # Show validation status
 """
 
@@ -18,9 +18,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+import hashlib
+
 from crabquant.data import load_data
 from crabquant.engine import BacktestEngine
-from crabquant.strategies import STRATEGY_REGISTRY
+from crabquant.strategies import STRATEGY_REGISTRY, DEFAULT_TICKERS
 from crabquant.validation import walk_forward_test, cross_ticker_validation as cross_ticker_test
 
 RESULTS_DIR = Path(__file__).parent.parent / "results"
@@ -124,16 +126,18 @@ def validate_winner(winner: dict) -> dict:
         result["wf_robust"] = False
         print(f"    ❌ Walk-forward failed: {e}")
 
-    # Cross-ticker test
+    # Cross-ticker test (exclude discovery ticker from validation set)
     print(f"  📊 Cross-ticker test...")
     try:
-        ct = cross_ticker_test(strategy_fn, params, exclude_ticker=ticker)
+        validation_tickers = [t for t in DEFAULT_TICKERS if t != ticker]
+        engine = BacktestEngine()
+        ct = cross_ticker_test(strategy_fn, params, validation_tickers, engine=engine)
         result["ct_tickers_tested"] = ct.tickers_tested
         result["ct_tickers_profitable"] = ct.tickers_profitable
         result["ct_avg_sharpe"] = ct.avg_sharpe
-        result["ct_generalizes"] = ct.generalizes
+        result["ct_generalizes"] = ct.robust
         print(f"    Tested: {ct.tickers_tested}, Profitable: {ct.tickers_profitable}")
-        print(f"    Avg Sharpe: {ct.avg_sharpe:.2f} {'✅' if ct.generalizes else '❌'}")
+        print(f"    Avg Sharpe: {ct.avg_sharpe:.2f} {'✅' if ct.robust else '❌'}")
     except Exception as e:
         result["ct_error"] = str(e)
         result["ct_generalizes"] = False
@@ -202,15 +206,21 @@ def main():
     validated = load_validated()
     curvefit = load_curvefit()
 
-    # Get validated keys
-    validated_keys = {f"{w['ticker']}|{w['strategy']}" for w in validated}
-    curvefit_keys = {f"{w['ticker']}|{w['strategy']}" for w in curvefit}
+    # Get validated keys (include params hash for proper dedup)
+    def _dedup_key(w: dict) -> str:
+        params_hash = hashlib.sha256(
+            json.dumps(w.get('params', {}), sort_keys=True).encode()
+        ).hexdigest()[:12]
+        return f"{w['ticker']}|{w['strategy']}|{params_hash}"
+
+    validated_keys = {_dedup_key(w) for w in validated}
+    curvefit_keys = {_dedup_key(w) for w in curvefit}
 
     # Find unvalidated
     pending = [
         w for w in winners
-        if f"{w['ticker']}|{w['strategy']}" not in validated_keys
-        and f"{w['ticker']}|{w['strategy']}" not in curvefit_keys
+        if _dedup_key(w) not in validated_keys
+        and _dedup_key(w) not in curvefit_keys
     ]
 
     if not pending:
@@ -222,7 +232,8 @@ def main():
     print(f"Pending: {len(pending)} winners to validate")
     print()
 
-    to_validate = pending if do_all else [pending[0]]
+    BATCH_SIZE = 5
+    to_validate = pending if do_all else pending[:BATCH_SIZE]
 
     for w in to_validate:
         print(f"\n🔍 Validating {w['ticker']}/{w['strategy']}...")
@@ -242,7 +253,7 @@ def main():
     # Update cron state
     state = load_state()
     for w in to_validate:
-        key = f"{w['ticker']}|{w['strategy']}"
+        key = _dedup_key(w)
         if key not in state["validated_winners"]:
             state["validated_winners"].append(key)
     with open(STATE_FILE, "w") as f:
