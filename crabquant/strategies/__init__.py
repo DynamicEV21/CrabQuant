@@ -130,6 +130,13 @@ from crabquant.strategies.injected_momentum_atr_volume import (
     PARAM_GRID as injected_momentum_atr_volume_grid,
     DESCRIPTION as injected_momentum_atr_volume_desc,
 )
+from crabquant.strategies.invented_momentum_rsi_volume import (
+    generate_signals as invented_momentum_rsi_volume_signals,
+    generate_signals_matrix as invented_momentum_rsi_volume_matrix,
+    DEFAULT_PARAMS as invented_momentum_rsi_volume_defaults,
+    PARAM_GRID as invented_momentum_rsi_volume_grid,
+    DESCRIPTION as invented_momentum_rsi_volume_desc,
+)
 
 # Registry: name -> (fn, defaults, grid, description, matrix_fn)
 STRATEGY_REGISTRY = {
@@ -145,6 +152,7 @@ STRATEGY_REGISTRY = {
     # Invented strategies
     "invented_momentum_rsi_atr": (invented_mrsa_signals, invented_mrsa_defaults, invented_mrsa_grid, invented_mrsa_desc, invented_mrsa_matrix),
     "invented_momentum_rsi_stoch": (invented_mrss_signals, invented_mrss_defaults, invented_mrss_grid, invented_mrss_desc, invented_mrss_matrix),
+    "invented_momentum_rsi_volume": (invented_momentum_rsi_volume_signals, invented_momentum_rsi_volume_defaults, invented_momentum_rsi_volume_grid, invented_momentum_rsi_volume_desc, invented_momentum_rsi_volume_matrix),
     # QF proven patterns
     "vpt_crossover": (vpt_crossover_signals, vpt_crossover_defaults, vpt_crossover_grid, vpt_crossover_desc, vpt_crossover_matrix),
     "roc_ema_volume": (roc_ema_volume_signals, roc_ema_volume_defaults, roc_ema_volume_grid, roc_ema_volume_desc, roc_ema_volume_matrix),
