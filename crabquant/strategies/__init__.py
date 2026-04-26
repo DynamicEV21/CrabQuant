@@ -56,6 +56,12 @@ from crabquant.strategies.bollinger_squeeze import (
     PARAM_GRID as bollinger_squeeze_grid,
     DESCRIPTION as bollinger_squeeze_desc,
 )
+from crabquant.strategies.invented_momentum_rsi_atr import (
+    generate_signals as invented_momentum_rsi_atr_signals,
+    DEFAULT_PARAMS as invented_momentum_rsi_atr_defaults,
+    PARAM_GRID as invented_momentum_rsi_atr_grid,
+    DESCRIPTION as invented_momentum_rsi_atr_desc,
+)
 from crabquant.strategies.ichimoku_trend import (
     generate_signals as ichimoku_signals,
     DEFAULT_PARAMS as ichimoku_defaults,
@@ -74,6 +80,7 @@ STRATEGY_REGISTRY = {
     "ema_ribbon_reversal": (ema_ribbon_signals, ema_ribbon_defaults, ema_ribbon_grid, ema_ribbon_desc),
     "bollinger_squeeze": (bollinger_squeeze_signals, bollinger_squeeze_defaults, bollinger_squeeze_grid, bollinger_squeeze_desc),
     "ichimoku_trend": (ichimoku_signals, ichimoku_defaults, ichimoku_grid, ichimoku_desc),
+    "invented_momentum_rsi_atr": (invented_momentum_rsi_atr_signals, invented_momentum_rsi_atr_defaults, invented_momentum_rsi_atr_grid, invented_momentum_rsi_atr_desc),
 }
 
 __all__ = ["STRATEGY_REGISTRY"]

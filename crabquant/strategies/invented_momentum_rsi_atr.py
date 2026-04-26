@@ -7,11 +7,10 @@ and ATR-based trailing stop exits.
 Entry logic:
 - Price above 50 EMA (trend filter)
 - ROC(14) > 0 (positive momentum)
-- RSI(14) crossed above oversold threshold from below (pullback recovery)
-- ADX > 20 (trend strength confirmation)
+- RSI crossed above pullback threshold from below (pullback recovery)
 
 Exit logic:
-- ATR trailing stop: exit when close falls below (entry high - atr_mult * ATR)
+- ATR trailing stop: exit when close falls below (EMA - atr_mult * ATR)
 - Or RSI exceeds overbought level (take profit on extended moves)
 """
 
@@ -21,34 +20,30 @@ import pandas_ta
 
 DEFAULT_PARAMS = {
     "rsi_len": 14,
-    "rsi_oversold": 35,
-    "rsi_overbought": 75,
+    "rsi_pullback": 45,
+    "rsi_overbought": 78,
     "roc_len": 14,
     "roc_threshold": 0,
     "ema_len": 50,
     "atr_len": 14,
-    "atr_exit_mult": 2.5,
-    "adx_len": 14,
-    "adx_threshold": 20,
+    "atr_exit_mult": 3.0,
 }
 
 PARAM_GRID = {
     "rsi_len": [10, 14, 21],
-    "rsi_oversold": [30, 35, 40],
-    "rsi_overbought": [70, 75, 80],
+    "rsi_pullback": [40, 45, 50],
+    "rsi_overbought": [75, 78, 82],
     "roc_len": [10, 14, 21],
-    "roc_threshold": [0, 1, 2],
+    "roc_threshold": [-1, 0, 1],
     "ema_len": [30, 50, 70],
     "atr_len": [10, 14, 21],
-    "atr_exit_mult": [2.0, 2.5, 3.0],
-    "adx_len": [12, 14, 20],
-    "adx_threshold": [15, 20, 25],
+    "atr_exit_mult": [2.0, 2.5, 3.0, 3.5],
 }
 
 DESCRIPTION = (
     "Momentum RSI ATR confluence strategy. "
-    "Enters on RSI recovery from oversold in a confirmed uptrend "
-    "(price > EMA, ROC > 0, ADX > threshold). "
+    "Enters on RSI recovery from pullback in a confirmed uptrend "
+    "(price > EMA, ROC > 0). "
     "Exits on ATR-based trailing stop or RSI overbought. "
     "Designed for trending stocks with regular pullbacks — targets "
     "momentum continuation after healthy dips."
@@ -56,16 +51,6 @@ DESCRIPTION = (
 
 
 def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:
-    """
-    Generate entry/exit signals.
-
-    Args:
-        df: DataFrame with columns open, high, low, close, volume
-        params: Strategy parameters (uses defaults if None)
-
-    Returns:
-        (entries, exits) as boolean Series
-    """
     p = {**DEFAULT_PARAMS, **(params or {})}
     close = df["close"]
     high = df["high"]
@@ -76,32 +61,26 @@ def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.S
     roc = pandas_ta.roc(close, length=p["roc_len"])
     ema = pandas_ta.ema(close, length=p["ema_len"])
     atr = pandas_ta.atr(high, low, close, length=p["atr_len"])
-    adx = pandas_ta.adx(high, low, close, length=p["adx_len"])
-
-    adx_col = f"ADX_{p['adx_len']}"
-    adx_val = adx[adx_col] if adx_col in adx.columns else pandas_ta.adx(high, low, close, length=p["adx_len"])[f"ADX_{p['adx_len']}"]
+    adx = pandas_ta.adx(high, low, close, length=14)
+    adx_col = [c for c in adx.columns if "ADX" in c and "DI" not in c][0]
 
     # Entry conditions
     trend_ok = close > ema
     momentum_ok = roc > p["roc_threshold"]
-    trend_strength_ok = adx_val > p["adx_threshold"]
-    # RSI recovering from oversold: RSI is above oversold but below 55,
-    # and was below oversold within the last N bars (lookback window)
-    lookback = max(p["rsi_len"], 5)
-    rsi_in_recovery_zone = rsi.between(p["rsi_oversold"], 55)
-    rsi_was_oversold = rsi.rolling(lookback).min() < p["rsi_oversold"]
-    rsi_recovery = rsi_in_recovery_zone & rsi_was_oversold
+    adx_ok = adx[adx_col] > 20
 
-    entries = (trend_ok & momentum_ok & rsi_recovery).fillna(False)
+    # RSI pullback: dipped below pullback level, now recovering
+    rsi_turning_up = (rsi.shift(1) < p["rsi_pullback"]) & (rsi >= p["rsi_pullback"])
+    rsi_rising = rsi > rsi.shift(1)
+    rsi_in_zone = rsi.between(p["rsi_pullback"], 60)
+    rsi_pullback_entry = rsi_turning_up | (rsi_in_zone & rsi_rising & (rsi.shift(2) < p["rsi_pullback"]))
+
+    entries = (trend_ok & momentum_ok & adx_ok & rsi_pullback_entry).fillna(False)
 
     # Exit conditions
-    # 1. ATR trailing stop: close below EMA - atr_mult * ATR
     atr_stop = ema - (p["atr_exit_mult"] * atr)
     atr_exit = close < atr_stop
-
-    # 2. RSI overbought take-profit
     rsi_exit = rsi > p["rsi_overbought"]
-
     exits = (atr_exit | rsi_exit).fillna(False)
 
     return entries, exits
