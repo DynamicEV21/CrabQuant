@@ -56,8 +56,9 @@ Best for: Durable trends with strong volume confirmation across
 multiple tickers and timeframes."""
 
 
-def generate_signals(df, params):
+def generate_signals(df, params=None):
     """Generate entry and exit signals using momentum, RSI, and volume."""
+    p = {**DEFAULT_PARAMS, **(params or {})}
     
     # Calculate indicators using cached_indicator
     close = df['close']
@@ -65,30 +66,30 @@ def generate_signals(df, params):
     low = df['low']
     volume = df['volume']
     
-    roc = cached_indicator("roc", close, length=params['roc_len'])
-    rsi = cached_indicator("rsi", close, length=params['rsi_len'])
-    atr = cached_indicator("atr", high, low, close, length=params['atr_len'])
+    roc = cached_indicator("roc", close, length=p['roc_len'])
+    rsi = cached_indicator("rsi", close, length=p['rsi_len'])
+    atr = cached_indicator("atr", high, low, close, length=p['atr_len'])
     
     # Calculate volume SMA with pandas rolling mean
-    volume_sma = volume.rolling(window=params['volume_sma_len']).mean()
+    volume_sma = volume.rolling(window=p['volume_sma_len']).mean()
     
     # Initialize signals
     entries = pd.Series(False, index=df.index)
     exits = pd.Series(False, index=df.index)
     
     # Entry conditions: momentum + not overbought + volume spike
-    momentum_bullish = (roc > params['roc_threshold']).fillna(False)
-    not_overbought = (rsi < params['rsi_overbought']).fillna(False)
-    volume_spike = (df['volume'] > (volume_sma * params['volume_threshold'])).fillna(False)
+    momentum_bullish = (roc > p['roc_threshold']).fillna(False)
+    not_overbought = (rsi < p['rsi_overbought']).fillna(False)
+    volume_spike = (df['volume'] > (volume_sma * p['volume_threshold'])).fillna(False)
     
     entries = momentum_bullish & not_overbought & volume_spike
     
     # Exit conditions: oversold or ATR trailing stop
-    oversold = (rsi < params['rsi_oversold']).fillna(False)
+    oversold = (rsi < p['rsi_oversold']).fillna(False)
     
     # ATR trailing stop logic
-    highest_close = df['close'].rolling(window=params['trailing_len']).max()
-    trailing_stop = highest_close - (atr * params['atr_mult'])
+    highest_close = df['close'].rolling(window=p['trailing_len']).max()
+    trailing_stop = highest_close - (atr * p['atr_mult'])
     
     # Exit when price drops below trailing stop or RSI oversold
     below_trailing = (df['close'] < trailing_stop).fillna(False)
