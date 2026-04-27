@@ -1,0 +1,55 @@
+{
+  "run_id": "e2e_stress_test_20260426_185149",
+  "mandate_name": "e2e_stress_test",
+  "created_at": "2026-04-27T01:51:49.956470+00:00",
+  "max_turns": 5,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "SPY"
+  ],
+  "period": "2y",
+  "current_turn": 5,
+  "status": "max_turns_exhausted",
+  "best_sharpe": -999.0,
+  "best_turn": 0,
+  "best_code_path": "",
+  "history": [
+    {
+      "turn": 1,
+      "status": "code_generation_failed",
+      "errors": [
+        "Missing required: ['DESCRIPTION', 'PARAM_GRID']"
+      ]
+    },
+    {
+      "turn": 2,
+      "status": "code_generation_failed",
+      "errors": [
+        "Missing required: ['DESCRIPTION', 'PARAM_GRID']"
+      ]
+    },
+    {
+      "turn": 3,
+      "status": "code_generation_failed",
+      "errors": [
+        "Missing required: ['DESCRIPTION', 'PARAM_GRID']"
+      ]
+    },
+    {
+      "turn": 4,
+      "status": "code_generation_failed",
+      "errors": [
+        "Missing required: ['DESCRIPTION', 'PARAM_GRID']"
+      ]
+    },
+    {
+      "turn": 5,
+      "status": "code_generation_failed",
+      "errors": [
+        "Missing required: ['DESCRIPTION', 'PARAM_GRID']"
+      ]
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}

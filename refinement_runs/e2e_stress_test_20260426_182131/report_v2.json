@@ -1,0 +1,74 @@
+{
+  "strategy_id": "e2e_stress_test_20260426_182131",
+  "iteration": 2,
+  "sharpe_ratio": 0.557047245424102,
+  "total_return_pct": 0.03669180035288693,
+  "max_drawdown_pct": -0.06256928009948277,
+  "win_rate": 0.75,
+  "total_trades": 4,
+  "profit_factor": 1.8953725748069787,
+  "calmar_ratio": 0.42513598908793004,
+  "sortino_ratio": 0.8146217458251472,
+  "composite_score": 0.23353189865023463,
+  "failure_mode": "too_few_trades",
+  "failure_details": "Only 4 trades (min 5). Strategy is too selective.",
+  "sharpe_by_year": {
+    "2024": -0.0918,
+    "2025": 1.5541,
+    "2026": 0.0
+  },
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    -0.3660326623479307
+  ],
+  "previous_actions": [
+    "create"
+  ],
+  "guardrail_violations": [
+    "Too few trades: 4 < 5",
+    "Sharpe too low: 0.56 < 1.0",
+    "Return too low: 3.7% < 5%"
+  ],
+  "guardrail_warnings": [
+    "Low trade count: 4 (marginal statistical significance)",
+    "Sharpe near threshold: 0.56 (close to 1.0)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nRSI Regime Dip + Volume Strategy for SPY\n\nRegime-adaptive dip buying with volume confirmation:\n- RSI(long) determines market regime (bullish when > threshold)\n- RSI(short) times entry on dips (below dip_level in bullish regime)\n- Volume above SMA confirms institutional participation\n- Exits on RSI(short) recovery OR regime turning bearish\n\nDesigned to avoid regime fragility by sitting out bear markets entirely.\nTarget Sharpe 1.5+ for SPY over 2-year periods.\n\"\"\"\n\nfrom itertools import product\n\nimport pandas as pd\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"rsi_long\": 28,\n    \"rsi_short\": 7,\n    \"regime_threshold\": 50,\n    \"dip_level\": 30,\n    \"exit_level\": 55,\n    \"volume_window\": 20,\n    \"volume_mult\": 0.8,\n}\n\nPARAM_GRID = {\n    \"rsi_long\": [21, 28, 35],\n    \"rsi_short\": [5, 7, 10],\n    \"regime_threshold\": [45, 50, 55],\n    \"dip_level\": [25, 30, 35],\n    \"exit_level\": [50, 55, 60, 65],\n    \"volume_window\": [15, 20, 25],\n    \"volume_mult\": [0.0, 0.8, 1.0],\n}\n\nDESCRIPTION = (\n    \"RSI regime-filtered dip buying with volume confirmation. \"\n    \"Enters when long-term RSI confirms bullish regime, short-term RSI \"\n    \"detects a pullback, and volume confirms institutional buying. \"\n    \"Exits on RSI recovery or regime shift to bearish. \"\n    \"Designed to avoid regime fragility by not trading in bear markets.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    # Regime detection: long-term RSI above threshold = bullish\n    rsi_long = cached_indicator(\"rsi\", close, length=p[\"rsi_long\"])\n    bullish_regime = rsi_long > p[\"regime_threshold\"]\n\n    # Dip detection: short-term RSI below dip level\n    rsi_short = cached_indicator(\"rsi\", close, length=p[\"rsi_short\"])\n    dip_detected = rsi_short < p[\"dip_level\"]\n\n    # Volume confirmation\n    volume_avg = cached_indicator(\"sma\", volume, length=p[\"volume_window\"])\n    volume_ok = volume > (volume_avg * p[\"volume_mult\"])\n\n    # Entry: bullish regime + dip + volume\n    entries = (bullish_regime & dip_detected & volume_ok).fillna(False)\n\n    # Exit: RSI short recovers OR regime turns bearish\n    rsi_recovered = rsi_short > p[\"exit_level\"]\n    regime_bearish = rsi_long < p[\"regime_threshold\"]\n    exits = (rsi_recovered | regime_bearish).fillna(False)\n\n    return entries, exits\n\n\ndef generate_signals_matrix(\n    df: pd.DataFrame, param_grid: dict | None = None\n) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:\n    \"\"\"Generate signals for ALL param combinations at once (vectorized).\"\"\"\n    pg = param_grid or PARAM_GRID\n    keys = list(pg.keys())\n    combos = list(product(*(pg[k] for k in keys)))\n\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    # Deduplicate indicator calculations\n    all_rsi_lens = sorted(set(pg[\"rsi_long\"]) | set(pg[\"rsi_short\"]))\n    all_vol_windows = sorted(set(pg[\"volume_window\"]))\n\n    rsi_cache = {l: cached_indicator(\"rsi\", close, length=l) for l in all_rsi_lens}\n    vol_avg_cache = {w: cached_indicator(\"sma\", volume, length=w) for w in all_vol_windows}\n\n    entries_cols = {}\n    exits_cols = {}\n    param_list = []\n\n    for i, vals in enumerate(combos):\n        params = dict(zip(keys, vals))\n\n        rsi_long = rsi_cache[params[\"rsi_long\"]]\n        rsi_short = rsi_cache[params[\"rsi_short\"]]\n        volume_avg = vol_avg_cache[params[\"volume_window\"]]\n\n        bullish_regime = rsi_long > params[\"regime_threshold\"]\n        dip_detected = rsi_short < params[\"dip_level\"]\n        volume_ok = volume > (volume_avg * params[\"volume_mult\"])\n\n        e = (bullish_regime & dip_detected & volume_ok).fillna(False)\n\n        rsi_recovered = rsi_short > params[\"exit_level\"]\n        regime_bearish = rsi_long < params[\"regime_threshold\"]\n        x = (rsi_recovered | regime_bearish).fillna(False)\n\n        entries_cols[f\"c{i}\"] = e\n        exits_cols[f\"c{i}\"] = x\n        param_list.append(params)\n\n    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list\n",
+  "current_params": {
+    "rsi_long": 28,
+    "rsi_short": 7,
+    "regime_threshold": 50,
+    "dip_level": 30,
+    "exit_level": 55,
+    "volume_window": 20,
+    "volume_mult": 0.8
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": -0.3660326623479307,
+      "failure_mode": "regime_fragility",
+      "action": "create",
+      "hypothesis": "SPY exhibits persistent momentum trends over 2-year periods. Combining ROC for momentum direction, EMA for trend filtering, volume confirmation to validate institutional participation, and ATR trailing stops for risk management should capture these trends while limiting drawdowns. The ATR trailing stop adapts to SPY's volatility regime, preventing premature exits during strong moves while protecting capital in reversals.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_182131/strategy_v1.py",
+      "params_used": {
+        "roc_len": 12,
+        "ema_len": 50,
+        "volume_window": 20,
+        "volume_mult": 1.0,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "roc_threshold": 0.0
+      },
+      "strategy_hash": "61b4ef0c4bec",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

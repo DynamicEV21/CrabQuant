@@ -1,0 +1,16 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "Simple ROC+EMA momentum with volume confirmation should work well for AAPL. ROC detects positive price momentum, EMA filters for uptrend, volume confirms participation, and ATR trailing stop manages risk. This is a proven pattern from roc_ema_volume (Sharpe 2.21).",
+  "new_strategy_code": "\"\"\"\nROC EMA Volume Momentum Strategy\n\nMomentum strategy using ROC for direction, EMA for trend filter,\nvolume for confirmation, and ATR trailing stop for exits.\n\"\"\"\n\nimport pandas as pd\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 10,\n    \"ema_len\": 20,\n    \"vol_len\": 20,\n    \"vol_mult\": 1.0,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.0,\n}\n\n\nDESCRIPTION = (\n    \"ROC + EMA + Volume momentum strategy. \"\n    \"Enters when ROC is positive, price above EMA, and volume above average. \"\n    \"Exits via ATR trailing stop (rolling high minus ATR * multiplier). \"\n    \"Simple trend-following with volume confirmation.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    volume = df[\"volume\"]\n\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    vol_sma = cached_indicator(\"sma\", volume, length=p[\"vol_len\"])\n    atr = cached_indicator(\"atr\", high, df[\"low\"], close, length=p[\"atr_len\"])\n\n    momentum_ok = roc > 0\n    trend_ok = close > ema\n    volume_ok = volume > (vol_sma * p[\"vol_mult\"])\n\n    entries = (momentum_ok & trend_ok & volume_ok).fillna(False)\n\n    rolling_high = high.rolling(window=p[\"atr_len\"], min_periods=1).max()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    exits = (close < trailing_stop).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "roc_len": 10,
+    "ema_len": 20,
+    "vol_len": 20,
+    "vol_mult": 1.0,
+    "atr_len": 14,
+    "atr_mult": 2.0
+  },
+  "expected_impact": "Expected to generate 10-30 trades over 1 year on AAPL with positive momentum capture. ATR trailing stop limits downside. Should comfortably exceed Sharpe 0.5 target given the proven ROC+EMA+Volume pattern."
+}
+```

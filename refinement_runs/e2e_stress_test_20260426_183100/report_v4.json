@@ -1,0 +1,90 @@
+{
+  "strategy_id": "e2e_stress_test_20260426_183100",
+  "iteration": 4,
+  "sharpe_ratio": -0.14956940368088642,
+  "total_return_pct": -0.008728377188999293,
+  "max_drawdown_pct": -0.043328652430361686,
+  "win_rate": 0.3333333333333333,
+  "total_trades": 6,
+  "profit_factor": 0.8001468970060004,
+  "calmar_ratio": -0.14693645989950554,
+  "sortino_ratio": -0.19781532159487278,
+  "composite_score": -0.07837294320668793,
+  "failure_mode": "regime_fragility",
+  "failure_details": "Sharpe varies 2.8 across years ({'2024': np.float64(-1.0992), '2025': np.float64(1.5049), '2026': np.float64(-1.2812)}). Strategy is regime-dependent.",
+  "sharpe_by_year": {
+    "2024": -1.0992,
+    "2025": 1.5049,
+    "2026": -1.2812
+  },
+  "stagnation_score": 0.041,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    -0.1720153228877462,
+    0,
+    0
+  ],
+  "previous_actions": [
+    "create",
+    "",
+    ""
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: -0.15 < 1.0",
+    "Return too low: -0.9% < 5%",
+    "Profit factor too low: 0.80 < 1.0"
+  ],
+  "guardrail_warnings": [
+    "Low trade count: 6 (marginal statistical significance)",
+    "Win rate below 50%: 33.3% (relies on large winners)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nRSI Regime Dip Strategy for SPY\n\nLong RSI determines market regime (bullish when above threshold).\nShort RSI times entry on dips (below dip_level in bullish regime).\nExits when short RSI recovers or regime turns bearish.\nSharpe 2.18 in QF backtests. Works well in trending markets with pullbacks.\n\"\"\"\n\nfrom itertools import product\n\nimport pandas as pd\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"rsi_long\": 21,\n    \"rsi_short\": 7,\n    \"regime_threshold\": 50,\n    \"dip_level\": 30,\n    \"exit_level\": 65,\n}\n\nPARAM_GRID = {\n    \"rsi_long\": [14, 21, 28],\n    \"rsi_short\": [5, 7, 10],\n    \"regime_threshold\": [45, 50, 55],\n    \"dip_level\": [25, 30, 35],\n    \"exit_level\": [55, 60, 65],\n}\n\nDESCRIPTION = (\n    \"RSI regime filter with dip timing. \"\n    \"Long RSI determines market regime (bullish when above threshold). \"\n    \"Short RSI times entry on dips (below dip_level in bullish regime). \"\n    \"Exits when short RSI recovers or regime turns bearish. \"\n    \"Sharpe 2.18 in QF backtests. Works well in trending markets with pullbacks.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    rsi_long = cached_indicator(\"rsi\", close, length=p[\"rsi_long\"])\n    rsi_short = cached_indicator(\"rsi\", close, length=p[\"rsi_short\"])\n\n    bullish_regime = rsi_long > p[\"regime_threshold\"]\n\n    # Entry: short RSI crosses above dip_level while in bullish regime\n    entries = (\n        (rsi_short.shift(1) < p[\"dip_level\"])\n        & (rsi_short >= p[\"dip_level\"])\n        & bullish_regime\n    ).fillna(False)\n\n    # Exit: short RSI crosses above exit_level OR regime turns bearish\n    exits = (\n        ((rsi_short.shift(1) < p[\"exit_level\"]) & (rsi_short >= p[\"exit_level\"]))\n        | ((rsi_long.shift(1) > p[\"regime_threshold\"]) & (rsi_long <= p[\"regime_threshold\"]))\n    ).fillna(False)\n\n    return entries, exits\n\n\ndef generate_signals_matrix(\n    df: pd.DataFrame, param_grid: dict | None = None\n) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:\n    pg = param_grid or PARAM_GRID\n    keys = list(pg.keys())\n    combos = list(product(*(pg[k] for k in keys)))\n\n    close = df[\"close\"]\n\n    all_rsi_long = sorted(set(pg[\"rsi_long\"]))\n    all_rsi_short = sorted(set(pg[\"rsi_short\"]))\n    rsi_cache = {}\n    for length in all_rsi_long:\n        rsi_cache[(\"long\", length)] = cached_indicator(\"rsi\", close, length=length)\n    for length in all_rsi_short:\n        rsi_cache[(\"short\", length)] = cached_indicator(\"rsi\", close, length=length)\n\n    entries_cols = {}\n    exits_cols = {}\n    param_list = []\n\n    for i, vals in enumerate(combos):\n        params = dict(zip(keys, vals))\n        rl = rsi_cache[(\"long\", params[\"rsi_long\"])]\n        rs = rsi_cache[(\"short\", params[\"rsi_short\"])]\n\n        bullish = rl > params[\"regime_threshold\"]\n        e = (\n            (rs.shift(1) < params[\"dip_level\"])\n            & (rs >= params[\"dip_level\"])\n            & bullish\n        ).fillna(False)\n\n        x = (\n            ((rs.shift(1) < params[\"exit_level\"]) & (rs >= params[\"exit_level\"]))\n            | ((rl.shift(1) > params[\"regime_threshold\"]) & (rl <= params[\"regime_threshold\"]))\n        ).fillna(False)\n\n        entries_cols[f\"c{i}\"] = e\n        exits_cols[f\"c{i}\"] = x\n        param_list.append(params)\n\n    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list\n",
+  "current_params": {
+    "rsi_long": 21,
+    "rsi_short": 7,
+    "regime_threshold": 50,
+    "dip_level": 30,
+    "exit_level": 65
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": -0.1720153228877462,
+      "failure_mode": "regime_fragility",
+      "action": "create",
+      "hypothesis": "SPY is a trending ETF where momentum strategies with volume confirmation perform well. The ROC indicator captures momentum direction, EMA filters for uptrend, volume confirmation avoids false breakouts, and ATR trailing stops provide dynamic risk management to keep drawdown under 25%. This combination should achieve Sharpe > 1.5 with at least 5 trades over 2 years.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_183100/strategy_v1.py",
+      "params_used": {
+        "roc_len": 12,
+        "ema_len": 50,
+        "volume_len": 20,
+        "volume_mult": 1.0,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "roc_threshold": 0
+      },
+      "strategy_hash": "d5dc035dae71",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "status": "code_generation_failed",
+      "errors": [
+        "entries must be pd.Series[bool], got DataFrame"
+      ]
+    },
+    {
+      "turn": 3,
+      "status": "code_generation_failed",
+      "errors": [
+        "Zero entry signals generated on test data"
+      ]
+    }
+  ]
+}

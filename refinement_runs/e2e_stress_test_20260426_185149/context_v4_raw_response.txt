@@ -1,0 +1,16 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "SPY momentum strategy combining ROC for momentum detection, EMA trend filter, and volume confirmation for entries. ATR-based trailing stop provides dynamic exits that adapt to volatility. This combination filters for high-conviction momentum moves while protecting against reversals.",
+  "new_strategy_code": "\"\"\"\nMomentum Volume Strategy for SPY\n\nROC momentum with EMA trend filter and volume confirmation.\nATR trailing stop for dynamic exits.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 12,\n    \"ema_len\": 50,\n    \"volume_len\": 20,\n    \"volume_mult\": 1.1,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.0,\n}\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    vol_sma = cached_indicator(\"sma\", volume, length=p[\"volume_len\"])\n    vol_ok = volume > (vol_sma * p[\"volume_mult\"])\n\n    entries = (trend_ok & vol_ok & (roc > 0)).fillna(False)\n\n    atr = cached_indicator(\"atr\", df[\"high\"], df[\"low\"], close, length=p[\"atr_len\"])\n    rolling_high = close.rolling(window=p[\"atr_len\"], min_periods=1).max()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    exits = (close < trailing_stop).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "roc_len": 12,
+    "ema_len": 50,
+    "volume_len": 20,
+    "volume_mult": 1.1,
+    "atr_len": 14,
+    "atr_mult": 2.0
+  },
+  "expected_impact": "Moderate Sharpe (1.5-2.0) with controlled drawdown. Volume filter reduces false signals in low-conviction moves. ATR trailing stop locks in gains during trending periods. Should generate 10-20 trades over 2y on SPY."
+}
+```

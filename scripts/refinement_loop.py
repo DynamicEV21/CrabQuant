@@ -17,6 +17,7 @@ Usage:
 import json
 import os
 import tempfile
+import time
 import importlib.util
 from datetime import datetime, timezone
 from pathlib import Path
@@ -285,6 +286,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
     save_state(run_dir, state)
     
     for turn in range(1, max_turns + 1):
+        turn_start = time.time()
         state.current_turn = turn
         print(f"\n{'='*60}")
         print(f"Turn {turn}/{max_turns} | Best Sharpe: {state.best_sharpe:.2f}")
@@ -369,10 +371,16 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         
         # 4. Backtest on primary ticker
         primary_ticker = mandate.get("primary_ticker", state.tickers[0])
+        print(f"  Running backtest...", flush=True)
+        bt_start = time.time()
         backtest_output = run_backtest_safely(
             strategy_module, primary_ticker, state.period,
             return_portfolio=True,
         )
+        bt_elapsed = time.time() - bt_start
+        print(f"  Backtest completed in {bt_elapsed:.1f}s", flush=True)
+        if bt_elapsed > 30:
+            print(f"  ⚠️ Backtest slow ({bt_elapsed:.1f}s > 30s)", flush=True)
         
         if backtest_output is None:
             print(f"  Backtest crashed. Advancing turn.")
@@ -385,7 +393,10 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         result, df, portfolio = backtest_output
         
         # 5. Compute diagnostics + classify failure
-        sharpe_by_year = compute_sharpe_by_year(portfolio)
+        if portfolio is not None:
+            sharpe_by_year = compute_sharpe_by_year(portfolio)
+        else:
+            sharpe_by_year = {}
         
         # Run guardrails
         guardrail_config = GuardrailConfig()
@@ -465,6 +476,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             
             # Promote to winner
             promote_to_winner(strategy_code, result, validation, state, strategy_module=strategy_module)
+            turn_elapsed = time.time() - turn_start
+            print(f"  Turn {turn} completed in {turn_elapsed:.1f}s", flush=True)
             release_lock(run_dir)
             return state
         
@@ -480,6 +493,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             print(f"  🛑 Abandoning: stagnation score {stagnation_score:.2f}")
             state.status = "abandoned"
             save_state(run_dir, state)
+            turn_elapsed = time.time() - turn_start
+            print(f"  Turn {turn} completed in {turn_elapsed:.1f}s", flush=True)
             release_lock(run_dir)
             return state
         
@@ -495,6 +510,9 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             "delta_from_prev": "Initial strategy (no prior version)",
         })
         save_state(run_dir, state)
+        
+        turn_elapsed = time.time() - turn_start
+        print(f"  Turn {turn} completed in {turn_elapsed:.1f}s", flush=True)
     
     # Exhausted all turns
     state.status = "max_turns_exhausted"

@@ -204,10 +204,11 @@ class TestGateSyntax:
         assert ok is False
         assert any("DEFAULT_PARAMS" in e for e in errors)
 
-    def test_missing_param_grid(self):
+    def test_missing_param_grid_is_optional(self):
+        """PARAM_GRID is not required for LLM-generated strategies."""
         ok, errors = gate_syntax(MISSING_PARAM_GRID)
-        assert ok is False
-        assert any("PARAM_GRID" in e for e in errors)
+        assert ok is True  # Should pass without PARAM_GRID
+        assert not any("PARAM_GRID" in e for e in errors)
 
     def test_bad_import_caught(self):
         ok, errors = gate_syntax(BAD_IMPORT_STRATEGY)

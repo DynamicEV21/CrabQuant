@@ -29,11 +29,71 @@ def get_strategy_catalog() -> list[dict]:
     return catalog
 
 
+def _strip_advanced_functions(source: str) -> str:
+    """Strip PARAM_GRID and generate_signals_matrix from strategy source code.
+    
+    These are not needed by the refinement loop and their inclusion in examples
+    causes the LLM to generate unnecessarily large strategy code, often exceeding
+    max_tokens and producing truncated/incomplete JSON responses.
+    """
+    lines = source.split('\n')
+    result_lines = []
+    skip_mode = None  # None, 'braces', 'function'
+    brace_depth = 0
+    func_indent = 0
+    
+    for line in lines:
+        stripped = line.strip()
+        leading = len(line) - len(line.lstrip())
+        
+        # Skip blank lines during any skip mode
+        if not stripped and skip_mode:
+            continue
+        
+        if skip_mode == 'braces':
+            brace_depth += stripped.count('{') - stripped.count('}')
+            if brace_depth <= 0:
+                skip_mode = None
+                brace_depth = 0
+            continue
+        
+        if skip_mode == 'function':
+            # Stop when we see another top-level definition at the same indent
+            if (stripped.startswith('def ') or stripped.startswith('class ') or
+                    stripped.startswith('PARAM_GRID') or stripped.startswith('DESCRIPTION') or
+                    stripped.startswith('DEFAULT_PARAMS')) and leading <= func_indent:
+                skip_mode = None
+                # Don't skip this line — it's the next top-level block
+                result_lines.append(line)
+                continue
+            # Skip everything else (including signature continuations at indent 0)
+            continue
+        
+        # Check if this line starts a block we want to skip
+        if stripped.startswith('PARAM_GRID'):
+            if '{' in stripped:
+                brace_depth = stripped.count('{') - stripped.count('}')
+                skip_mode = 'braces' if brace_depth > 0 else None
+            continue
+        
+        if stripped.startswith('def generate_signals_matrix'):
+            func_indent = leading
+            skip_mode = 'function'
+            continue
+        
+        result_lines.append(line)
+    
+    return '\n'.join(result_lines).strip()
+
+
 def get_strategy_examples(archetype: str = "any") -> list[dict]:
-    """Return full strategy source files as examples for the LLM.
+    """Return strategy source as examples for the LLM.
     
     Picks 2 strategies relevant to the mandate archetype.
     Falls back to macd_momentum + rsi_crossover for unknown archetypes.
+    
+    PARAM_GRID and generate_signals_matrix are stripped from examples
+    to reduce token usage and prevent LLM from generating unnecessary code.
     
     Args:
         archetype: Strategy archetype string (momentum, mean_reversion, etc.)
@@ -60,6 +120,9 @@ def get_strategy_examples(archetype: str = "any") -> list[dict]:
             try:
                 module = inspect.getmodule(fn)
                 source = inspect.getsource(module) if module else inspect.getsource(fn)
+                # Strip PARAM_GRID and generate_signals_matrix from examples
+                # to reduce token usage and prevent LLM from generating them
+                source = _strip_advanced_functions(source)
             except (TypeError, OSError):
                 source = f"# Source unavailable for {name}"
             

@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 from types import ModuleType
 
-_REQUIRED_ATTRS = ("generate_signals", "DEFAULT_PARAMS", "PARAM_GRID")
+_REQUIRED_ATTRS = ("generate_signals", "DEFAULT_PARAMS")
 
 
 def load_strategy_module(

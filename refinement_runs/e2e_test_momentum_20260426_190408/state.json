@@ -1,0 +1,28 @@
+{
+  "run_id": "e2e_test_momentum_20260426_190408",
+  "mandate_name": "e2e_test_momentum",
+  "created_at": "2026-04-27T02:04:08.530355+00:00",
+  "max_turns": 2,
+  "sharpe_target": 0.5,
+  "tickers": [
+    "AAPL"
+  ],
+  "period": "1y",
+  "current_turn": 2,
+  "status": "max_turns_exhausted",
+  "best_sharpe": -999.0,
+  "best_turn": 0,
+  "best_code_path": "",
+  "history": [
+    {
+      "turn": 1,
+      "status": "module_load_failed"
+    },
+    {
+      "turn": 2,
+      "status": "module_load_failed"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}

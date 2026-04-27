@@ -7,6 +7,7 @@ Handles all communication with z.ai (GLM-5) for strategy generation and refineme
 import json
 import logging
 import re
+import time
 import urllib.request
 import urllib.error
 from pathlib import Path
@@ -68,8 +69,39 @@ def call_zai_llm(
             "Content-Type": "application/json",
         },
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        result = json.loads(resp.read())
+    # Retry loop for transient errors
+    max_retries = 2
+    backoff_times = [5, 10]
+    last_error = None
+    
+    for attempt in range(max_retries + 1):
+        try:
+            t0 = time.time()
+            print(f"  Calling LLM...", flush=True)
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                result = json.loads(resp.read())
+            elapsed = time.time() - t0
+            print(f"  LLM responded in {elapsed:.1f}s", flush=True)
+            break
+        except urllib.error.HTTPError as e:
+            # Only retry on 5xx server errors
+            if e.code >= 500 and attempt < max_retries:
+                last_error = e
+                backoff = backoff_times[attempt]
+                print(f"  LLM call failed (HTTP {e.code}), retry {attempt+1}/{max_retries} in {backoff}s...", flush=True)
+                time.sleep(backoff)
+                continue
+            raise
+        except urllib.error.URLError as e:
+            if attempt < max_retries:
+                last_error = e
+                backoff = backoff_times[attempt]
+                print(f"  LLM call timed out, retry {attempt+1}/{max_retries} in {backoff}s...", flush=True)
+                time.sleep(backoff)
+                continue
+            raise
+    else:
+        raise last_error  # Should not reach here, but safety net
     
     if "choices" not in result or not result["choices"]:
         raise ValueError(f"Unexpected API response: {json.dumps(result)[:200]}")
@@ -117,7 +149,7 @@ def extract_json_from_llm(text: str) -> dict:
     if extracted is not None:
         return extracted
     
-    raise ValueError(f"Could not extract JSON from LLM response (first 200: {text[:200]})")
+    raise ValueError(f"Could not extract JSON from LLM response (first 200: {text[:200]}, len={len(text)})")
 
 
 def _extract_json_by_braces(text: str) -> Optional[dict]:
@@ -206,7 +238,15 @@ def call_llm_inventor(
             "You are a quantitative strategy researcher. You design trading strategies "
             "using technical indicators. You output valid JSON with strategy code. "
             "Always respond with a JSON object containing 'action', 'hypothesis', "
-            "'new_strategy_code', 'params', and 'expected_impact' fields."
+            "'new_strategy_code', 'params', and 'expected_impact' fields.\n\n"
+            "CRITICAL RULES for new_strategy_code:\n"
+            "1. Include DESCRIPTION (string variable), generate_signals(df, params), and DEFAULT_PARAMS.\n"
+            "   Do NOT include generate_signals_matrix or PARAM_GRID.\n"
+            "   Example: DESCRIPTION = 'Momentum strategy using RSI and MACD'\n"
+            "2. Keep strategy code under 80 lines. Be concise — no excessive comments.\n"
+            "3. Use from crabquant.indicator_cache import cached_indicator for indicators.\n"
+            "4. generate_signals MUST return (entries: pd.Series[bool], exits: pd.Series[bool]).\n"
+            "5. Ensure the JSON is COMPLETE — never truncate your response."
         ),
     }
     

@@ -51,8 +51,8 @@ change_exit_logic, add_regime_filter, full_rewrite, novel>",
 
 STRATEGY FILE REQUIREMENTS:
 - Must define: generate_signals(df, params) -> (entries, exits)
-- Must define: generate_signals_matrix(df, param_grid) -> (entries_df, exits_df, param_list)
-- Must define: DEFAULT_PARAMS, PARAM_GRID, DESCRIPTION
+- Must define: DEFAULT_PARAMS, DESCRIPTION
+- Do NOT include generate_signals_matrix or PARAM_GRID
 - Use pandas_ta for indicators (via crabquant.indicator_cache.cached_indicator)
 - df columns: open, high, low, close, volume (lowercase)
 - entries and exits must be pd.Series[bool], same length as df, no NaN

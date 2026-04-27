@@ -446,7 +446,15 @@
     "invented_rsi_volume_atr|GOOGL",
     "atr_channel_breakout|SCHW",
     "volume_breakout|MDB",
-    "multi_rsi_confluence|BA"
+    "multi_rsi_confluence|BA",
+    "invented_volume_adx_ema|JNJ",
+    "bollinger_squeeze|CVX",
+    "ema_ribbon_reversal|SCHW",
+    "ichimoku_trend|DDOG",
+    "ema_ribbon_reversal|AMZN",
+    "macd_momentum|AAPL",
+    "volume_breakout|PLTR",
+    "bollinger_squeeze|INTC"
   ],
   "validated_winners": [
     "CAT|roc_ema_volume",
@@ -546,10 +554,10 @@
     "GOOGL|roc_ema_volume|4949c7f76cbe",
     "GOOGL|roc_ema_volume|1029ad9551b2"
   ],
-  "total_runs": 439,
+  "total_runs": 446,
   "total_winners": 8156,
   "best_score": 2.442654448731927,
-  "last_run": "2026-04-26T16:28:12.613915",
+  "last_run": "2026-04-26T19:12:21.285972",
   "dead_combos": [
     "bb_stoch_macd|ORCL",
     "ema_ribbon_reversal|JNJ",
@@ -558,6 +566,7 @@
     "invented_rsi_volume_atr|JNJ",
     "invented_volatility_rsi_breakout|CAT",
     "invented_volatility_rsi_breakout|JNJ",
+    "invented_volume_adx_ema|JNJ",
     "multi_rsi_confluence|CAT",
     "multi_rsi_confluence|GE"
   ],

@@ -1,0 +1,14 @@
+```json
+{
+  "action": "create_strategy",
+  "hypothesis": "SPY tends to trend strongly with volume confirming moves. Using SMA as trend filter, ROC for momentum timing, and volume above average for confirmation should capture sustained uptrends while avoiding false signals. Exiting when price falls below SMA provides clear trend reversal protection.",
+  "new_strategy_code": "import pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"sma_len\": 50,\n    \"roc_len\": 12,\n    \"volume_len\": 20,\n    \"volume_mult\": 1.0,\n}\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    sma = cached_indicator(\"sma\", close, length=p[\"sma_len\"])\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    vol_avg = cached_indicator(\"sma\", volume, length=p[\"volume_len\"])\n\n    trend_ok = close > sma\n    momentum_ok = roc > 0\n    volume_ok = volume > (vol_avg * p[\"volume_mult\"])\n\n    entries = (trend_ok & momentum_ok & volume_ok).fillna(False)\n    exits = (close < sma).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "sma_len": 50,
+    "roc_len": 12,
+    "volume_len": 20,
+    "volume_mult": 1.0
+  },
+  "expected_impact": "Simple momentum strategy with volume confirmation should achieve Sharpe 1.5+ on SPY. SMA-50 provides robust trend filter for SPY's 2-year timeframe. Volume filter reduces whipsaw entries. Clear exit on trend break keeps drawdown manageable. Expected 8-15 trades over 2 years with controlled risk."
+}
+```

@@ -8,7 +8,7 @@
     "SPY"
   ],
   "period": "2y",
-  "current_turn": 2,
+  "current_turn": 3,
   "status": "running",
   "best_sharpe": 0.7754615652256672,
   "best_turn": 2,
@@ -51,6 +51,11 @@
       },
       "strategy_hash": "453ec905d2fc",
       "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 3,
+      "status": "code_generation_failed",
+      "errors": []
     }
   ],
   "lock_pid": null,

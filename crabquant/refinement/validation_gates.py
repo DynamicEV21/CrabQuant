@@ -21,7 +21,7 @@ import pandas as pd
 
 _STD_LIB: frozenset[str] = frozenset(sys.stdlib_module_names)
 _REQUIRED_ATTRS: frozenset[str] = frozenset(
-    {"generate_signals", "DEFAULT_PARAMS", "PARAM_GRID", "DESCRIPTION"}
+    {"generate_signals", "DEFAULT_PARAMS", "DESCRIPTION"}
 )
 
 

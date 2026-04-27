@@ -1,0 +1,17 @@
+```json
+{
+  "action": "create_strategy",
+  "hypothesis": "SPY momentum strategy using ROC for momentum detection, EMA trend filter, and volume confirmation for entries. ATR trailing stop provides dynamic risk management to keep drawdown under 25%. This combination should capture SPY's trending moves while filtering out noise.",
+  "new_strategy_code": "import pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 10,\n    \"ema_len\": 50,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.0,\n    \"vol_len\": 20,\n    \"vol_mult\": 1.1,\n    \"roc_threshold\": 0.0,\n}\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n    \n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    \n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n    \n    vol_sma = cached_indicator(\"sma\", volume, length=p[\"vol_len\"])\n    vol_ok = volume > (vol_sma * p[\"vol_mult\"])\n    \n    entries = (trend_ok & vol_ok & (roc > p[\"roc_threshold\"])).fillna(False)\n    \n    atr = cached_indicator(\"atr\", df[\"high\"], df[\"low\"], close, length=p[\"atr_len\"])\n    rolling_high = close.rolling(window=p[\"atr_len\"], min_periods=1).max()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    exits = (close < trailing_stop).fillna(False)\n    \n    return entries, exits",
+  "params": {
+    "roc_len": 10,
+    "ema_len": 50,
+    "atr_len": 14,
+    "atr_mult": 2.0,
+    "vol_len": 20,
+    "vol_mult": 1.1,
+    "roc_threshold": 0.0
+  },
+  "expected_impact": "Expected Sharpe 1.5-2.0 with drawdown under 20%. The ATR trailing stop should limit downside while ROC+volume+EMA filter ensures quality entries. Should generate 10-20 trades over 2 years on SPY."
+}
+```

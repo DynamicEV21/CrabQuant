@@ -117,10 +117,11 @@ class TestLoadStrategyModule:
         result = load_strategy_module(path)
         assert result is None
 
-    def test_returns_none_for_missing_param_grid(self, write_strategy):
+    def test_accepts_missing_param_grid(self, write_strategy):
+        """PARAM_GRID is optional for LLM-generated strategies."""
         path = write_strategy(MISSING_PARAM_GRID)
         result = load_strategy_module(path)
-        assert result is None
+        assert result is not None
 
     def test_returns_none_for_runtime_error_at_import(self, write_strategy):
         path = write_strategy(RUNTIME_ERROR_CODE)
@@ -189,9 +190,10 @@ class TestLoadModuleFromCode:
         result = load_module_from_code(MISSING_DEFAULT_PARAMS)
         assert result is None
 
-    def test_returns_none_for_missing_param_grid(self):
+    def test_accepts_missing_param_grid(self):
+        """PARAM_GRID is optional for LLM-generated strategies."""
         result = load_module_from_code(MISSING_PARAM_GRID)
-        assert result is None
+        assert result is not None
 
     def test_returns_none_for_runtime_error(self):
         result = load_module_from_code(RUNTIME_ERROR_CODE)

@@ -1,0 +1,17 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "SPY momentum strategy using ROC for directional signal, EMA-50 as trend filter, and volume confirmation to avoid false breakouts. ATR trailing stop exits control drawdown below 25%. SPY's liquid, trending nature makes ROC+volume a reliable combo — the volume filter reduces whipsaws in sideways periods while ATR stops adapt to volatility regimes.",
+  "new_strategy_code": "\"\"\"\nSPY Momentum with Volume Confirmation\n\nROC momentum + EMA trend filter + volume spike + ATR trailing stop.\nDesigned for SPY 2-year stress test targeting Sharpe 1.5, max 25% drawdown.\n\"\"\"\n\nimport pandas as pd\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 10,\n    \"ema_len\": 50,\n    \"volume_window\": 20,\n    \"volume_mult\": 1.1,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.0,\n    \"roc_threshold\": 0.0,\n}\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    # Momentum direction\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n\n    # Trend filter\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    # Volume confirmation\n    vol_avg = cached_indicator(\"sma\", volume, length=p[\"volume_window\"])\n    vol_ok = volume > (vol_avg * p[\"volume_mult\"])\n\n    # Entry: momentum + trend + volume\n    entries = (trend_ok & vol_ok & (roc > p[\"roc_threshold\"])).fillna(False)\n\n    # Exit: ATR trailing stop from rolling high\n    atr = cached_indicator(\"atr\", df, length=p[\"atr_len\"])\n    rolling_high = close.rolling(window=p[\"atr_len\"], min_periods=1).max()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    exits = (close < trailing_stop).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "roc_len": 10,
+    "ema_len": 50,
+    "volume_window": 20,
+    "volume_mult": 1.1,
+    "atr_len": 14,
+    "atr_mult": 2.0,
+    "roc_threshold": 0.0
+  },
+  "expected_impact": "Expected Sharpe 1.5-2.0 on SPY over 2 years. ROC-10 captures medium-term momentum swings typical of SPY. EMA-50 filter avoids entries in downtrends. Volume mult 1.1 is conservative to ensure sufficient trades (targeting 8-15 trades). ATR trailing stop with 2x multiplier should keep drawdown under 20% by exiting quickly when volatility expands against position. Main risk: sideways choppy markets may generate false signals despite volume filter."
+}
+```

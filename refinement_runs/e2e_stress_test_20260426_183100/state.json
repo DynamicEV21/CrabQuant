@@ -1,0 +1,86 @@
+{
+  "run_id": "e2e_stress_test_20260426_183100",
+  "mandate_name": "e2e_stress_test",
+  "created_at": "2026-04-27T01:31:00.005797+00:00",
+  "max_turns": 5,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "SPY"
+  ],
+  "period": "2y",
+  "current_turn": 5,
+  "status": "max_turns_exhausted",
+  "best_sharpe": -0.14956940368088642,
+  "best_turn": 4,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_183100/strategy_v4.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": -0.1720153228877462,
+      "failure_mode": "regime_fragility",
+      "action": "create",
+      "hypothesis": "SPY is a trending ETF where momentum strategies with volume confirmation perform well. The ROC indicator captures momentum direction, EMA filters for uptrend, volume confirmation avoids false breakouts, and ATR trailing stops provide dynamic risk management to keep drawdown under 25%. This combination should achieve Sharpe > 1.5 with at least 5 trades over 2 years.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_183100/strategy_v1.py",
+      "params_used": {
+        "roc_len": 12,
+        "ema_len": 50,
+        "volume_len": 20,
+        "volume_mult": 1.0,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "roc_threshold": 0
+      },
+      "strategy_hash": "d5dc035dae71",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "status": "code_generation_failed",
+      "errors": [
+        "entries must be pd.Series[bool], got DataFrame"
+      ]
+    },
+    {
+      "turn": 3,
+      "status": "code_generation_failed",
+      "errors": [
+        "Zero entry signals generated on test data"
+      ]
+    },
+    {
+      "turn": 4,
+      "sharpe": -0.14956940368088642,
+      "failure_mode": "regime_fragility",
+      "action": "create",
+      "hypothesis": "The previous ROC+EMA+Volume+ATR strategy failed due to regime_fragility \u2014 too many overlapping filters killed signal frequency in sideways markets. Switching to RSI regime-dip strategy which explicitly handles regime changes: a long-period RSI detects bullish/bearish regimes, and a short-period RSI times entries on dips within bullish regimes. This addresses the fragility by adapting to regime rather than fighting it, and RSI crosses are frequent enough to guarantee >=5 trades. Based on the rsi_regime_dip template with Sharpe 2.18 in QF backtests.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_183100/strategy_v4.py",
+      "params_used": {
+        "rsi_long": 21,
+        "rsi_short": 7,
+        "regime_threshold": 50,
+        "dip_level": 30,
+        "exit_level": 65
+      },
+      "strategy_hash": "68c4396f2377",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 5,
+      "sharpe": -0.4407857800727263,
+      "failure_mode": "regime_fragility",
+      "action": "create",
+      "hypothesis": "The RSI regime dip strategy failed due to regime_fragility \u2014 it only worked in 2025 but lost money in 2024 and 2026 because the RSI regime filter is brittle. Switching to EMA crossover with relaxed volume confirmation: (1) EMA crossovers are inherently adaptive across regimes \u2014 they go long in uptrends and exit in downtrends without needing a separate regime detector, (2) volume filter at 0.6-1.0x is deliberately relaxed to avoid the zero-signal problem from turn 3, (3) crossover-based entries/exits prevent constant re-entry that plagued earlier ROC strategies, (4) this matches the proven EMA crossover template (Sharpe 2.10) with the mandate's volume confirmation requirement added as a soft filter.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_183100/strategy_v5.py",
+      "params_used": {
+        "fast_len": 9,
+        "slow_len": 21,
+        "volume_len": 20,
+        "volume_mult": 0.8
+      },
+      "strategy_hash": "f3cc497df006",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}
