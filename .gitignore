@@ -17,3 +17,7 @@ results/validation/
 *.swp
 *.swo
 .DS_Store
+crabquant.pid
+results/daemon_state.json
+results/daemon_heartbeat.json
+results/daemon.log

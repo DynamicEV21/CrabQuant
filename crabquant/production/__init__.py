@@ -8,6 +8,7 @@ for "strategies we trust" vs the research folder of everything we've tested.
 
 from pathlib import Path
 
+from crabquant.production.health import check_health
 from crabquant.production.promoter import promote_strategy
 from crabquant.production.report import StrategyReport
 
@@ -96,6 +97,7 @@ def _load_report(path: Path) -> StrategyReport | None:
 
 
 __all__ = [
+    "check_health",
     "promote_strategy",
     "get_production_strategies",
     "get_production_report",

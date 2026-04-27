@@ -470,7 +470,8 @@
     "bollinger_squeeze|AMZN",
     "ema_ribbon_reversal|AVGO",
     "ichimoku_trend|V",
-    "ema_ribbon_reversal|XLK"
+    "ema_ribbon_reversal|XLK",
+    "bollinger_squeeze|SQ"
   ],
   "validated_winners": [
     "CAT|roc_ema_volume",
