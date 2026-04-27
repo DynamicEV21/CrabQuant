@@ -1,0 +1,18 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "AAPL exhibits strong momentum trends that can be captured by combining MACD direction with RSI timing to avoid overbought entries, confirmed by volume. ATR trailing stops will protect against drawdowns while letting winners run.",
+  "new_strategy_code": "\"\"\"\nMACD RSI Momentum with ATR Stop\n\nCombines MACD momentum direction with RSI timing and volume confirmation.\nUses ATR trailing stop for exits to limit drawdowns on AAPL/SPY/NVDA.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"macd_fast\": 12,\n    \"macd_slow\": 26,\n    \"macd_signal\": 9,\n    \"rsi_len\": 14,\n    \"rsi_entry_max\": 65,\n    \"rsi_exit_min\": 75,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.0,\n}\n\nDESCRIPTION = (\n    \"MACD momentum direction with RSI timing and ATR trailing stop. \"\n    \"Enters when MACD histogram turns positive, RSI is not overbought, \"\n    \"and volume is above average. Exits on ATR trailing stop or RSI overbought. \"\n    \"Designed for AAPL momentum capture with controlled drawdowns.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n    volume = df[\"volume\"]\n\n    macd = cached_indicator(\"macd\", close, fast=p[\"macd_fast\"], slow=p[\"macd_slow\"], signal=p[\"macd_signal\"])\n    hist_col = f\"MACDh_{p['macd_fast']}_{p['macd_slow']}_{p['macd_signal']}\"\n    hist = macd[hist_col]\n    hist_prev = hist.shift(1)\n\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n    rsi_ok = rsi < p[\"rsi_entry_max\"]\n    rsi_overbought = rsi > p[\"rsi_exit_min\"]\n\n    vol_avg = cached_indicator(\"sma\", volume, length=20)\n    vol_ok = volume > vol_avg\n\n    hist_turn_positive = (hist_prev <= 0) & (hist > 0)\n    entries = (hist_turn_positive & rsi_ok & vol_ok).fillna(False)\n\n    atr = cached_indicator(\"atr\", high, low, close, length=p[\"atr_len\"])\n    rolling_high = close.cummax()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    atr_exit = (close < trailing_stop).fillna(False)\n    exits = (atr_exit | rsi_overbought).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "rsi_len": 14,
+    "rsi_entry_max": 65,
+    "rsi_exit_min": 75,
+    "atr_len": 14,
+    "atr_mult": 2.0
+  },
+  "expected_impact": "Strategy should achieve Sharpe 1.5+ on AAPL by capturing momentum shifts via MACD histogram crossovers while avoiding overbought entries (RSI < 65). ATR trailing stops limit drawdowns to under 25%. Volume filter reduces false signals. Expect 15-25 trades over 2 years with 60%+ win rate on trending days."
+}
+```

@@ -1,0 +1,16 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "All three momentum-chasing strategies (MACD, ROC-based) have failed with worsening Sharpe over time (-0.23 in 2024 to -2.13 in 2026). This strongly suggests AAPL is in a choppy/range-bound regime where momentum strategies get whipsawed. Switching to a fundamentally different paradigm: mean-reversion WITHIN trends using RSI regime filter. Long RSI (50-period) identifies bullish regimes, short RSI (7-period) times dip entries. This buys pullbacks in uptrends rather than chasing momentum — historically Sharpe 2.18 in QF backtests. Key differences: (1) buys weakness not strength, (2) exits on RSI recovery not ATR trailing stops that whipsawed, (3) no volume filter that was restricting trade count to 9.",
+  "new_strategy_code": "import pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"rsi_long_len\": 50,\n    \"rsi_short_len\": 7,\n    \"regime_threshold\": 50,\n    \"dip_level\": 35,\n    \"exit_level\": 55,\n    \"ema_len\": 50,\n}\n\nDESCRIPTION = \"RSI regime filter with dip timing. Long RSI determines bullish regime. Short RSI times entry on dips below dip_level in bullish regime. Exits when short RSI recovers above exit_level or regime turns bearish. Mean-reversion within trends.\"\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    rsi_long = cached_indicator(\"rsi\", close, length=p[\"rsi_long_len\"])\n    rsi_short = cached_indicator(\"rsi\", close, length=p[\"rsi_short_len\"])\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n\n    bullish_regime = (rsi_long > p[\"regime_threshold\"]) & (close > ema)\n    dip_signal = rsi_short < p[\"dip_level\"]\n\n    entries = (bullish_regime & dip_signal).fillna(False)\n\n    recovery = rsi_short > p[\"exit_level\"]\n    regime_break = (rsi_long < p[\"regime_threshold\"]) | (close < ema)\n    exits = (recovery | regime_break).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "rsi_long_len": 50,
+    "rsi_short_len": 7,
+    "regime_threshold": 50,
+    "dip_level": 35,
+    "exit_level": 55,
+    "ema_len": 50
+  },
+  "expected_impact": "Fundamental paradigm shift from momentum-chasing to mean-reversion-within-trends. Expected to: (1) increase trade count significantly since dips occur frequently in choppy markets vs only 9 momentum entries, (2) improve win rate since buying dips has natural support vs chasing breakouts that reverse, (3) eliminate ATR trailing stop whipsaw by using RSI recovery exits, (4) dramatically improve Sharpe by aligning with AAPL's actual regime (range-bound/mean-reverting rather than trending). Risk: if AAPL suddenly trends strongly upward without pullbacks, trade count could still be low."
+}
+```

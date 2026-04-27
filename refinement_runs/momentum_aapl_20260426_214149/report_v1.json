@@ -1,0 +1,53 @@
+{
+  "strategy_id": "momentum_aapl_20260426_214149",
+  "iteration": 1,
+  "sharpe_ratio": -0.5561153712408571,
+  "total_return_pct": -0.03046860520936607,
+  "max_drawdown_pct": -0.04949223341021198,
+  "win_rate": 0.0,
+  "total_trades": 1,
+  "profit_factor": 0.0,
+  "calmar_ratio": -0.4503876437055398,
+  "sortino_ratio": -0.6577735344945028,
+  "composite_score": -0.11819675984882878,
+  "failure_mode": "too_few_trades",
+  "failure_details": "Only 1 trades (min 5). Strategy is too selective.",
+  "sharpe_by_year": {
+    "2024": -0.7855,
+    "2025": 0.0,
+    "2026": 0.0
+  },
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [],
+  "previous_actions": [],
+  "guardrail_violations": [
+    "Too few trades: 1 < 5",
+    "Sharpe too low: -0.56 < 1.0",
+    "Return too low: -3.0% < 5%",
+    "Win rate too low: 0.0% < 30%",
+    "Profit factor too low: 0.00 < 1.0"
+  ],
+  "guardrail_warnings": [
+    "Low trade count: 1 (marginal statistical significance)",
+    "Win rate below 50%: 0.0% (relies on large winners)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nMACD RSI Momentum with ATR Stop\n\nCombines MACD momentum direction with RSI timing and volume confirmation.\nUses ATR trailing stop for exits to limit drawdowns on AAPL/SPY/NVDA.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"macd_fast\": 12,\n    \"macd_slow\": 26,\n    \"macd_signal\": 9,\n    \"rsi_len\": 14,\n    \"rsi_entry_max\": 65,\n    \"rsi_exit_min\": 75,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.0,\n}\n\nDESCRIPTION = (\n    \"MACD momentum direction with RSI timing and ATR trailing stop. \"\n    \"Enters when MACD histogram turns positive, RSI is not overbought, \"\n    \"and volume is above average. Exits on ATR trailing stop or RSI overbought. \"\n    \"Designed for AAPL momentum capture with controlled drawdowns.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n    volume = df[\"volume\"]\n\n    macd = cached_indicator(\"macd\", close, fast=p[\"macd_fast\"], slow=p[\"macd_slow\"], signal=p[\"macd_signal\"])\n    hist_col = f\"MACDh_{p['macd_fast']}_{p['macd_slow']}_{p['macd_signal']}\"\n    hist = macd[hist_col]\n    hist_prev = hist.shift(1)\n\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n    rsi_ok = rsi < p[\"rsi_entry_max\"]\n    rsi_overbought = rsi > p[\"rsi_exit_min\"]\n\n    vol_avg = cached_indicator(\"sma\", volume, length=20)\n    vol_ok = volume > vol_avg\n\n    hist_turn_positive = (hist_prev <= 0) & (hist > 0)\n    entries = (hist_turn_positive & rsi_ok & vol_ok).fillna(False)\n\n    atr = cached_indicator(\"atr\", high, low, close, length=p[\"atr_len\"])\n    rolling_high = close.cummax()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    atr_exit = (close < trailing_stop).fillna(False)\n    exits = (atr_exit | rsi_overbought).fillna(False)\n\n    return entries, exits",
+  "current_params": {
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "rsi_len": 14,
+    "rsi_entry_max": 65,
+    "rsi_exit_min": 75,
+    "atr_len": 14,
+    "atr_mult": 2.0
+  },
+  "previous_attempts": []
+}

@@ -29,3 +29,12 @@
 {"mandate": "smoke_test", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-27T03:41:16.447030+00:00"}
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-27T03:41:16.659924+00:00"}
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-27T03:41:16.688973+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-27T04:25:00.809075+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-27T04:25:00.848779+00:00"}
+{"mandate": "smoke_test", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-27T04:25:00.851382+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-27T04:25:01.086335+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-27T04:25:01.117961+00:00"}
+{"mandate": "momentum_aapl", "turn": 1, "action": "new_strategy", "sharpe": -0.5561153712408571, "success": false, "failure_mode": "too_few_trades", "timestamp": "2026-04-27T04:42:21.400983+00:00"}
+{"mandate": "momentum_aapl", "turn": 2, "action": "new_strategy", "sharpe": 0.005890359587938869, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-27T04:42:49.395029+00:00"}
+{"mandate": "momentum_aapl", "turn": 3, "action": "new_strategy", "sharpe": -0.8883683796217232, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-27T04:43:32.412401+00:00"}
+{"mandate": "momentum_aapl", "turn": 4, "action": "new_strategy", "sharpe": 0.14031327763754955, "success": false, "failure_mode": "regime_fragility", "timestamp": "2026-04-27T04:44:20.990347+00:00"}

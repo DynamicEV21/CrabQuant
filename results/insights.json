@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-04-26T19:09:50.568725",
-  "total_results": 1696947,
+  "timestamp": "2026-04-26T21:24:40.599913",
+  "total_results": 1697693,
   "total_winners": 50,
-  "dead_combos": 10,
+  "dead_combos": 11,
   "strategy_rates": {
     "rsi_crossover": {
       "rate": 0.011248065443289853,
@@ -11,10 +11,10 @@
       "avg_sharpe": 0.744525121837427
     },
     "macd_momentum": {
-      "rate": 0.023266249354961747,
+      "rate": 0.022936895888168808,
       "wins": 1037,
-      "total": 44571,
-      "avg_sharpe": 0.792737900388838
+      "total": 45211,
+      "avg_sharpe": 0.7926793512642527
     },
     "invented_momentum_rsi_stoch": {
       "rate": 0.07142857142857142,
@@ -23,10 +23,10 @@
       "avg_sharpe": 1.0640222561837902
     },
     "volume_breakout": {
-      "rate": 0.02526799387442573,
+      "rate": 0.024626865671641792,
       "wins": 33,
-      "total": 1306,
-      "avg_sharpe": 0.7829999792596903
+      "total": 1340,
+      "avg_sharpe": 0.7892060942171949
     },
     "atr_channel_breakout": {
       "rate": 0.036152356358941255,
@@ -41,10 +41,10 @@
       "avg_sharpe": 0.888164408200238
     },
     "bollinger_squeeze": {
-      "rate": 0.06602768903088392,
+      "rate": 0.06132542037586548,
       "wins": 62,
-      "total": 939,
-      "avg_sharpe": 1.0404105301470814
+      "total": 1011,
+      "avg_sharpe": 1.019248604414053
     },
     "invented_momentum_rsi_atr": {
       "rate": 0.0,
@@ -232,13 +232,13 @@
     "Best strategy: invented_vpt_roc_ema (76% win rate)",
     "Weakest strategy: ema_ribbon_reversal (0% win rate) \u2014 consider removing or rewriting",
     "Most winning ticker: GOOGL (36 wins)",
-    "10 dead combos \u2014 strategy/ticker pairs that produce 0 trades"
+    "11 dead combos \u2014 strategy/ticker pairs that produce 0 trades"
   ],
   "actions": [
     "Expand ema_crossover param grid \u2014 high win rate suggests more winning params exist",
     "Consider building sector-specific variant of rsi_crossover (works well on JNJ)"
   ],
   "round": 0,
-  "combos_completed": 448,
-  "combos_remaining": 872
+  "combos_completed": 460,
+  "combos_remaining": 860
 }
