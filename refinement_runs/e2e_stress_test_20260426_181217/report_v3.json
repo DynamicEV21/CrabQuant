@@ -1,0 +1,85 @@
+{
+  "strategy_id": "e2e_stress_test_20260426_181217",
+  "iteration": 3,
+  "sharpe_ratio": 0.4978236960355691,
+  "total_return_pct": 0.09823700576513178,
+  "max_drawdown_pct": -0.1627518580590456,
+  "win_rate": 0.8,
+  "total_trades": 10,
+  "profit_factor": 2.250604336868886,
+  "calmar_ratio": 0.4341163393615659,
+  "sortino_ratio": 0.7557121452948217,
+  "composite_score": 0.2947234955239376,
+  "failure_mode": "low_sharpe",
+  "failure_details": "Sharpe 0.50 < target 1.5. Return 9.8%, MaxDD -16.3%.",
+  "sharpe_by_year": {},
+  "stagnation_score": 0.5,
+  "stagnation_trend": "declining",
+  "previous_sharpes": [
+    -0.11140173028773605,
+    -0.7318994297615788
+  ],
+  "previous_actions": [
+    "create",
+    "revise"
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: 0.50 < 1.0"
+  ],
+  "guardrail_warnings": [
+    "Sharpe near threshold: 0.50 (close to 1.0)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nRSI Regime Dip Strategy for SPY\n\nUses a long-period RSI to determine market regime (bullish when above threshold).\nUses a short-period RSI to time entries on dips within the bullish regime.\nExits when short RSI recovers above exit level.\n\nDesigned for SPY's tendency to have healthy pullbacks within uptrends.\nRemoves volume filter that was killing signals in previous MACD strategy.\n\"\"\"\n\nfrom itertools import product\n\nimport pandas as pd\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"rsi_long\": 50,\n    \"rsi_short\": 7,\n    \"regime_threshold\": 50,\n    \"dip_level\": 35,\n    \"exit_level\": 65,\n}\n\nPARAM_GRID = {\n    \"rsi_long\": [30, 40, 50, 60],\n    \"rsi_short\": [5, 7, 10, 14],\n    \"regime_threshold\": [45, 50, 55],\n    \"dip_level\": [25, 30, 35, 40],\n    \"exit_level\": [55, 60, 65, 70],\n}\n\nDESCRIPTION = (\n    \"RSI regime filter with dip timing for SPY. \"\n    \"Long RSI determines bullish regime (above threshold). \"\n    \"Short RSI times entry when it crosses up from oversold dip level. \"\n    \"Exits when short RSI recovers above exit level. \"\n    \"Designed to catch pullback reversals in SPY's smooth uptrends.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    # RSI calculations\n    rsi_long = cached_indicator(\"rsi\", close, length=p[\"rsi_long\"])\n    rsi_short = cached_indicator(\"rsi\", close, length=p[\"rsi_short\"])\n\n    rsi_short_prev = rsi_short.shift(1)\n\n    # Regime filter: long RSI above threshold = bullish\n    regime_bullish = rsi_long > p[\"regime_threshold\"]\n\n    # Entry: short RSI crosses up from below dip level in bullish regime\n    dip_cross_up = (rsi_short_prev <= p[\"dip_level\"]) & (rsi_short > p[\"dip_level\"])\n    entries = (regime_bullish & dip_cross_up).fillna(False)\n\n    # Exit: short RSI rises above exit level\n    exits = (rsi_short > p[\"exit_level\"]).fillna(False)\n\n    return entries, exits\n\n\ndef generate_signals_matrix(\n    df: pd.DataFrame, param_grid: dict | None = None\n) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:\n    \"\"\"Generate signals for ALL param combinations at once (vectorized).\"\"\"\n    pg = param_grid or PARAM_GRID\n    keys = list(pg.keys())\n    combos = list(product(*(pg[k] for k in keys)))\n\n    close = df[\"close\"]\n\n    # Deduplicate RSI lengths\n    all_rsi_lens = sorted(set(pg[\"rsi_long\"]) | set(pg[\"rsi_short\"]))\n    rsi_cache = {l: cached_indicator(\"rsi\", close, length=l) for l in all_rsi_lens}\n\n    entries_cols = {}\n    exits_cols = {}\n    param_list = []\n\n    for i, vals in enumerate(combos):\n        params = dict(zip(keys, vals))\n        rsi_long = rsi_cache[params[\"rsi_long\"]]\n        rsi_short = rsi_cache[params[\"rsi_short\"]]\n        rsi_short_prev = rsi_short.shift(1)\n\n        regime_bullish = rsi_long > params[\"regime_threshold\"]\n        dip_cross_up = (rsi_short_prev <= params[\"dip_level\"]) & (rsi_short > params[\"dip_level\"])\n\n        e = (regime_bullish & dip_cross_up).fillna(False)\n        x = (rsi_short > params[\"exit_level\"]).fillna(False)\n\n        entries_cols[f\"c{i}\"] = e\n        exits_cols[f\"c{i}\"] = x\n        param_list.append(params)\n\n    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list\n",
+  "current_params": {
+    "rsi_long": 50,
+    "rsi_short": 7,
+    "regime_threshold": 50,
+    "dip_level": 35,
+    "exit_level": 65
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": -0.11140173028773605,
+      "failure_mode": "low_sharpe",
+      "action": "create",
+      "hypothesis": "SPY exhibits smooth momentum trends that can be captured with ROC + EMA trend filter + volume confirmation. Using ATR trailing stops adapts to SPY's volatility regime and limits drawdown. The 2-year period includes both trending and consolidation phases, so volume confirmation helps filter false breakouts. This approach targets the 1.5 Sharpe with controlled risk.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_181217/strategy_v1.py",
+      "params_used": {
+        "roc_len": 12,
+        "ema_len": 50,
+        "vol_len": 20,
+        "vol_mult": 1.1,
+        "atr_len": 14,
+        "atr_mult": 2.5
+      },
+      "strategy_hash": "383fec9c6601",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "sharpe": -0.7318994297615788,
+      "failure_mode": "low_sharpe",
+      "action": "revise",
+      "hypothesis": "The ROC+EMA+Volume strategy failed due to two fundamental issues: (1) ROC > 0 is a persistent state condition, not an event trigger, causing repeated false entries and (2) the ATR trailing stop using rolling max of close prices whipsaws in SPY's low-volatility regime, leading to premature exits and 30% win rate with only 10 trades. Switching to MACD histogram crossover as the entry trigger provides true event-based signals (zero-line cross + strengthening above zero). The exit switches from the broken ATR trailing stop to histogram dropping below a threshold, which is momentum-logic consistent and avoids whipsaw. Lowering default volume_mult to 1.0 allows more trades while the grid search finds optimal filtering. Expected: 20-40 trades, 50%+ win rate, Sharpe > 1.5.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_181217/strategy_v2.py",
+      "params_used": {
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "ema_len": 50,
+        "volume_window": 20,
+        "volume_mult": 1.0,
+        "exit_hist": -0.3
+      },
+      "strategy_hash": "e3a51fd403b7",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

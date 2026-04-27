@@ -1,0 +1,39 @@
+{
+  "run_id": "e2e_stress_test_20260426_182131",
+  "mandate_name": "e2e_stress_test",
+  "created_at": "2026-04-27T01:21:31.520314+00:00",
+  "max_turns": 5,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "SPY"
+  ],
+  "period": "2y",
+  "current_turn": 1,
+  "status": "running",
+  "best_sharpe": -0.3660326623479307,
+  "best_turn": 1,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_182131/strategy_v1.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": -0.3660326623479307,
+      "failure_mode": "regime_fragility",
+      "action": "create",
+      "hypothesis": "SPY exhibits persistent momentum trends over 2-year periods. Combining ROC for momentum direction, EMA for trend filtering, volume confirmation to validate institutional participation, and ATR trailing stops for risk management should capture these trends while limiting drawdowns. The ATR trailing stop adapts to SPY's volatility regime, preventing premature exits during strong moves while protecting capital in reversals.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_182131/strategy_v1.py",
+      "params_used": {
+        "roc_len": 12,
+        "ema_len": 50,
+        "volume_window": 20,
+        "volume_mult": 1.0,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "roc_threshold": 0.0
+      },
+      "strategy_hash": "61b4ef0c4bec",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}

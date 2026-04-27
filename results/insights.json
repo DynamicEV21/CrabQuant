@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-04-26T16:20:43.335689",
-  "total_results": 1696825,
+  "timestamp": "2026-04-26T18:20:57.146264",
+  "total_results": 1696947,
   "total_winners": 130140,
   "strategy_stats": {
     "rsi_crossover": {
@@ -36,12 +36,12 @@
       "avg_sharpe": 0.32002539895446763
     },
     "atr_channel_breakout": {
-      "tested": 1519,
+      "tested": 1549,
       "won": 56,
-      "total_sharpe": 464.195350810719,
-      "total_return": 169.5951066425603,
-      "win_rate": 0.03686635944700461,
-      "avg_sharpe": 0.30559272601100657
+      "total_sharpe": 491.3357914393543,
+      "total_return": 174.46251280832314,
+      "win_rate": 0.036152356358941255,
+      "avg_sharpe": 0.31719547542889237
     },
     "adx_pullback": {
       "tested": 1931,
@@ -68,12 +68,12 @@
       "avg_sharpe": 0.01332744421886689
     },
     "multi_rsi_confluence": {
-      "tested": 10564,
+      "tested": 10656,
       "won": 2,
-      "total_sharpe": 3148.6099699894457,
-      "total_return": 412.618413522429,
-      "win_rate": 0.0001893222264293828,
-      "avg_sharpe": 0.29805092483807705
+      "total_sharpe": 3255.7509212484038,
+      "total_return": 433.00851464927007,
+      "win_rate": 0.00018768768768768769,
+      "avg_sharpe": 0.30553218104808594
     },
     "ema_ribbon_reversal": {
       "tested": 34,
@@ -293,9 +293,9 @@
       "win_rate": 0.0
     },
     "BA": {
-      "tested": 4366,
+      "tested": 4458,
       "won": 328,
-      "win_rate": 0.07512597343105817
+      "win_rate": 0.07357559443696725
     },
     "META": {
       "tested": 67437,
@@ -423,9 +423,9 @@
       "win_rate": 0.0
     },
     "SCHW": {
-      "tested": 7572,
+      "tested": 7602,
       "won": 1,
-      "win_rate": 0.00013206550449022716
+      "win_rate": 0.00013154433043935807
     }
   },
   "strategies_by_win_rate": [
@@ -509,12 +509,12 @@
     [
       "atr_channel_breakout",
       {
-        "tested": 1519,
+        "tested": 1549,
         "won": 56,
-        "total_sharpe": 464.195350810719,
-        "total_return": 169.5951066425603,
-        "win_rate": 0.03686635944700461,
-        "avg_sharpe": 0.30559272601100657
+        "total_sharpe": 491.3357914393543,
+        "total_return": 174.46251280832314,
+        "win_rate": 0.036152356358941255,
+        "avg_sharpe": 0.31719547542889237
       }
     ],
     [
@@ -575,12 +575,12 @@
     [
       "multi_rsi_confluence",
       {
-        "tested": 10564,
+        "tested": 10656,
         "won": 2,
-        "total_sharpe": 3148.6099699894457,
-        "total_return": 412.618413522429,
-        "win_rate": 0.0001893222264293828,
-        "avg_sharpe": 0.29805092483807705
+        "total_sharpe": 3255.7509212484038,
+        "total_return": 433.00851464927007,
+        "win_rate": 0.00018768768768768769,
+        "avg_sharpe": 0.30553218104808594
       }
     ],
     [
@@ -683,9 +683,9 @@
     [
       "BA",
       {
-        "tested": 4366,
+        "tested": 4458,
         "won": 328,
-        "win_rate": 0.07512597343105817
+        "win_rate": 0.07357559443696725
       }
     ],
     [
@@ -899,9 +899,9 @@
     [
       "SCHW",
       {
-        "tested": 7572,
+        "tested": 7602,
         "won": 1,
-        "win_rate": 0.00013206550449022716
+        "win_rate": 0.00013154433043935807
       }
     ],
     [

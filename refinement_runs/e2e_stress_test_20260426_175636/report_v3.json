@@ -1,0 +1,74 @@
+{
+  "strategy_id": "e2e_stress_test_20260426_175636",
+  "iteration": 3,
+  "sharpe_ratio": 0.3948240101290078,
+  "total_return_pct": 0.04938258878902328,
+  "max_drawdown_pct": -0.10319373145131262,
+  "win_rate": 0.45,
+  "total_trades": 20,
+  "profit_factor": 1.330142611548263,
+  "calmar_ratio": 0.34634954877832946,
+  "sortino_ratio": 0.5317933059949806,
+  "composite_score": 0.35408064725722466,
+  "failure_mode": "low_sharpe",
+  "failure_details": "Sharpe 0.39 < target 1.5. Return 4.9%, MaxDD -10.3%.",
+  "sharpe_by_year": {},
+  "stagnation_score": 0.552,
+  "stagnation_trend": "flat",
+  "previous_sharpes": [
+    0.009128515095000574,
+    0
+  ],
+  "previous_actions": [
+    "create",
+    ""
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: 0.39 < 1.0",
+    "Return too low: 4.9% < 5%"
+  ],
+  "guardrail_warnings": [
+    "Sharpe near threshold: 0.39 (close to 1.0)",
+    "Win rate below 50%: 45.0% (relies on large winners)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nROC + EMA + Volume Momentum Strategy for SPY\n\nAdapted from roc_ema_volume (Sharpe 2.21) with SPY-specific tuning:\n- Lower volume multiplier (0.9) since SPY always has high volume\n- Dual exit: ROC turns negative OR price crosses below EMA\n- Moderate lookback periods suited to SPY's trend cadence\n\"\"\"\n\nfrom itertools import product\n\nimport pandas as pd\nimport pandas_ta\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 14,\n    \"ema_len\": 50,\n    \"volume_window\": 20,\n    \"volume_mult\": 0.9,\n}\n\nPARAM_GRID = {\n    \"roc_len\": [5, 10, 14, 21],\n    \"ema_len\": [20, 50, 100],\n    \"volume_window\": [10, 20, 30],\n    \"volume_mult\": [0.8, 0.9, 1.0],\n}\n\nDESCRIPTION = (\n    \"ROC + EMA + Volume momentum for SPY. \"\n    \"Enters when ROC is positive, price above EMA, volume above avg. \"\n    \"Exits when ROC turns negative or price falls below EMA. \"\n    \"Adapted for SPY with permissive volume filter.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    vol_avg = cached_indicator(\"sma\", volume, length=p[\"volume_window\"])\n\n    roc_positive = roc > 0\n    above_ema = close > ema\n    vol_ok = volume > (vol_avg * p[\"volume_mult\"])\n\n    entries = (roc_positive & above_ema & vol_ok).fillna(False)\n\n    roc_negative = roc < 0\n    below_ema = close < ema\n    exits = (roc_negative | below_ema).fillna(False)\n\n    return entries, exits\n\n\ndef generate_signals_matrix(\n    df: pd.DataFrame, param_grid: dict | None = None\n) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:\n    pg = param_grid or PARAM_GRID\n    keys = list(pg.keys())\n    combos = list(product(*(pg[k] for k in keys)))\n\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    all_roc_lens = sorted(set(pg[\"roc_len\"]))\n    all_ema_lens = sorted(set(pg[\"ema_len\"]))\n    all_vol_windows = sorted(set(pg[\"volume_window\"]))\n\n    roc_cache = {l: cached_indicator(\"roc\", close, length=l) for l in all_roc_lens}\n    ema_cache = {l: cached_indicator(\"ema\", close, length=l) for l in all_ema_lens}\n    vol_avg_cache = {w: cached_indicator(\"sma\", volume, length=w) for w in all_vol_windows}\n\n    entries_cols = {}\n    exits_cols = {}\n    param_list = []\n\n    for i, vals in enumerate(combos):\n        params = dict(zip(keys, vals))\n        roc = roc_cache[params[\"roc_len\"]]\n        ema = ema_cache[params[\"ema_len\"]]\n        vol_avg = vol_avg_cache[params[\"volume_window\"]]\n\n        roc_positive = roc > 0\n        above_ema = close > ema\n        vol_ok = volume > (vol_avg * params[\"volume_mult\"])\n\n        e = (roc_positive & above_ema & vol_ok).fillna(False)\n\n        roc_negative = roc < 0\n        below_ema = close < ema\n        x = (roc_negative | below_ema).fillna(False)\n\n        entries_cols[f\"c{i}\"] = e\n        exits_cols[f\"c{i}\"] = x\n        param_list.append(params)\n\n    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list\n",
+  "current_params": {
+    "roc_len": 14,
+    "ema_len": 50,
+    "volume_window": 20,
+    "volume_mult": 0.9
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": 0.009128515095000574,
+      "failure_mode": "low_sharpe",
+      "action": "create",
+      "hypothesis": "SPY as a broad market ETF exhibits persistent momentum with lower volatility than individual stocks. A MACD-based momentum strategy with volume confirmation and ATR trailing stops should capture trends while controlling drawdown. The key insight is that SPY's trends are smoother, so we can use tighter ATR multipliers for stops while still letting winners run. Volume confirmation reduces false entries during choppy periods.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_175636/strategy_v1.py",
+      "params_used": {
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "sma_len": 50,
+        "volume_window": 20,
+        "volume_mult": 1.0,
+        "atr_len": 14,
+        "atr_mult": 2.0
+      },
+      "strategy_hash": "b19078c6956a",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "status": "code_generation_failed",
+      "errors": []
+    }
+  ]
+}

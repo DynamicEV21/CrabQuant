@@ -1,0 +1,90 @@
+{
+  "strategy_id": "e2e_stress_test_20260426_175636",
+  "iteration": 4,
+  "sharpe_ratio": 1.1316145178326538,
+  "total_return_pct": 0.11253159664223611,
+  "max_drawdown_pct": -0.0671957467453743,
+  "win_rate": 1.0,
+  "total_trades": 5,
+  "profit_factor": 999.0,
+  "calmar_ratio": 1.2022793405552687,
+  "sortino_ratio": 1.7164378285435717,
+  "composite_score": 0.527787417639491,
+  "failure_mode": "low_sharpe",
+  "failure_details": "Sharpe 1.13 < target 1.5. Return 11.3%, MaxDD -6.7%.",
+  "sharpe_by_year": {},
+  "stagnation_score": 0.167,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    0.009128515095000574,
+    0,
+    0.3948240101290078
+  ],
+  "previous_actions": [
+    "create",
+    "",
+    "create"
+  ],
+  "guardrail_violations": [],
+  "guardrail_warnings": [
+    "Low trade count: 5 (marginal statistical significance)",
+    "Sharpe near threshold: 1.13 (close to 1.0)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nRSI Regime Dip Strategy for SPY\n\nDual RSI timeframe approach avoiding volume filter issues:\n- Long RSI (21) determines bullish regime (above threshold)\n- Short RSI (7) times pullback entries (below dip level)\n- Exits when short RSI recovers above exit level\n\nProven pattern: rsi_regime_dip (Sharpe 2.18 in QF backtests).\nAdapted for SPY by removing volume dependency entirely.\n\"\"\"\n\nfrom itertools import product\n\nimport pandas as pd\nimport pandas_ta\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"rsi_long\": 21,\n    \"rsi_short\": 7,\n    \"regime_threshold\": 50,\n    \"dip_level\": 40,\n    \"exit_level\": 65,\n}\n\nPARAM_GRID = {\n    \"rsi_long\": [14, 21, 28],\n    \"rsi_short\": [5, 7, 10],\n    \"regime_threshold\": [45, 50, 55],\n    \"dip_level\": [30, 35, 40],\n    \"exit_level\": [55, 60, 65, 70],\n}\n\nDESCRIPTION = (\n    \"RSI regime dip for SPY. \"\n    \"Long RSI determines bullish regime, short RSI times dip entries. \"\n    \"Exits when short RSI recovers above exit level. \"\n    \"No volume filter \u2014 avoids SPY liquidity noise.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    rsi_long = cached_indicator(\"rsi\", close, length=p[\"rsi_long\"])\n    rsi_short = cached_indicator(\"rsi\", close, length=p[\"rsi_short\"])\n\n    bullish_regime = rsi_long > p[\"regime_threshold\"]\n    dip = rsi_short < p[\"dip_level\"]\n\n    entries = (bullish_regime & dip).fillna(False)\n\n    recovered = rsi_short > p[\"exit_level\"]\n    exits = recovered.fillna(False)\n\n    return entries, exits\n\n\ndef generate_signals_matrix(\n    df: pd.DataFrame, param_grid: dict | None = None\n) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:\n    pg = param_grid or PARAM_GRID\n    keys = list(pg.keys())\n    combos = list(product(*(pg[k] for k in keys)))\n\n    close = df[\"close\"]\n\n    all_rsi_long = sorted(set(pg[\"rsi_long\"]))\n    all_rsi_short = sorted(set(pg[\"rsi_short\"]))\n\n    rsi_long_cache = {l: cached_indicator(\"rsi\", close, length=l) for l in all_rsi_long}\n    rsi_short_cache = {l: cached_indicator(\"rsi\", close, length=l) for l in all_rsi_short}\n\n    entries_cols = {}\n    exits_cols = {}\n    param_list = []\n\n    for i, vals in enumerate(combos):\n        params = dict(zip(keys, vals))\n        rsi_long = rsi_long_cache[params[\"rsi_long\"]]\n        rsi_short = rsi_short_cache[params[\"rsi_short\"]]\n\n        bullish_regime = rsi_long > params[\"regime_threshold\"]\n        dip = rsi_short < params[\"dip_level\"]\n\n        e = (bullish_regime & dip).fillna(False)\n\n        recovered = rsi_short > params[\"exit_level\"]\n        x = recovered.fillna(False)\n\n        entries_cols[f\"c{i}\"] = e\n        exits_cols[f\"c{i}\"] = x\n        param_list.append(params)\n\n    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list\n",
+  "current_params": {
+    "rsi_long": 21,
+    "rsi_short": 7,
+    "regime_threshold": 50,
+    "dip_level": 40,
+    "exit_level": 65
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": 0.009128515095000574,
+      "failure_mode": "low_sharpe",
+      "action": "create",
+      "hypothesis": "SPY as a broad market ETF exhibits persistent momentum with lower volatility than individual stocks. A MACD-based momentum strategy with volume confirmation and ATR trailing stops should capture trends while controlling drawdown. The key insight is that SPY's trends are smoother, so we can use tighter ATR multipliers for stops while still letting winners run. Volume confirmation reduces false entries during choppy periods.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_175636/strategy_v1.py",
+      "params_used": {
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "sma_len": 50,
+        "volume_window": 20,
+        "volume_mult": 1.0,
+        "atr_len": 14,
+        "atr_mult": 2.0
+      },
+      "strategy_hash": "b19078c6956a",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "status": "code_generation_failed",
+      "errors": []
+    },
+    {
+      "turn": 3,
+      "sharpe": 0.3948240101290078,
+      "failure_mode": "low_sharpe",
+      "action": "create",
+      "hypothesis": "The previous strategy failed because volume confirmation on SPY is too restrictive (SPY always has high volume, so filtering on it eliminates valid signals) and ATR trailing stops weren't properly expressed as boolean exit signals. Switching to a ROC+EMA+Volume approach that worked well in backtests (Sharpe 2.21). Key adaptations for SPY: (1) use volume_mult=0.9 so volume filter is permissive rather than restrictive, (2) use dual exit conditions (ROC turning negative OR price crossing below EMA) instead of trailing stops, (3) use moderate ROC and EMA periods suited to SPY's slower trend cycles. This should generate enough trades while capturing SPY's persistent trend momentum.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_175636/strategy_v3.py",
+      "params_used": {
+        "roc_len": 14,
+        "ema_len": 50,
+        "volume_window": 20,
+        "volume_mult": 0.9
+      },
+      "strategy_hash": "46e21d71656d",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

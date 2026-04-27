@@ -1,0 +1,66 @@
+{
+  "strategy_id": "e2e_test_momentum_20260426_175234",
+  "iteration": 2,
+  "sharpe_ratio": 0.9685161136484968,
+  "total_return_pct": 0.12133920141183116,
+  "max_drawdown_pct": -0.09358706501623267,
+  "win_rate": 0.6666666666666666,
+  "total_trades": 6,
+  "profit_factor": 3.3952217844593937,
+  "calmar_ratio": 1.9362603927963384,
+  "sortino_ratio": 1.4894367623082327,
+  "composite_score": 0.4808322321887897,
+  "failure_mode": "low_sharpe",
+  "failure_details": "Below target but no specific failure pattern detected.",
+  "sharpe_by_year": {},
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    1.2076056943016404
+  ],
+  "previous_actions": [
+    "propose_strategy"
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: 0.97 < 1.0"
+  ],
+  "guardrail_warnings": [
+    "Low trade count: 6 (marginal statistical significance)",
+    "Sharpe near threshold: 0.97 (close to 1.0)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nROC + EMA + Volume Momentum Strategy (Relaxed Entry)\n\nCombines momentum (ROC), trend (EMA), and volume confirmation for entries.\nATR trailing stop for dynamic exits. Designed for AAPL momentum capture.\nRelaxed volume filter and longer EMA to increase trade frequency.\n\"\"\"\n\nfrom itertools import product\n\nimport pandas as pd\nimport pandas_ta\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 10,\n    \"ema_len\": 30,\n    \"volume_len\": 20,\n    \"volume_mult\": 0.7,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.0,\n}\n\nPARAM_GRID = {\n    \"roc_len\": [6, 8, 10, 12, 14],\n    \"ema_len\": [20, 30, 40, 50],\n    \"volume_len\": [15, 20, 25],\n    \"volume_mult\": [0.5, 0.6, 0.7, 0.8, 1.0],\n    \"atr_len\": [10, 14, 18],\n    \"atr_mult\": [1.5, 2.0, 2.5],\n}\n\nDESCRIPTION = (\n    \"ROC momentum with EMA trend filter and relaxed volume confirmation. \"\n    \"Enters when ROC positive, price above EMA, volume above reduced threshold. \"\n    \"Exits via ATR trailing stop. Designed for AAPL momentum capture \"\n    \"with improved trade frequency.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n    volume = df[\"volume\"]\n\n    # Momentum: ROC positive\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    momentum_ok = roc > 0\n\n    # Trend filter: price above EMA\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    # Volume confirmation (relaxed threshold)\n    vol_avg = cached_indicator(\"sma\", volume, length=p[\"volume_len\"])\n    volume_ok = volume > (vol_avg * p[\"volume_mult\"])\n\n    # Entry: all three conditions\n    entries = (momentum_ok & trend_ok & volume_ok).fillna(False)\n\n    # ATR trailing stop exit\n    atr = cached_indicator(\"atr\", high, low, close, length=p[\"atr_len\"])\n    rolling_high = close.rolling(window=p[\"atr_len\"], min_periods=1).max()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    exits = (close < trailing_stop).fillna(False)\n\n    return entries, exits\n\n\ndef generate_signals_matrix(\n    df: pd.DataFrame, param_grid: dict | None = None\n) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:\n    \"\"\"Generate signals for ALL param combinations at once (vectorized).\"\"\"\n    pg = param_grid or PARAM_GRID\n    keys = list(pg.keys())\n    combos = list(product(*(pg[k] for k in keys)))\n\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n    volume = df[\"volume\"]\n\n    # Deduplicate indicator calculations\n    all_roc_lens = sorted(set(pg[\"roc_len\"]))\n    all_ema_lens = sorted(set(pg[\"ema_len\"]))\n    all_vol_lens = sorted(set(pg[\"volume_len\"]))\n    all_atr_lens = sorted(set(pg[\"atr_len\"]))\n\n    roc_cache = {l: cached_indicator(\"roc\", close, length=l) for l in all_roc_lens}\n    ema_cache = {l: cached_indicator(\"ema\", close, length=l) for l in all_ema_lens}\n    vol_avg_cache = {l: cached_indicator(\"sma\", volume, length=l) for l in all_vol_lens}\n    atr_cache = {l: cached_indicator(\"atr\", high, low, close, length=l) for l in all_atr_lens}\n\n    entries_cols = {}\n    exits_cols = {}\n    param_list = []\n\n    for i, vals in enumerate(combos):\n        params = dict(zip(keys, vals))\n\n        roc = roc_cache[params[\"roc_len\"]]\n        ema = ema_cache[params[\"ema_len\"]]\n        vol_avg = vol_avg_cache[params[\"volume_len\"]]\n        atr = atr_cache[params[\"atr_len\"]]\n\n        momentum_ok = roc > 0\n        trend_ok = close > ema\n        volume_ok = volume > (vol_avg * params[\"volume_mult\"])\n\n        e = (momentum_ok & trend_ok & volume_ok).fillna(False)\n\n        rolling_high = close.rolling(window=params[\"atr_len\"], min_periods=1).max()\n        trailing_stop = rolling_high - (atr * params[\"atr_mult\"])\n        x = (close < trailing_stop).fillna(False)\n\n        entries_cols[f\"c{i}\"] = e\n        exits_cols[f\"c{i}\"] = x\n        param_list.append(params)\n\n    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list\n",
+  "current_params": {
+    "roc_len": 10,
+    "ema_len": 30,
+    "volume_len": 20,
+    "volume_mult": 0.7,
+    "atr_len": 14,
+    "atr_mult": 2.0
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": 1.2076056943016404,
+      "failure_mode": "low_sharpe",
+      "action": "propose_strategy",
+      "hypothesis": "Momentum strategy combining ROC for directional confirmation, EMA for trend filter, and volume spike for entry validation. ATR trailing stop provides dynamic risk management. For AAPL's 1-year period, this should capture momentum moves while avoiding choppy sideways action. The volume filter reduces false breakouts, and ATR trailing stops adapt to AAPL's volatility regimes.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_test_momentum_20260426_175234/strategy_v1.py",
+      "params_used": {
+        "roc_len": 12,
+        "ema_len": 20,
+        "volume_len": 20,
+        "volume_mult": 1.0,
+        "atr_len": 14,
+        "atr_mult": 2.0
+      },
+      "strategy_hash": "43eecb182aae",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

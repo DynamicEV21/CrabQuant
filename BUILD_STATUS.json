@@ -1,0 +1,7 @@
+{
+  "circuit_breaker": {"component": 6, "state": "passed", "tests": 21},
+  "tier1_diagnostics": {"component": 7, "state": "passed", "tests": 26},
+  "prompt_refinement": {"component": 8, "state": "passed", "tests": 27},
+  "wave_scaling": {"component": 9, "state": "passed", "tests": 40},
+  "per_wave_metrics": {"component": 10, "state": "passed", "tests": 35}
+}

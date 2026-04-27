@@ -1,0 +1,44 @@
+{
+  "strategy_id": "e2e_stress_test_20260426_181217",
+  "iteration": 1,
+  "sharpe_ratio": -0.11140173028773605,
+  "total_return_pct": -0.021805358713750903,
+  "max_drawdown_pct": -0.09531379737791726,
+  "win_rate": 0.3,
+  "total_trades": 10,
+  "profit_factor": 0.8039329446494416,
+  "calmar_ratio": -0.16716988259654167,
+  "sortino_ratio": -0.1418720003377036,
+  "composite_score": -0.0712647728893388,
+  "failure_mode": "low_sharpe",
+  "failure_details": "Sharpe -0.11 < target 1.5. Return -2.2%, MaxDD -9.5%.",
+  "sharpe_by_year": {},
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [],
+  "previous_actions": [],
+  "guardrail_violations": [
+    "Sharpe too low: -0.11 < 1.0",
+    "Return too low: -2.2% < 5%",
+    "Profit factor too low: 0.80 < 1.0"
+  ],
+  "guardrail_warnings": [
+    "Win rate below 50%: 30.0% (relies on large winners)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nROC + EMA + Volume Momentum Strategy for SPY\n\nCombines momentum (ROC), trend direction (EMA), and volume confirmation.\nATR trailing stop for risk-adaptive exits.\nOptimized for SPY's smooth trend characteristics.\n\"\"\"\n\nfrom itertools import product\n\nimport pandas as pd\nimport pandas_ta\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 12,\n    \"ema_len\": 50,\n    \"vol_len\": 20,\n    \"vol_mult\": 1.1,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.5,\n}\n\nPARAM_GRID = {\n    \"roc_len\": [8, 10, 12, 14, 16],\n    \"ema_len\": [30, 40, 50, 60],\n    \"vol_len\": [15, 20, 25],\n    \"vol_mult\": [1.0, 1.1, 1.2],\n    \"atr_len\": [10, 14, 20],\n    \"atr_mult\": [2.0, 2.5, 3.0],\n}\n\nDESCRIPTION = (\n    \"ROC momentum with EMA trend filter and volume confirmation. \"\n    \"Enters when ROC > 0 (positive momentum), price above EMA (uptrend), \"\n    \"and volume above average (confirmation). \"\n    \"Exits via ATR trailing stop (rolling high minus ATR * multiplier). \"\n    \"Designed for SPY's smooth momentum characteristics.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    volume = df[\"volume\"]\n\n    # Momentum: Rate of Change\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    momentum_ok = roc > 0\n\n    # Trend filter: Price above EMA\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    # Volume confirmation: Above average\n    vol_avg = cached_indicator(\"sma\", volume, length=p[\"vol_len\"])\n    volume_ok = volume > (vol_avg * p[\"vol_mult\"])\n\n    # Entry: All three conditions\n    entries = (momentum_ok & trend_ok & volume_ok).fillna(False)\n\n    # Exit: ATR trailing stop\n    atr = cached_indicator(\"atr\", high, df[\"low\"], close, length=p[\"atr_len\"])\n    rolling_high = close.rolling(window=p[\"atr_len\"], min_periods=1).max()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    exits = (close < trailing_stop).fillna(False)\n\n    return entries, exits\n\n\ndef generate_signals_matrix(\n    df: pd.DataFrame, param_grid: dict | None = None\n) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:\n    \"\"\"Generate signals for ALL param combinations at once (vectorized).\"\"\"\n    pg = param_grid or PARAM_GRID\n    keys = list(pg.keys())\n    combos = list(product(*(pg[k] for k in keys)))\n\n    close = df[\"close\"]\n    high = df[\"high\"]\n    volume = df[\"volume\"]\n\n    # Deduplicate indicator calculations\n    all_roc_lens = sorted(set(pg[\"roc_len\"]))\n    all_ema_lens = sorted(set(pg[\"ema_len\"]))\n    all_vol_lens = sorted(set(pg[\"vol_len\"]))\n    all_atr_lens = sorted(set(pg[\"atr_len\"]))\n\n    roc_cache = {l: cached_indicator(\"roc\", close, length=l) for l in all_roc_lens}\n    ema_cache = {l: cached_indicator(\"ema\", close, length=l) for l in all_ema_lens}\n    vol_avg_cache = {l: cached_indicator(\"sma\", volume, length=l) for l in all_vol_lens}\n    atr_cache = {l: cached_indicator(\"atr\", high, df[\"low\"], close, length=l) for l in all_atr_lens}\n    rolling_high_cache = {l: close.rolling(window=l, min_periods=1).max() for l in all_atr_lens}\n\n    entries_cols = {}\n    exits_cols = {}\n    param_list = []\n\n    for i, vals in enumerate(combos):\n        params = dict(zip(keys, vals))\n\n        roc = roc_cache[params[\"roc_len\"]]\n        momentum_ok = roc > 0\n\n        ema = ema_cache[params[\"ema_len\"]]\n        trend_ok = close > ema\n\n        vol_avg = vol_avg_cache[params[\"vol_len\"]]\n        volume_ok = volume > (vol_avg * params[\"vol_mult\"])\n\n        e = (momentum_ok & trend_ok & volume_ok).fillna(False)\n\n        atr = atr_cache[params[\"atr_len\"]]\n        rolling_high = rolling_high_cache[params[\"atr_len\"]]\n        trailing_stop = rolling_high - (atr * params[\"atr_mult\"])\n        x = (close < trailing_stop).fillna(False)\n\n        entries_cols[f\"c{i}\"] = e\n        exits_cols[f\"c{i}\"] = x\n        param_list.append(params)\n\n    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list\n",
+  "current_params": {
+    "roc_len": 12,
+    "ema_len": 50,
+    "vol_len": 20,
+    "vol_mult": 1.1,
+    "atr_len": 14,
+    "atr_mult": 2.5
+  },
+  "previous_attempts": []
+}

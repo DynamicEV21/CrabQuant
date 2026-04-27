@@ -5,11 +5,14 @@ Handles all communication with z.ai (GLM-5) for strategy generation and refineme
 """
 
 import json
+import logging
 import re
 import urllib.request
 import urllib.error
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 def load_api_config() -> dict:
@@ -29,9 +32,9 @@ def load_api_config() -> dict:
 def call_zai_llm(
     messages: list[dict],
     model: str = "glm-5-turbo",
-    max_tokens: int = 4096,
+    max_tokens: int = 8192,
     temperature: float = 0.7,
-    timeout: int = 120,
+    timeout: int = 180,
 ) -> str:
     """Call z.ai API. Returns raw text response.
     
@@ -80,8 +83,8 @@ def extract_json_from_llm(text: str) -> dict:
     GLM-5-turbo wraps JSON in ```json ``` code blocks.
     This function tries multiple extraction strategies:
     1. Direct json.loads (rarely works with GLM-5)
-    2. Code block extraction (common case)
-    3. Brace matching fallback
+    2. Code block extraction with brace matching
+    3. Brace matching fallback (anywhere in text)
     
     Args:
         text: Raw LLM response text.
@@ -98,46 +101,87 @@ def extract_json_from_llm(text: str) -> dict:
     except (json.JSONDecodeError, TypeError):
         pass
     
-    # Strategy 2: Code block extraction (```json ... ``` or ``` ... ```)
-    match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(1))
-        except json.JSONDecodeError:
-            pass
+    # Strategy 2: Extract code block content, then use brace matching on it
+    # This handles the common case where GLM-5 wraps JSON in ```json ``` blocks.
+    # We can't use simple regex on the JSON because Python code inside
+    # new_strategy_code contains braces that confuse greedy/non-greedy matching.
+    cb_match = re.search(r'```(?:json)?\s*([\\s\\S]*?)```', text)
+    if cb_match:
+        cb_content = cb_match.group(1).strip()
+        extracted = _extract_json_by_braces(cb_content)
+        if extracted is not None:
+            return extracted
     
-    # Strategy 2b: Greedy code block (for large JSON objects)
-    match = re.search(r'```(?:json)?\s*(\{.*\})\s*```', text, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group(1))
-        except json.JSONDecodeError:
-            pass
-    
-    # Strategy 3: Brace matching fallback
-    first_brace = text.find('{')
-    if first_brace >= 0:
-        depth = 0
-        for i in range(first_brace, len(text)):
-            if text[i] == '{':
-                depth += 1
-            elif text[i] == '}':
-                depth -= 1
-                if depth == 0:
-                    candidate = text[first_brace:i + 1]
-                    try:
-                        return json.loads(candidate)
-                    except (json.JSONDecodeError, ValueError):
-                        continue
+    # Strategy 3: Brace matching on full text
+    extracted = _extract_json_by_braces(text)
+    if extracted is not None:
+        return extracted
     
     raise ValueError(f"Could not extract JSON from LLM response (first 200: {text[:200]})")
+
+
+def _extract_json_by_braces(text: str) -> Optional[dict]:
+    """Extract the first valid JSON object from text using balanced brace matching.
+    
+    Correctly handles nested braces inside Python code strings.
+    Returns None if no valid JSON object found.
+    """
+    first_brace = text.find('{')
+    if first_brace < 0:
+        return None
+    
+    # Find all brace positions for balanced matching
+    depth = 0
+    in_string = False
+    string_char = None
+    escaped = False
+    
+    for i in range(first_brace, len(text)):
+        ch = text[i]
+        
+        if escaped:
+            escaped = False
+            continue
+        
+        if ch == '\\' and in_string:
+            escaped = True
+            continue
+        
+        if ch in ('"', "'") and not in_string:
+            in_string = True
+            string_char = ch
+            continue
+        
+        if ch == string_char and in_string:
+            in_string = False
+            string_char = None
+            continue
+        
+        if in_string:
+            continue
+        
+        if ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                candidate = text[first_brace:i + 1]
+                try:
+                    return json.loads(candidate)
+                except (json.JSONDecodeError, ValueError):
+                    # This brace balance didn't yield valid JSON;
+                    # try starting from the next '{'
+                    rest = _extract_json_by_braces(text[i + 1:])
+                    return rest
+    
+    return None
 
 
 def call_llm_inventor(
     context: dict,
     context_path: Optional[str] = None,
     model: str = "glm-5-turbo",
-    max_tokens: int = 4096,
+    max_tokens: int = 8192,
 ) -> Optional[dict]:
     """Call LLM to invent/modify a strategy. Returns parsed StrategyModification dict.
     
@@ -203,9 +247,16 @@ def call_llm_inventor(
             max_tokens=max_tokens,
             temperature=0.7,
         )
-        return extract_json_from_llm(raw_response)
+        # Save raw response for debugging
+        if context_path:
+            Path(context_path).parent.mkdir(parents=True, exist_ok=True)
+            raw_path = Path(context_path).parent / (Path(context_path).stem + "_raw_response.txt")
+            raw_path.write_text(raw_response)
+        result = extract_json_from_llm(raw_response)
+        if result is None:
+            logger.warning("LLM returned empty/unparseable response (len=%d)", len(raw_response) if raw_response else 0)
+        return result
     except Exception as e:
         # Log but don't crash — return None so caller can retry
-        import logging
-        logging.getLogger(__name__).warning("LLM inventor call failed: %s", e)
+        logger.warning("LLM inventor call failed: %s", e)
         return None

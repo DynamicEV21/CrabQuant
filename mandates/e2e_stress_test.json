@@ -1,0 +1,17 @@
+{
+  "name": "e2e_stress_test",
+  "description": "Momentum strategy for SPY with volume confirmation — stress test",
+  "strategy_archetype": "momentum",
+  "tickers": ["SPY"],
+  "primary_ticker": "SPY",
+  "period": "2y",
+  "sharpe_target": 1.5,
+  "max_turns": 5,
+  "constraints": {
+    "max_parameters": 8,
+    "required_indicators": [],
+    "forbidden_indicators": [],
+    "min_trades": 5,
+    "max_drawdown_pct": 25
+  }
+}

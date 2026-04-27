@@ -1,0 +1,58 @@
+{
+  "run_id": "e2e_stress_test_20260426_181713",
+  "mandate_name": "e2e_stress_test",
+  "created_at": "2026-04-27T01:17:13.893609+00:00",
+  "max_turns": 5,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "SPY"
+  ],
+  "period": "2y",
+  "current_turn": 2,
+  "status": "running",
+  "best_sharpe": 0.7754615652256672,
+  "best_turn": 2,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_181713/strategy_v2.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": 0.17199714109937425,
+      "failure_mode": "regime_fragility",
+      "action": "create",
+      "hypothesis": "SPY exhibits momentum tendencies that can be captured by combining rate of change with EMA trend filtering. Volume confirmation reduces false signals in choppy markets, while ATR-based trailing stops protect against drawdowns during reversals. This approach should achieve Sharpe >1.5 with controlled drawdown on SPY's smoother trend patterns.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_181713/strategy_v1.py",
+      "params_used": {
+        "roc_len": 14,
+        "ema_len": 50,
+        "volume_window": 20,
+        "volume_mult": 1.0,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "roc_threshold": 0
+      },
+      "strategy_hash": "ba5826c5e735",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "sharpe": 0.7754615652256672,
+      "failure_mode": "low_sharpe",
+      "action": "refine",
+      "hypothesis": "The ROC-based momentum strategy fails due to regime fragility \u2014 it enters on breakouts that get whipsawed in sideways/choppy markets (2024: -0.75, 2026: -1.46). Switching to a pullback-based approach using RSI regime filtering should be more robust: (1) Long RSI as regime filter prevents entries in bearish/sideways markets, (2) Short RSI dip recovery catches pullbacks within established uptrends rather than chasing breakouts, (3) Volume confirmation ensures genuine institutional buying interest. This pullback-style entry naturally adapts across regimes because it only trades when both the trend is established (regime filter) AND a dip occurs (entry timing), avoiding the whipsaw problem entirely.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_181713/strategy_v2.py",
+      "params_used": {
+        "rsi_long": 50,
+        "rsi_short": 7,
+        "regime_threshold": 50,
+        "dip_level": 30,
+        "exit_level": 55,
+        "volume_window": 20,
+        "volume_mult": 0.9
+      },
+      "strategy_hash": "453ec905d2fc",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}

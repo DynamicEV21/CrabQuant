@@ -10,6 +10,7 @@ from crabquant.engine.backtest import BacktestResult
 from crabquant.refinement.diagnostics import (
     compute_sharpe_by_year,
     compute_strategy_hash,
+    compute_tier2_diagnostics,
     run_backtest_safely,
 )
 
@@ -331,3 +332,146 @@ class TestComputeStrategyHash:
 
     def test_whitespace_only_same_as_empty(self):
         assert compute_strategy_hash("   \n\n  ") == compute_strategy_hash("")
+
+
+# ── compute_tier2_diagnostics ────────────────────────────────────────────────
+
+class TestTier2Diagnostics:
+    """Tests for the compute_tier2_diagnostics function added in Phase 3."""
+
+    def _make_portfolio_with_equity(self, n: int = 504, seed: int = 42):
+        """Create a mock portfolio whose equity curve spans 2 years."""
+        rng = np.random.default_rng(seed)
+        idx = pd.date_range("2023-01-03", periods=n, freq="B")
+        daily_returns = pd.Series(rng.normal(0.0005, 0.01, n), index=idx)
+        equity = (1 + daily_returns).cumprod() * 10000
+        pf = MagicMock()
+        pf.returns.return_value = daily_returns
+        pf.equity.return_value = equity
+        return pf, idx, daily_returns
+
+    def test_returns_dict_with_all_tier2_keys(self):
+        """Result must contain regime_segments, top_drawdowns, benchmark_return_pct."""
+        pf, idx, _ = self._make_portfolio_with_equity()
+        with patch("crabquant.refinement.diagnostics.load_data") as mock_load, \
+             patch("crabquant.refinement.diagnostics.detect_regime") as mock_regime:
+            mock_load.return_value = pd.DataFrame({
+                "close": np.linspace(100, 120, 504),
+            }, index=idx)
+            mock_regime.return_value = (MagicMock(value="trending_up"), {"confidence": 0.8})
+            result = compute_tier2_diagnostics(pf, "SPY", "2y")
+        assert isinstance(result, dict)
+        assert "regime_segments" in result
+        assert "top_drawdowns" in result
+        assert "benchmark_return_pct" in result
+
+    def test_regime_segments_has_required_fields(self):
+        """Each regime segment must have regime, start, end, sharpe."""
+        pf, idx, _ = self._make_portfolio_with_equity()
+        with patch("crabquant.refinement.diagnostics.load_data") as mock_load, \
+             patch("crabquant.refinement.diagnostics.detect_regime") as mock_regime:
+            mock_load.return_value = pd.DataFrame({
+                "close": np.linspace(100, 120, 504),
+            }, index=idx)
+            mock_regime.return_value = (MagicMock(value="trending_up"), {"confidence": 0.8})
+            result = compute_tier2_diagnostics(pf, "SPY", "2y")
+        for seg in result["regime_segments"]:
+            assert "regime" in seg
+            assert "start" in seg
+            assert "end" in seg
+            assert "sharpe" in seg
+
+    def test_top_drawdowns_limited_to_n(self):
+        """top_drawdowns should be limited to top N (default 5)."""
+        pf, idx, _ = self._make_portfolio_with_equity()
+        with patch("crabquant.refinement.diagnostics.load_data") as mock_load, \
+             patch("crabquant.refinement.diagnostics.detect_regime") as mock_regime:
+            mock_load.return_value = pd.DataFrame({
+                "close": np.linspace(100, 120, 504),
+            }, index=idx)
+            mock_regime.return_value = (MagicMock(value="trending_up"), {"confidence": 0.8})
+            result = compute_tier2_diagnostics(pf, "SPY", "2y", top_n=3)
+        assert len(result["top_drawdowns"]) <= 3
+
+    def test_top_drawdowns_have_required_fields(self):
+        """Each drawdown must have start, end, depth_pct, duration_bars."""
+        pf, idx, _ = self._make_portfolio_with_equity()
+        with patch("crabquant.refinement.diagnostics.load_data") as mock_load, \
+             patch("crabquant.refinement.diagnostics.detect_regime") as mock_regime:
+            mock_load.return_value = pd.DataFrame({
+                "close": np.linspace(100, 120, 504),
+            }, index=idx)
+            mock_regime.return_value = (MagicMock(value="trending_up"), {"confidence": 0.8})
+            result = compute_tier2_diagnostics(pf, "SPY", "2y")
+        for dd in result["top_drawdowns"]:
+            assert "start" in dd
+            assert "end" in dd
+            assert "depth_pct" in dd
+            assert "duration_bars" in dd
+
+    def test_benchmark_return_pct_is_float(self):
+        """benchmark_return_pct should be a float (buy-and-hold return)."""
+        pf, idx, _ = self._make_portfolio_with_equity()
+        with patch("crabquant.refinement.diagnostics.load_data") as mock_load, \
+             patch("crabquant.refinement.diagnostics.detect_regime") as mock_regime:
+            mock_load.return_value = pd.DataFrame({
+                "close": np.linspace(100, 120, 504),
+            }, index=idx)
+            mock_regime.return_value = (MagicMock(value="trending_up"), {"confidence": 0.8})
+            result = compute_tier2_diagnostics(pf, "SPY", "2y")
+        assert isinstance(result["benchmark_return_pct"], float)
+
+    def test_benchmark_return_positive_for_uptrending_data(self):
+        """If price goes from 100 to 120, benchmark return should be ~0.20."""
+        pf, idx, _ = self._make_portfolio_with_equity()
+        with patch("crabquant.refinement.diagnostics.load_data") as mock_load, \
+             patch("crabquant.refinement.diagnostics.detect_regime") as mock_regime:
+            mock_load.return_value = pd.DataFrame({
+                "close": np.linspace(100, 120, 504),
+            }, index=idx)
+            mock_regime.return_value = (MagicMock(value="trending_up"), {"confidence": 0.8})
+            result = compute_tier2_diagnostics(pf, "SPY", "2y")
+        assert result["benchmark_return_pct"] > 0
+
+    def test_handles_load_data_failure_gracefully(self):
+        """If load_data fails, returns partial results with None values."""
+        pf, _, _ = self._make_portfolio_with_equity()
+        with patch("crabquant.refinement.diagnostics.load_data") as mock_load:
+            mock_load.side_effect = ValueError("No data")
+            result = compute_tier2_diagnostics(pf, "SPY", "2y")
+        # Should not crash; regime_segments computed from portfolio, others may be None
+        assert isinstance(result, dict)
+
+    def test_handles_none_portfolio_gracefully(self):
+        """None portfolio should return empty/zeroed results."""
+        result = compute_tier2_diagnostics(None, "SPY", "2y")
+        assert isinstance(result, dict)
+        assert result["regime_segments"] == []
+        assert result["top_drawdowns"] == []
+        assert result["benchmark_return_pct"] is None
+
+    def test_regime_segments_computed_from_portfolio_returns(self):
+        """Regime segments should segment the portfolio return stream."""
+        pf, idx, _ = self._make_portfolio_with_equity()
+        with patch("crabquant.refinement.diagnostics.load_data") as mock_load, \
+             patch("crabquant.refinement.diagnostics.detect_regime") as mock_regime:
+            mock_load.return_value = pd.DataFrame({
+                "close": np.linspace(100, 120, 504),
+            }, index=idx)
+            mock_regime.return_value = (MagicMock(value="trending_up"), {"confidence": 0.8})
+            result = compute_tier2_diagnostics(pf, "SPY", "2y")
+        # Should have at least one segment
+        assert len(result["regime_segments"]) >= 1
+
+    def test_portfolio_correlation_none_when_no_winners(self):
+        """portfolio_correlation should be None when winners.json doesn't exist."""
+        pf, idx, _ = self._make_portfolio_with_equity()
+        with patch("crabquant.refinement.diagnostics.load_data") as mock_load, \
+             patch("crabquant.refinement.diagnostics.detect_regime") as mock_regime, \
+             patch("builtins.open", side_effect=FileNotFoundError):
+            mock_load.return_value = pd.DataFrame({
+                "close": np.linspace(100, 120, 504),
+            }, index=idx)
+            mock_regime.return_value = (MagicMock(value="trending_up"), {"confidence": 0.8})
+            result = compute_tier2_diagnostics(pf, "SPY", "2y")
+        assert result.get("portfolio_correlation") is None

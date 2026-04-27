@@ -39,7 +39,7 @@ from crabquant.refinement.classifier import classify_failure
 from crabquant.refinement.context_builder import build_llm_context
 from crabquant.refinement.llm_api import call_zai_llm, call_llm_inventor, load_api_config
 from crabquant.refinement.config import RefinementConfig
-from crabquant.guardrails import check_guardrails, GuardrailReport
+from crabquant.guardrails import check_guardrails, GuardrailReport, GuardrailConfig
 
 
 def load_json(path: str) -> Dict[str, Any]:
@@ -370,7 +370,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         # 4. Backtest on primary ticker
         primary_ticker = mandate.get("primary_ticker", state.tickers[0])
         backtest_output = run_backtest_safely(
-            strategy_module, primary_ticker, state.period
+            strategy_module, primary_ticker, state.period,
+            return_portfolio=True,
         )
         
         if backtest_output is None:
@@ -387,7 +388,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         sharpe_by_year = compute_sharpe_by_year(portfolio)
         
         # Run guardrails
-        guardrail_report = check_guardrails(result)
+        guardrail_config = GuardrailConfig()
+        guardrail_report = check_guardrails(result, guardrail_config)
         guardrail_violations = getattr(guardrail_report, 'violations', [])
         guardrail_warnings = getattr(guardrail_report, 'warnings', [])
         

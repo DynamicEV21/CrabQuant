@@ -1,0 +1,72 @@
+{
+  "strategy_id": "e2e_stress_test_20260426_180542",
+  "iteration": 5,
+  "sharpe_ratio": -0.4228198942539249,
+  "total_return_pct": -0.04991405497670174,
+  "max_drawdown_pct": -0.09799527270374245,
+  "win_rate": 0.3333333333333333,
+  "total_trades": 21,
+  "profit_factor": 0.634407572269037,
+  "calmar_ratio": -0.373653294458845,
+  "sortino_ratio": -0.5322879591352261,
+  "composite_score": -0.39080388861909376,
+  "failure_mode": "low_sharpe",
+  "failure_details": "Sharpe -0.42 < target 1.5. Return -5.0%, MaxDD -9.8%.",
+  "sharpe_by_year": {},
+  "stagnation_score": 0.25,
+  "stagnation_trend": "slow_progress",
+  "previous_sharpes": [
+    -0.0730128231996306,
+    0,
+    0,
+    0
+  ],
+  "previous_actions": [
+    "create",
+    "",
+    "",
+    ""
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: -0.42 < 1.0",
+    "Return too low: -5.0% < 5%",
+    "Profit factor too low: 0.63 < 1.0"
+  ],
+  "guardrail_warnings": [
+    "Win rate below 50%: 33.3% (relies on large winners)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nMomentum Volume Strategy for SPY\n\nSimple momentum strategy with volume confirmation.\n- Entry: ROC crosses above zero (momentum shift) + price above EMA (trend) + volume spike\n- Exit: ROC crosses below zero (momentum loss)\n\"\"\"\n\nfrom itertools import product\n\nimport pandas as pd\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 10,\n    \"ema_len\": 50,\n    \"vol_len\": 20,\n    \"vol_mult\": 0.8,\n}\n\nPARAM_GRID = {\n    \"roc_len\": [5, 10, 15, 20],\n    \"ema_len\": [20, 50, 100],\n    \"vol_len\": [10, 20, 30],\n    \"vol_mult\": [0.5, 0.8, 1.0, 1.2],\n}\n\nDESCRIPTION = (\n    \"Momentum strategy with volume confirmation for SPY. \"\n    \"Enters when ROC crosses above zero (momentum shift), price is above EMA (trend), \"\n    \"and volume is above average. Exits when ROC crosses below zero. \"\n    \"Simple and robust for trending markets.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    # ROC for momentum detection\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n\n    # EMA for trend filter\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    # Volume confirmation\n    vol_avg = cached_indicator(\"sma\", volume, length=p[\"vol_len\"])\n    vol_ok = volume > (vol_avg * p[\"vol_mult\"])\n\n    # Entry: ROC crosses above 0 + trend + volume\n    roc_prev = roc.shift(1)\n    entries = (roc_prev <= 0) & (roc > 0) & trend_ok & vol_ok\n\n    # Exit: ROC crosses below 0\n    exits = (roc_prev >= 0) & (roc < 0)\n\n    return entries.fillna(False), exits.fillna(False)\n\n\ndef generate_signals_matrix(\n    df: pd.DataFrame, param_grid: dict | None = None\n) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:\n    \"\"\"Generate signals for ALL param combinations at once (vectorized).\"\"\"\n    pg = param_grid or PARAM_GRID\n    keys = list(pg.keys())\n    combos = list(product(*(pg[k] for k in keys)))\n\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    # Deduplicate indicator calculations\n    all_roc_lens = sorted(set(pg[\"roc_len\"]))\n    all_ema_lens = sorted(set(pg[\"ema_len\"]))\n    all_vol_lens = sorted(set(pg[\"vol_len\"]))\n\n    roc_cache = {l: cached_indicator(\"roc\", close, length=l) for l in all_roc_lens}\n    ema_cache = {l: cached_indicator(\"ema\", close, length=l) for l in all_ema_lens}\n    vol_avg_cache = {w: cached_indicator(\"sma\", volume, length=w) for w in all_vol_lens}\n\n    entries_cols = {}\n    exits_cols = {}\n    param_list = []\n\n    for i, vals in enumerate(combos):\n        params = dict(zip(keys, vals))\n        roc = roc_cache[params[\"roc_len\"]]\n        ema = ema_cache[params[\"ema_len\"]]\n        vol_avg = vol_avg_cache[params[\"vol_len\"]]\n\n        trend_ok = close > ema\n        vol_ok = volume > (vol_avg * params[\"vol_mult\"])\n        roc_prev = roc.shift(1)\n\n        e = ((roc_prev <= 0) & (roc > 0) & trend_ok & vol_ok).fillna(False)\n        x = ((roc_prev >= 0) & (roc < 0)).fillna(False)\n\n        entries_cols[f\"c{i}\"] = e\n        exits_cols[f\"c{i}\"] = x\n        param_list.append(params)\n\n    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list",
+  "current_params": {
+    "roc_len": 10,
+    "ema_len": 50,
+    "vol_len": 20,
+    "vol_mult": 0.8
+  },
+  "previous_attempts": [
+    {
+      "turn": 2,
+      "status": "code_generation_failed",
+      "errors": []
+    },
+    {
+      "turn": 3,
+      "status": "code_generation_failed",
+      "errors": [
+        "Runtime error in generate_signals: atr() missing 2 required positional arguments: 'low' and 'close'"
+      ]
+    },
+    {
+      "turn": 4,
+      "status": "code_generation_failed",
+      "errors": [
+        "Zero entry signals generated on test data"
+      ]
+    }
+  ]
+}

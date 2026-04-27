@@ -76,7 +76,8 @@ class BacktestEngine:
         ticker: str,
         iteration: int = 0,
         params: dict | None = None,
-    ) -> BacktestResult:
+        return_portfolio: bool = False,
+    ) -> BacktestResult | tuple[BacktestResult, "vbt.Portfolio"]:
         """
         Run a backtest and compute all metrics.
 
@@ -166,7 +167,7 @@ class BacktestEngine:
 
             notes = self._build_notes(sharpe, max_dd, num_trades, total_return)
 
-            return BacktestResult(
+            result = BacktestResult(
                 ticker=ticker,
                 strategy_name=strategy_name,
                 iteration=iteration,
@@ -187,10 +188,11 @@ class BacktestEngine:
                 notes=notes,
                 params=params or {},
             )
+            return (result, pf) if return_portfolio else result
 
         except Exception as e:
             logger.error(f"Backtest error ({ticker}/{strategy_name}): {e}")
-            return BacktestResult(
+            error_result = BacktestResult(
                 ticker=ticker,
                 strategy_name=strategy_name,
                 iteration=iteration,
@@ -201,6 +203,7 @@ class BacktestEngine:
                 passed=False, score=0, notes=f"ERROR: {e}",
                 params=params or {},
             )
+            return (error_result, None) if return_portfolio else error_result
 
     def run_vectorized(
         self,

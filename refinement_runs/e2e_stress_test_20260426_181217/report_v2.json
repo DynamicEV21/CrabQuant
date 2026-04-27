@@ -1,0 +1,69 @@
+{
+  "strategy_id": "e2e_stress_test_20260426_181217",
+  "iteration": 2,
+  "sharpe_ratio": -0.7318994297615788,
+  "total_return_pct": -0.055014328413903864,
+  "max_drawdown_pct": -0.07978256585565878,
+  "win_rate": 0.375,
+  "total_trades": 8,
+  "profit_factor": 0.3135538918625918,
+  "calmar_ratio": -0.5062106377503403,
+  "sortino_ratio": -0.8815983697685071,
+  "composite_score": -0.42596298471212984,
+  "failure_mode": "low_sharpe",
+  "failure_details": "Sharpe -0.73 < target 1.5. Return -5.5%, MaxDD -8.0%.",
+  "sharpe_by_year": {},
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    -0.11140173028773605
+  ],
+  "previous_actions": [
+    "create"
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: -0.73 < 1.0",
+    "Return too low: -5.5% < 5%",
+    "Profit factor too low: 0.31 < 1.0"
+  ],
+  "guardrail_warnings": [
+    "Low trade count: 8 (marginal statistical significance)",
+    "Win rate below 50%: 37.5% (relies on large winners)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nMACD Momentum Strategy for SPY\n\nMACD histogram momentum shift with EMA trend filter and volume confirmation.\nReplaces ROC state-based entries with MACD event-based triggers.\nExits on histogram weakening instead of whipsaw-prone ATR trailing stop.\nOptimized for SPY's smooth trend characteristics.\n\"\"\"\n\nfrom itertools import product\n\nimport pandas as pd\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"macd_fast\": 12,\n    \"macd_slow\": 26,\n    \"macd_signal\": 9,\n    \"ema_len\": 50,\n    \"volume_window\": 20,\n    \"volume_mult\": 1.0,\n    \"exit_hist\": -0.3,\n}\n\nPARAM_GRID = {\n    \"macd_fast\": [8, 10, 12, 15],\n    \"macd_slow\": [21, 26, 32],\n    \"macd_signal\": [7, 9, 11],\n    \"ema_len\": [30, 50, 100],\n    \"volume_window\": [15, 20, 30],\n    \"volume_mult\": [0.9, 1.0, 1.1],\n    \"exit_hist\": [-0.5, -0.3, -0.1, 0],\n}\n\nDESCRIPTION = (\n    \"MACD histogram momentum shift with EMA trend filter and volume confirmation. \"\n    \"Enters on histogram crossing zero (event trigger) or strengthening while positive, \"\n    \"when price is above EMA and volume is above average. \"\n    \"Exits when histogram drops below exit threshold (momentum exhaustion). \"\n    \"Designed for SPY's smooth momentum characteristics.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    # MACD calculation\n    macd = cached_indicator(\n        \"macd\",\n        close,\n        fast=p[\"macd_fast\"],\n        slow=p[\"macd_slow\"],\n        signal=p[\"macd_signal\"],\n    )\n    hist_col = f\"MACDh_{p['macd_fast']}_{p['macd_slow']}_{p['macd_signal']}\"\n    hist = macd[hist_col]\n    hist_prev = hist.shift(1)\n    hist_prev2 = hist.shift(2)\n\n    # Trend filter: Price above EMA\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    # Volume confirmation\n    volume_avg = cached_indicator(\"sma\", volume, length=p[\"volume_window\"])\n    volume_ok = volume > (volume_avg * p[\"volume_mult\"])\n\n    # Entry event 1: Histogram crosses above zero\n    mom_cross = (hist_prev <= 0) & (hist > 0)\n    # Entry event 2: Histogram strengthening while already positive\n    mom_strong = (hist_prev < hist_prev2) & (hist > hist_prev) & (hist > 0)\n\n    entries = (trend_ok & volume_ok & (mom_cross | mom_strong)).fillna(False)\n\n    # Exit: Histogram drops below threshold (momentum exhaustion)\n    exits = (hist < p[\"exit_hist\"]).fillna(False)\n\n    return entries, exits\n\n\ndef generate_signals_matrix(\n    df: pd.DataFrame, param_grid: dict | None = None\n) -> tuple[pd.DataFrame, pd.DataFrame, list[dict]]:\n    \"\"\"Generate signals for ALL param combinations at once (vectorized).\"\"\"\n    pg = param_grid or PARAM_GRID\n    keys = list(pg.keys())\n    combos = list(product(*(pg[k] for k in keys)))\n\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    # Deduplicate MACD combos\n    all_macd_combos = set()\n    for vals in combos:\n        params = dict(zip(keys, vals))\n        all_macd_combos.add((params[\"macd_fast\"], params[\"macd_slow\"], params[\"macd_signal\"]))\n\n    macd_cache = {}\n    for mf, ms, msig in all_macd_combos:\n        macd = cached_indicator(\"macd\", close, fast=mf, slow=ms, signal=msig)\n        hist_col = f\"MACDh_{mf}_{ms}_{msig}\"\n        macd_cache[(mf, ms, msig)] = macd[hist_col]\n\n    all_ema_lens = sorted(set(pg[\"ema_len\"]))\n    all_vol_windows = sorted(set(pg[\"volume_window\"]))\n    ema_cache = {l: cached_indicator(\"ema\", close, length=l) for l in all_ema_lens}\n    vol_avg_cache = {w: cached_indicator(\"sma\", volume, length=w) for w in all_vol_windows}\n\n    entries_cols = {}\n    exits_cols = {}\n    param_list = []\n\n    for i, vals in enumerate(combos):\n        params = dict(zip(keys, vals))\n        mf, ms, msig = params[\"macd_fast\"], params[\"macd_slow\"], params[\"macd_signal\"]\n        hist = macd_cache[(mf, ms, msig)]\n        hist_prev = hist.shift(1)\n        hist_prev2 = hist.shift(2)\n\n        ema = ema_cache[params[\"ema_len\"]]\n        trend_ok = close > ema\n        volume_avg = vol_avg_cache[params[\"volume_window\"]]\n        volume_ok = volume > (volume_avg * params[\"volume_mult\"])\n\n        mom_cross = (hist_prev <= 0) & (hist > 0)\n        mom_strong = (hist_prev < hist_prev2) & (hist > hist_prev) & (hist > 0)\n\n        e = (trend_ok & volume_ok & (mom_cross | mom_strong)).fillna(False)\n        x = (hist < params[\"exit_hist\"]).fillna(False)\n\n        entries_cols[f\"c{i}\"] = e\n        exits_cols[f\"c{i}\"] = x\n        param_list.append(params)\n\n    return pd.DataFrame(entries_cols), pd.DataFrame(exits_cols), param_list\n",
+  "current_params": {
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "ema_len": 50,
+    "volume_window": 20,
+    "volume_mult": 1.0,
+    "exit_hist": -0.3
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": -0.11140173028773605,
+      "failure_mode": "low_sharpe",
+      "action": "create",
+      "hypothesis": "SPY exhibits smooth momentum trends that can be captured with ROC + EMA trend filter + volume confirmation. Using ATR trailing stops adapts to SPY's volatility regime and limits drawdown. The 2-year period includes both trending and consolidation phases, so volume confirmation helps filter false breakouts. This approach targets the 1.5 Sharpe with controlled risk.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_181217/strategy_v1.py",
+      "params_used": {
+        "roc_len": 12,
+        "ema_len": 50,
+        "vol_len": 20,
+        "vol_mult": 1.1,
+        "atr_len": 14,
+        "atr_mult": 2.5
+      },
+      "strategy_hash": "383fec9c6601",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

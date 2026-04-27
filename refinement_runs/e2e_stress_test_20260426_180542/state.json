@@ -1,0 +1,74 @@
+{
+  "run_id": "e2e_stress_test_20260426_180542",
+  "mandate_name": "e2e_stress_test",
+  "created_at": "2026-04-27T01:05:42.516856+00:00",
+  "max_turns": 5,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "SPY"
+  ],
+  "period": "2y",
+  "current_turn": 5,
+  "status": "max_turns_exhausted",
+  "best_sharpe": -0.0730128231996306,
+  "best_turn": 1,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_180542/strategy_v1.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": -0.0730128231996306,
+      "failure_mode": "low_sharpe",
+      "action": "create",
+      "hypothesis": "SPY exhibits momentum phases that can be captured by combining ROC for momentum detection, EMA for trend filtering, and volume confirmation to avoid false signals. ATR-based trailing stops will control drawdown by adapting to SPY's volatility regime. This combination should achieve Sharpe > 1.5 while keeping drawdown under 25% by only entering when multiple conditions align.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_180542/strategy_v1.py",
+      "params_used": {
+        "roc_len": 14,
+        "ema_len": 50,
+        "volume_window": 20,
+        "volume_mult": 1.0,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "roc_threshold": 0
+      },
+      "strategy_hash": "e77b98ceb061",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "status": "code_generation_failed",
+      "errors": []
+    },
+    {
+      "turn": 3,
+      "status": "code_generation_failed",
+      "errors": [
+        "Runtime error in generate_signals: atr() missing 2 required positional arguments: 'low' and 'close'"
+      ]
+    },
+    {
+      "turn": 4,
+      "status": "code_generation_failed",
+      "errors": [
+        "Zero entry signals generated on test data"
+      ]
+    },
+    {
+      "turn": 5,
+      "sharpe": -0.4228198942539249,
+      "failure_mode": "low_sharpe",
+      "action": "create_strategy",
+      "hypothesis": "SPY exhibits persistent momentum trends where ROC crossovers capture momentum shifts effectively. Combining ROC zero-cross entries with EMA trend filter (price > EMA confirms uptrend) and volume confirmation (above average volume validates institutional participation) should generate reliable signals. Previous attempts failed due to ATR API errors and overly restrictive conditions - this version uses only well-tested indicators (ROC, EMA, SMA for volume) with relaxed volume multiplier (0.5-1.2 range) to ensure minimum 5 trades while maintaining quality through confluence. The exit on ROC crossing below zero captures momentum exhaustion without needing complex trailing stops.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_180542/strategy_v5.py",
+      "params_used": {
+        "roc_len": 10,
+        "ema_len": 50,
+        "vol_len": 20,
+        "vol_mult": 0.8
+      },
+      "strategy_hash": "bf10e1d92db0",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}
