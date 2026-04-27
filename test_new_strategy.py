@@ -1,83 +1,56 @@
 #!/usr/bin/env python3
+"""
+Test script for invented_volume_roc_rsi_ema strategy
+"""
 
 import pandas as pd
-import numpy as np
-from crabquant.strategies.invented_momentum_confluence import generate_signals, DEFAULT_PARAMS
+import yfinance as yf
+from crabquant.strategies.invented_volume_roc_rsi_ema import generate_signals, DEFAULT_PARAMS
 
-def test_strategy_on_tickers(tickers):
-    """Test strategy on given tickers and return trade counts."""
-    results = {}
+def test_strategy(ticker, params=None):
+    """Test strategy on a single ticker"""
+    if params is None:
+        params = DEFAULT_PARAMS
+    
+    print(f"\n=== Testing {ticker} ===")
+    
+    # Download data
+    data = yf.download(ticker, period="2y", interval="1d")
+    if len(data) == 0:
+        print(f"No data for {ticker}")
+        return 0, 0
+    
+    # Generate signals
+    entries, exits = generate_signals(data, params)
+    
+    # Count trades
+    entries_count = entries.sum()
+    exits_count = exits.sum()
+    
+    print(f"Entries: {entries_count}")
+    print(f"Exits: {exits_count}")
+    print(f"Net trades: {min(entries_count, exits_count)}")
+    
+    return min(entries_count, exits_count)
+
+def main():
+    """Test on all required tickers"""
+    tickers = ["AAPL", "NVDA", "CAT", "SPY"]
+    total_trades = 0
     
     for ticker in tickers:
-        print(f"Testing {ticker}...")
-        
-        try:
-            # Load sample data (in real scenario, this would fetch from data source)
-            # Create synthetic data for testing
-            np.random.seed(42)
-            n_points = 500
-            
-            # Generate synthetic price data
-            prices = 100 + np.cumsum(np.random.randn(n_points) * 0.02)
-            volumes = np.random.randint(1000000, 5000000, n_points)
-            
-            df = pd.DataFrame({
-                'open': prices * (1 + np.random.uniform(-0.005, 0.005, n_points)),
-                'high': prices * (1 + np.random.uniform(0, 0.01, n_points)),
-                'low': prices * (1 + np.random.uniform(-0.01, 0, n_points)),
-                'close': prices,
-                'volume': volumes
-            })
-            
-            # Generate signals
-            entries, exits = generate_signals(df, DEFAULT_PARAMS)
-            
-            # Fill NaN values with False
-            entries = entries.fillna(False)
-            exits = exits.fillna(False)
-            
-            # Count trades
-            trades = 0
-            in_position = False
-            
-            for i in range(len(entries)):
-                if entries.iloc[i] and not in_position:
-                    trades += 1
-                    in_position = True
-                elif exits.iloc[i] and in_position:
-                    in_position = False
-            
-            results[ticker] = trades
-            print(f"  {ticker}: {trades} trades generated")
-            
-        except Exception as e:
-            print(f"  {ticker}: Error - {e}")
-            results[ticker] = 0
-    
-    return results
-
-if __name__ == "__main__":
-    test_tickers = ['AAPL', 'NVDA', 'CAT', 'SPY']
-    results = test_strategy_on_tickers(test_tickers)
-    
-    print("\nResults:")
-    for ticker, trades in results.items():
+        trades = test_strategy(ticker)
+        total_trades += trades
         print(f"{ticker}: {trades} trades")
     
-    total_trades = sum(results.values())
-    print(f"\nTotal trades: {total_trades}")
+    print(f"\n=== SUMMARY ===")
+    print(f"Total trades across all tickers: {total_trades}")
+    print(f"Average trades per ticker: {total_trades / len(tickers):.1f}")
     
     if total_trades == 0:
-        print("⚠️  No trades generated - strategy needs adjustment")
-        # Try different parameters
-        print("\nTrying alternative parameters...")
-        alt_params = DEFAULT_PARAMS.copy()
-        alt_params['rsi_oversold'] = 25
-        alt_params['rsi_overbought'] = 75
-        alt_params['volume_mult'] = 1.2
-        
-        results_alt = test_strategy_on_tickers(test_tickers)
-        total_trades_alt = sum(results_alt.values())
-        print(f"Total trades (alt params): {total_trades_alt}")
+        print("❌ No trades generated - strategy needs improvement")
     else:
         print("✅ Strategy generates trades")
+
+if __name__ == "__main__":
+    main()

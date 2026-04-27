@@ -1,356 +1,574 @@
 # CrabQuant Codebase Audit
 
-**Date:** 2026-04-26
-**Auditor:** CodeCrab 🦀
-**Total Python files:** 185 (8,299 lines tests, 4,830 lines refinement, 2,794 lines core engine)
+**Date:** 2026-04-26  
+**Auditor:** CodeCrab 🦀 (automated code review)  
+**Scope:** Full codebase — 185 Python files, ~55K lines (library + scripts + tests)
 
 ---
 
-## 1. Project Structure
+## 1. Project Structure Overview
 
 ```
-CrabQuant/
-├── crabquant/                          # Core library (2,794 LOC)
-│   ├── engine/                         # Backtest engine (540 LOC)
-│   │   ├── backtest.py                 # VectorBT wrapper, composite scoring
-│   │   └── parallel.py                 # ProcessPoolExecutor sweep
-│   ├── validation/                     # Walk-forward + cross-ticker (322 LOC)
-│   ├── data/                           # Yahoo Finance OHLCV (114 LOC)
-│   ├── production/                     # Strategy promotion (900 LOC)
-│   │   ├── promoter.py                 # Winner registration
-│   │   ├── report.py                   # HTML reports
-│   │   └── scanner.py                  # Live scanner
-│   ├── strategies/                     # 28 strategy files
-│   ├── refinement/                     # Iterative refinement pipeline (4,830 LOC)
-│   │   └── [26 modules]
-│   ├── brief/                          # Market briefings
-│   ├── confirm/                        # Confirmation backtesting
-│   ├── guardrails.py                   # Guardrail checking
-│   ├── invention.py                    # LLM strategy invention
-│   ├── regime.py                       # Market regime detection
-│   └── run.py                          # CLI entry point (344 LOC)
-├── scripts/                            # Execution scripts (3,177 LOC)
-│   ├── refinement_loop.py              # Main refinement entry point (546 LOC)
-│   ├── cron_task.py                    # Cron agent dispatcher (795 LOC)
-│   ├── crabquant_cron.py               # Cron orchestration (391 LOC)
-│   ├── sweep_task.py                   # Parameter sweep (249 LOC)
-│   ├── validate_task.py                # Validation runner (323 LOC)
-│   ├── improve_task.py                 # Strategy improvement (322 LOC)
-│   ├── meta_task.py                    # Meta-analysis (227 LOC)
-│   └── [others]
-├── tests/refinement/                   # Refinement tests (8,299 LOC, 636 tests)
-├── results/                            # Run outputs, state
-├── refinement_runs/                    # E2E run artifacts
-├── mandates/                           # Strategy mandates (JSON)
-└── refinement/BUILD_STATUS.json        # Build tracking
+~/development/CrabQuant/
+├── crabquant/                      # Core library (13,814 LOC)
+│   ├── __init__.py                 # 11 LOC
+│   ├── run.py                      # 344 LOC — main CLI runner
+│   ├── invention.py                # 180 LOC — strategy invention (STUB)
+│   ├── regime.py                   # 294 LOC — market regime detection
+│   ├── guardrails.py               # 200 LOC — backtest guardrails
+│   ├── indicator_cache.py          # 110 LOC — module-level indicator cache
+│   ├── strategies/                 # 22 strategy files (3,100 LOC)
+│   │   ├── __init__.py             # 226 LOC — STRATEGY_REGISTRY + imports
+│   │   └── *.py                    # 22 strategy implementations
+│   ├── engine/                     # Backtest engine (533 LOC)
+│   │   ├── backtest.py             # 396 LOC — VectorBT BacktestEngine
+│   │   └── parallel.py             # 137 LOC — ProcessPoolExecutor
+│   ├── data/                       # Data loading (114 LOC)
+│   │   └── __init__.py             # yfinance + pickle cache
+│   ├── confirm/                    # Confirmation (1,573 LOC)
+│   │   ├── __init__.py             # 93 LOC — ConfirmationResult
+│   │   ├── runner.py               # 220 LOC — bar-by-bar backtest
+│   │   ├── batch.py                # 154 LOC — batch confirmation
+│   │   └── strategy_converter.py   # 1,106 LOC — VBT→backtesting.py converters
+│   ├── validation/                 # Walk-forward (322 LOC)
+│   │   └── __init__.py             # walk_forward + cross_ticker
+│   ├── production/                 # Registry (800 LOC)
+│   │   ├── __init__.py, promoter.py, scanner.py, report.py
+│   ├── brief/                      # Daily brief (581 LOC)
+│   │   ├── __init__.py, models.py, formatter.py, market.py, discoveries.py
+│   └── refinement/                 # LLM refinement (~5,200 LOC, 28 files)
+│       ├── prompts.py, context_builder.py, diagnostics.py, llm_api.py
+│       ├── wave_manager.py, schemas.py, mandate_generator.py, validation_gates.py
+│       ├── promotion.py, classifier.py, config.py, module_loader.py
+│       ├── stagnation.py, circuit_breaker.py, cosmetic_guard.py, gate3_smoke.py
+│       ├── action_analytics.py, guardrails_integration.py, hypothesis_enforcement.py
+│       ├── per_wave_metrics.py, portfolio_correlation.py, regime_sharpe.py
+│       ├── tier1_diagnostics.py, wave_dashboard.py, wave_scaling.py
+├── scripts/                        # Cron entry points (3,177 LOC, 11 files)
+│   ├── cron_task.py                # 795 LOC — main sweep + backtest
+│   ├── refinement_loop.py          # 546 LOC — LLM refinement orchestrator
+│   ├── crabquant_cron.py           # 391 LOC — cron lifecycle
+│   ├── validate_task.py            # 323 LOC
+│   ├── improve_task.py             # 322 LOC
+│   ├── sweep_task.py               # 249 LOC
+│   ├── meta_task.py                # 227 LOC
+│   ├── confirm_task.py             # 198 LOC
+│   ├── wave_runner.py, promote_task.py, brief_task.py
+├── tests/                          # Test suite (10,751 LOC, 30+ files)
+├── results/                        # Runtime data
+│   ├── cron_state.json             # ~55 completed combos
+│   ├── winners/, confirmed/, logs/, plots/
+│   └── insights.json, meta_report.json
+└── debug_test.py, debug_strategy.py
 ```
+
+**File counts:** 185 `.py` files  
+**Lines of code:** ~55K total (library: 13.8K, scripts: 3.2K, tests: 10.8K, strategies: 3.1K)  
+**Test-to-code ratio:** ~1:1.5 (thorough)
 
 ---
 
 ## 2. Component-by-Component Analysis
 
-### 2.1 Core Engine (PROVEN, STABLE)
+### 2.1 Strategies (`crabquant/strategies/`) — 22 files, 3,100 LOC
 
-| Module | LOC | Quality | Notes |
-|--------|-----|---------|-------|
-| `engine/backtest.py` | 396 | ✅ Good | VectorBT wrapper with composite scoring. Battle-tested. |
-| `engine/parallel.py` | 137 | ✅ Good | ProcessPoolExecutor across tickers. Works. |
-| `validation/__init__.py` | 322 | ✅ Good | Walk-forward + cross-ticker. Core feature. |
-| `data/__init__.py` | 114 | ✅ Good | Yahoo Finance with pickle cache. Simple, works. |
-| `guardrails.py` | 200 | ✅ Good | Configurable threshold checking. |
+**What:** 22 trading strategies. Each exports `generate_signals(df, params) -> (entries, exits)`, `DEFAULT_PARAMS`, `PARAM_GRID`, `DESCRIPTION`. `__init__.py` builds `STRATEGY_REGISTRY`.
 
-### 2.2 Strategy Library (GROWING)
+**Quality:** Good. Clean pattern, consistent interface, pandas_ta indicators.
 
-28 strategies registered. Mix of hand-written and LLM-invented. Quality varies — some invented strategies are essentially copies with renamed variables. No deduplication mechanism.
+**Problems:**
+- `__init__.py` (226 LOC): Verbose per-strategy imports — should use `__all__` + lazy loading
+- `informed_adaptive_trend_reversion.py` and `informed_simple_adaptive.py` reference `generate_signals_matrix` — missing from most strategies
+- `ichimoku_trend.py` (54 LOC): Unusually short — likely incomplete
+- 22 strategies but only 17 have confirmation converters (see 2.4)
 
-### 2.3 Production Module (WORKING, BASIC)
+### 2.2 Engine (`crabquant/engine/`) — 2 files, 533 LOC
 
-| Module | LOC | Quality | Notes |
-|--------|-----|---------|-------|
-| `production/promoter.py` | 329 | ⚠️ Fair | Registers winners but no portfolio-level logic |
-| `production/report.py` | 218 | ⚠️ Fair | HTML reports, not integrated with refinement pipeline |
-| `production/scanner.py` | 148 | ⚠️ Fair | Live scanner, not wired to refinement |
+**What:** VectorBT `BacktestEngine` with param grid sweeps. `parallel.py` uses ProcessPoolExecutor for multi-ticker.
 
-### 2.4 Refinement Pipeline (BUILT, NEEDS INTEGRATION)
+**Quality:** Solid, well-structured.
 
-| Module | LOC | Quality | Issues |
-|--------|-----|---------|--------|
-| `llm_api.py` | 302 | ⚠️ Fair | Works but ~50s per call. No async, no streaming. No batching. |
-| `prompts.py` | 394 | ⚠️ Fair | Good templates but no A/B testing mechanism. Hardcoded. |
-| `context_builder.py` | 242 | ⚠️ Fair | Builds context from strategy examples. Stripping logic fragile. |
-| `diagnostics.py` | 352 | ✅ Good | Safe backtesting with timing. Sharpe-by-year. |
-| `validation_gates.py` | 200 | ✅ Good | 3-gate system. Works well after PARAM_GRID fix. |
-| `module_loader.py` | 90 | ✅ Good | Temp file + importlib. Clean. |
-| `classifier.py` | 82 | ⚠️ Fair | Only 6 failure modes. Deterministic only, no nuance. |
-| `config.py` | 106 | ✅ Good | RefinementConfig with defaults. Clean. |
-| `schemas.py` | 220 | ✅ Good | RunState, BacktestReport dataclasses. |
-| `stagnation.py` | 128 | ✅ Good | Stagnation scoring + pivot/nuclear/abandon. |
-| `wave_manager.py` | 250 | ⚠️ Fair | Subprocess isolation. Max 5 parallel. |
-| `mandate_generator.py` | 220 | ⚠️ Fair | Auto-generates mandates but no market data integration. |
-| `promotion.py` | 309 | ⚠️ Fair | Walk-forward + cross-ticker before promotion. Imports from validation. |
-| `action_analytics.py` | 195 | ✅ Good | Tracks which actions succeed. JSON persistence. |
-| `per_wave_metrics.py` | 187 | ✅ Good | Per-wave convergence tracking. |
-| `wave_dashboard.py` | 203 | ⚠️ Fair | Real-time dashboard. Not wired to actual process. |
-| `regime_sharpe.py` | 172 | ✅ Good | Sharpe by market regime. |
-| `portfolio_correlation.py` | 164 | ✅ Good | Equity curve correlation to existing winners. |
-| `circuit_breaker.py` | 185 | ✅ Good | Halt if LLM pass rate drops below 30%. |
-| `cosmetic_guard.py` | 125 | ✅ Good | Force structural intervention after 3x modify_params. |
-| `hypothesis_enforcement.py` | 120 | ✅ Good | Reject generic hypotheses. |
-| `gate3_smoke.py` | 126 | ✅ Good | Smoke backtest gate. |
-| `guardrails_integration.py` | 117 | ✅ Good | Existing guardrails supplement classification. |
-| `tier1_diagnostics.py` | 156 | ✅ Good | Sharpe-by-year, previous attempts. |
-| `wave_scaling.py` | 185 | ✅ Good | Parallel limit, wave status tracking. |
+**Problems:**
+- `parallel.py` line ~20: `from crabquant.strategies STRATEGY_REGISTRY` — syntax error (missing `import`). Only works if monkey-patched at runtime
+- `backtest.py` line ~10: Default `sharpe_target=1.5` is aggressive — many profitable strategies have Sharpe 0.8–1.2
+- `parallel.py`: Each worker loads data independently — no shared memory, wastes RAM
 
-### 2.5 Scripts (FUNCTIONAL, FRAGMENTED)
+### 2.3 Data (`crabquant/data/__init__.py`) — 114 LOC
 
-| Script | LOC | Quality | Issues |
-|--------|-----|---------|--------|
-| `refinement_loop.py` | 546 | ⚠️ Fair | Main entry point. Works but monolithic. Should be thinner. |
-| `cron_task.py` | 795 | ⚠️ Fair | Largest script. Dispatches to sweep/improve/validate/meta. |
-| `crabquant_cron.py` | 391 | ⚠️ Fair | Cron orchestration. Single-threaded loop. |
-| `sweep_task.py` | 249 | ⚠️ Fair | Parameter sweep. Works but isolated from refinement. |
-| `validate_task.py` | 323 | ⚠️ Fair | Validation runner. Separate from refinement promotion. |
-| `improve_task.py` | 322 | ⚠️ Fair | Strategy improvement. Overlaps with refinement. |
-| `meta_task.py` | 227 | ⚠️ Fair | Meta-analysis. Runs every 3h, not continuous. |
+**What:** yfinance OHLCV loader with pickle caching to `~/.cache/crabquant/`, 20-hour TTL.
+
+**Quality:** Simple, functional.
+
+**Problems:**
+- Cache validity uses `time.time()` — doesn't account for market hours (caches stale overnight data)
+- No validation of returned DataFrame (could silently return empty data)
+- Hardcoded cache path — not configurable
+
+### 2.4 Confirmation (`crabquant/confirm/`) — 4 files, 1,573 LOC
+
+**What:** VectorBT fast screen → backtesting.py realistic bar-by-bar confirmation. `strategy_converter.py` (1,106 LOC) converts VBT strategies to `backtesting.py` Strategy subclasses.
+
+**Quality:** Well-structured registry pattern, but the converter is a maintenance burden.
+
+**Problems:**
+- **`strategy_converter.py` (1,106 LOC):** The single largest file. Contains 17 hand-written converters + ~15 indicator helpers. Every new strategy requires a new converter.
+- Lines 30–150: Pure-numpy re-implementations of rolling functions (`_rolling_max`, `_rolling_min`, `_rsi`, `_atr`, `_adx`, `_macd`, `_stoch`, `_bbands`) — O(n×window) instead of O(n), significantly slower than pandas
+- `_CONVERTERS` dict has 17 entries but `STRATEGY_REGISTRY` has 22 strategies — **5 strategies cannot be confirmed** (the `informed_*` and `invented_volume_*` variants)
+- `runner.py` line ~79: `lambda size, price: _slippage_commission(size, price, slip)` — closure captures variable
+- `batch.py`: Circular import risk with `confirm/__init__.py`
+
+### 2.5 Validation (`crabquant/validation/__init__.py`) — 322 LOC
+
+**What:** Walk-forward (60/40 split) and cross-ticker validation with regime detection.
+
+**Quality:** Good concept.
+
+**Problems:**
+- Hardcoded 60/40 split — not configurable
+- Single split, not rolling/expanding window
+- Cross-ticker assumes equal applicability across tickers
+
+### 2.6 Refinement (`crabquant/refinement/`) — 28 files, ~5,200 LOC
+
+**What:** LLM-driven strategy improvement. Includes prompt engineering, validation gates, circuit breakers, stagnation detection, cosmetic guards, action analytics, wave-based parallel execution.
+
+**Quality:** Most sophisticated package. Good separation of concerns.
+
+**Problems:**
+- **`llm_api.py` (302 LOC):** Uses raw `urllib.request` — no retry logic, no connect timeout, no connection pooling, no streaming. Can hang indefinitely.
+- **`wave_manager.py` (250 LOC):** Uses `subprocess.run()` per mandate — no resource limits, no timeout, no output capture limits
+- **`validation_gates.py`:** Gate 3 smoke backtest uses VectorBT engine, not the confirmation runner — inconsistent validation
+- **`mandate_generator.py`:** Doesn't check `cron_state.json` for already-completed combos — duplicates work
+- **`classifier.py` (82 LOC):** Only 5 failure modes; new types silently become "unknown"
+- **`context_builder.py` (242 LOC):** No token limit awareness — could exceed LLM context window
+- **`stagnation.py`:** Weights (0.4 sharpe_trend, 0.2 variance, 0.4 repetition) are hardcoded — not tunable per strategy
+- **`circuit_breaker.py`:** Default `min_pass_rate=0.3` over `window=20` — once opened, there's no automatic recovery mechanism documented
+
+### 2.7 Production (`crabquant/production/`) — 4 files, 800 LOC
+
+**What:** Promotes ROBUST strategies to production registry with markdown reports + embedded JSON metadata.
+
+**Quality:** Clean dedup logic, good design.
+
+**Problems:**
+- `promoter.py` line ~150: `_extract_slippage_results()` parses notes by string matching — extremely fragile
+- `promoter.py` line ~200: ROBUST verdicts with no parseable notes get dummy SlippageResults with all zeros — **hides missing data**
+- **No retirement mechanism** — promoted strategies stay forever
+- `scanner.py` and `promoter.py` both compute params hash independently — should share utility
+
+### 2.8 Brief (`crabquant/brief/`) — 5 files, 581 LOC
+
+**What:** Daily Telegram-friendly market brief with regime, production status, cron health.
+
+**Quality:** Clean, well-structured.
+
+**Problems:**
+- `discoveries.py` line ~120: `get_cron_status()` shells out to `openclaw cron list` and **parses text output** — extremely fragile
+- `market.py` line ~30: `get_market_regime()` loads SPY data every call — no caching
+- `formatter.py` line ~65: Hard 800-char limit with naive line truncation
+
+### 2.9 Regime (`crabquant/regime.py`) — 294 LOC
+
+**What:** Score-based market regime classifier (5 regimes) using SPY SMA slopes, ROC, BB width, realized vol, VIX.
+
+**Quality:** Sound multi-signal approach.
+
+**Problems:**
+- `REGIME_STRATEGY_AFFINITY` (210 LOC): **Hardcoded scores** for 5 regimes × 22 strategies — not data-driven, never updated from backtest results
+- Line ~40: `sma50_slope` from 6-bar lookback — too short for 50-day SMA
+- Confidence formula `(best - second) / (best + 0.001)` — epsilon makes low scores appear confident
+
+### 2.10 Guardrails (`crabquant/guardrails.py`) — 200 LOC
+
+**What:** Configurable guardrails with conservative/moderate/aggressive presets.
+
+**Quality:** Clean, well-documented.
+
+**Problems:**
+- Overfitting detection only checks trade count — no parameter stability, return distribution, or correlation checks
+- Conservative `min_trades=30` too strict for 6-month backtests
+- No per-regime adjustment
+
+### 2.11 Scripts (`scripts/`) — 11 files, 3,177 LOC
+
+**What:** Cron entry points. Self-contained with arg parsing, logging, error handling.
+
+**Quality:** Functional but duplicated patterns.
+
+**Problems:**
+- `cron_task.py` (795 LOC): **Monolith** — sweep logic + backtesting + winner detection + state management in one file
+- `refinement_loop.py` (546 LOC): De facto orchestrator, but lives as a script
+- Every script has `sys.path.insert(0, ...)` boilerplate
+- `improve_task.py` depends on `invention.py` which has hardcoded mock data
+
+### 2.12 Invention (`crabquant/invention.py`) — 180 LOC
+
+**What:** Strategy invention system.
+
+**Quality:** **Stub. Not production-ready.**
+
+**Problems:**
+- Line 15: `analyze_market_data()` returns **hardcoded mock data**
+- Line 70: `test_strategy_code()` checks for `generate_signals_matrix` — missing from most strategies
+- Line 90: `importlib.reload()` in running process — risky
 
 ---
 
 ## 3. Architecture Diagram
 
 ```
-                    ┌─────────────────────┐
-                    │   Cron Agents (5)    │
-                    │  (supervisors only)  │
-                    └──────────┬──────────┘
-                               │ health check
-                               ▼
-┌──────────┐    ┌─────────────────────────────┐    ┌──────────┐
-│ Mandate  │───▶│   Refinement Pipeline       │───▶│ Promoted │
-│ Generator│    │  (should be always-on)       │    │ Winners  │
-└──────────┘    │                             │    └────┬─────┘
-                │  ┌───────┐  ┌────────────┐  │         │
-                │  │ LLM   │─▶│ 3-Gate     │  │         │
-                │  │ API   │  │ Validation  │  │         │
-                │  └───────┘  └─────┬──────┘  │         │
-                │                   ▼         │         │
-                │  ┌──────────────────────┐   │         │
-                │  │   Backtest Engine    │   │         │
-                │  │   (VectorBT)         │   │         │
-                │  └──────────┬───────────┘   │         │
-                │             ▼               │         │
-                │  ┌──────────────────────┐   │         │
-                │  │  Failure Classifier  │   │         │
-                │  │  + Stagnation Detect │   │         │
-                │  └──────────┬───────────┘   │         │
-                │             ▼               │         │
-                │  ┌──────────────────────┐   │         │
-                │  │  Refine or Pivot     │◀──┘         │
-                │  │  (back to LLM)       │             │
-                │  └──────────────────────┘             │
-                └──────────────────────────────────────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │  Meta-Analysis      │
-                    │  (learns patterns)  │
-                    └─────────────────────┘
-```
+┌─────────────────────────────────────────────────────────────────────┐
+│                     OpenClaw Cron Agents (4)                        │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐              │
+│  │  Wave    │ │ Validate │ │ Confirm  │ │ Promote  │              │
+│  │  Agent   │ │  Agent   │ │  Agent   │ │  Agent   │              │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └────┬─────┘              │
+│       └────────────┴────────────┴────────────┘                      │
+│                         │                                          │
+│  ┌──────────────────────▼──────────────────────────────────────┐   │
+│  │                  scripts/ layer (3,177 LOC)                  │   │
+│  │  cron_task.py │ validate_task.py │ confirm_task.py          │   │
+│  │  sweep_task.py │ promote_task.py │ brief_task.py            │   │
+│  │  improve_task.py │ meta_task.py │ refinement_loop.py        │   │
+│  │  wave_runner.py │ crabquant_cron.py                         │   │
+│  └──────────────────────┬──────────────────────────────────────┘   │
+│                         │                                          │
+├─────────────────────────▼──────────────────────────────────────────┤
+│                     crabquant/ library                              │
+│                                                                     │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────┐      │
+│  │  engine/    │  │   data/      │  │    strategies/        │      │
+│  │  backtest   │◄─┤  yfinance    │◄─┤  22 strategies        │      │
+│  │  parallel   │  │  pickle cache│  │  STRATEGY_REGISTRY    │      │
+│  └──────┬──────┘  └──────────────┘  └──────────────────────┘      │
+│         │                                                           │
+│  ┌──────▼──────────────────────────────────────────────────────┐   │
+│  │                    Pipeline Stages                           │   │
+│  │                                                              │   │
+│  │  1. SWEEP     engine.BacktestEngine.run_vectorized()        │   │
+│  │       ↓                                                      │   │
+│  │  2. SCREEN    guardrails.check_guardrails()                  │   │
+│  │       ↓                                                      │   │
+│  │  3. VALIDATE  validation.walk_forward_test()                 │   │
+│  │       ↓                                                      │   │
+│  │  4. CONFIRM   confirm.run_confirmation() (backtesting.py)    │   │
+│  │       ↓                                                      │   │
+│  │  5. PROMOTE   production.promote_strategy()                  │   │
+│  │       ↓                                                      │   │
+│  │  6. REFINE    refinement/ (LLM-driven improvement)           │   │
+│  │       ↓                                                      │   │
+│  │  7. REPORT    brief.generate_brief() → Telegram              │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌──────────────────────────────────────────────────────────────┐   │
+│  │              refinement/ (LLM pipeline, ~5,200 LOC)          │   │
+│  │                                                              │   │
+│  │  llm_api ──► context_builder ──► prompts ──► wave_manager    │   │
+│  │                                    │                         │   │
+│  │  validation_gates ◄────────────────┘                         │   │
+│  │       ↓                                                      │   │
+│  │  circuit_breaker ──► cosmetic_guard ──► stagnation           │   │
+│  │       ↓                                                      │   │
+│  │  action_analytics ──► diagnostics ──► classifier             │   │
+│  └──────────────────────────────────────────────────────────────┘   │
+│                                                                     │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────┐      │
+│  │ regime.py   │  │ guardrails.py│  │   production/         │      │
+│  │ 5 regimes   │  │ 3 presets    │  │  registry + reports   │      │
+│  └─────────────┘  └──────────────┘  └──────────────────────┘      │
+└─────────────────────────────────────────────────────────────────────┘
 
-**Current problem:** The pipeline above exists as 26 separate modules but there's NO main loop that runs it continuously. `refinement_loop.py` runs ONE mandate and exits. The cron agents (sweep/improve/validate/meta) are SEPARATE scripts that don't use the refinement pipeline at all.
+  External:    yfinance (data)    Zhipu AI GLM (LLM)    Telegram (briefs)
+```
 
 ---
 
 ## 4. Data Flow Map
 
 ```
-mandates/*.json ──▶ refinement_loop.py ──▶ refinement_runs/<name>/
-                        │                        │
-                        ▼                        ▼
-                   LLM API (z.ai)         strategy_v*.py
-                        │                        │
-                        ▼                        ▼
-                   validation_gates          backtest
-                        │                        │
-                        ▼                        ▼
-                   (pass/fail)             BacktestReport
-                        │                        │
-                        ▼                        ▼
-                   classifier.py           diagnostics.py
-                        │                        │
-                        └──────────┬─────────────┘
-                                   ▼
-                            context_builder.py
-                                   │
-                                   ▼
-                            LLM (refine)
-                                   │
-                                   └──▶ repeat (up to 7 turns)
+                    ┌─────────────┐
+                    │  yfinance   │
+                    │  28 tickers │
+                    └──────┬──────┘
+                           │ OHLCV DataFrames
+                           ▼
+                ┌──────────────────────┐
+                │  data/__init__.py     │
+                │  load_data() + cache  │
+                └──────────┬───────────┘
+                           │
+                           ▼
+                ┌──────────────────────┐
+                │  strategies/          │
+                │  generate_signals()   │
+                │  → entries, exits     │
+                └──────────┬───────────┘
+                           │
+            ┌──────────────▼──────────────┐
+            │  SWEEP: engine/backtest.py   │
+            │  VectorBT param grid sweep   │
+            │  (sharpe, return, dd, etc)  │
+            └──────────────┬──────────────┘
+                           │ BacktestResult
+                           ▼
+                ┌──────────────────────┐
+                │  SCREEN: guardrails  │
+                │  Sharpe ≥ 1.5        │
+                │  DD ≤ 25%, Return ≥10%│
+                │  Trades ≥ 5          │
+                └──────────┬───────────┘
+                           │ passed →
+                           ▼
+                ┌──────────────────────┐
+                │  winners.json        │
+                │  ~55 combos tracked  │
+                └──────────┬───────────┘
+                           │
+              ┌────────────▼────────────┐
+              │  VALIDATE: validation/  │
+              │  walk-forward (60/40)   │
+              │  cross-ticker check     │
+              └────────────┬────────────┘
+                           │ validated →
+                           ▼
+                ┌──────────────────────┐
+                │  CONFIRM: confirm/   │
+                │  backtesting.py      │
+                │  3 periods × 3 slips │
+                └──────────┬───────────┘
+                           │ ROBUST / FRAGILE / FAILED
+                           ▼
+                ┌──────────────────────┐
+                │  confirmed.json      │
+                └──────────┬───────────┘
+                           │ ROBUST only →
+                           ▼
+                ┌──────────────────────┐
+                │  PROMOTE: production/│
+                │  registry.json + .md │
+                └──────────┬───────────┘
+                           │
+                           ▼
+                ┌──────────────────────┐
+                │  BRIEF → Telegram    │
+                └──────────────────────┘
 
-WINNERS ──▶ promotion.py ──▶ STRATEGY_REGISTRY
-                                       │
-                                       ▼
-                              results/insights.json
-                                       │
-                                       ▼
-                              meta_task.py (every 3h)
+
+   ─── REFINEMENT BRANCH (LLM-driven) ───
+
+   Winners that fail validation →
+        │
+        ▼
+   ┌──────────────────────┐
+   │  refinement/         │
+   │  mandate_generator   │
+   │  (strategy, ticker,  │
+   │   failure_mode)      │
+   └──────────┬───────────┘
+              │
+              ▼
+   ┌──────────────────────┐
+   │  wave_manager        │
+   │  subprocess per      │
+   │  mandate             │
+   └──────────┬───────────┘
+              │
+              ▼
+   ┌──────────────────────┐
+   │  LLM API (GLM)       │
+   │  + context_builder   │
+   │  + prompts.py        │
+   └──────────┬───────────┘
+              │ new strategy code
+              ▼
+   ┌──────────────────────┐
+   │  validation_gates    │
+   │  G1: syntax/import   │
+   │  G2: generate_signals│
+   │  G3: smoke backtest  │
+   └──────────┬───────────┘
+              │ passed →
+              ▼
+   ┌──────────────────────┐
+   │  Backtest + evaluate │
+   │  + circuit_breaker   │
+   │  + stagnation check  │
+   │  + cosmetic_guard    │
+   └──────────┬───────────┘
+              │ improved →
+              ▼
+   ┌──────────────────────┐
+   │  Save strategy code  │
+   │  → strategies dir    │
+   │  → back in pipeline  │
+   └──────────────────────┘
 ```
 
-**Gap:** Winners from the refinement pipeline aren't flowing to the cron agents. The cron agents use the old sweep/improve/validate scripts which don't know about refinement runs.
+---
+
+## 5. Top 10 Problems (Ranked by Severity)
+
+### 🔴 P1: `invention.py` is entirely stubbed with mock data
+**File:** `crabquant/invention.py` lines 15–30  
+**Impact:** The "improve" cron agent (`scripts/improve_task.py`) depends on this for strategy invention. It returns hardcoded ticker lists and regime classifications. Any "invented" strategies are based on fake analysis.  
+**Severity:** HIGH — undermines the entire autonomous improvement pipeline.
+
+### 🔴 P2: `parallel.py` has a syntax error in import
+**File:** `crabquant/engine/parallel.py` line ~20  
+**Impact:** `from crabquant.strategies STRATEGY_REGISTRY` is invalid Python. This file cannot be imported directly. Works only if the import is monkey-patched at runtime by scripts.  
+**Severity:** HIGH — latent bug, breaks if imported outside the specific script context.
+
+### 🔴 P3: 5 of 22 strategies cannot be confirmed
+**File:** `crabquant/confirm/strategy_converter.py` `_CONVERTERS` dict  
+**Impact:** `informed_adaptive_trend_reversion`, `informed_simple_adaptive`, `invented_volume_breakout_adx`, `invented_volume_adx_ema`, and `invented_volume_momentum_trend` have no backtesting.py converters. If any of these win the VectorBT sweep, they **cannot proceed through confirmation**.  
+**Severity:** HIGH — silent pipeline failure.
+
+### 🟡 P4: `llm_api.py` uses raw `urllib.request` with no reliability features
+**File:** `crabquant/refinement/llm_api.py` lines 1–302  
+**Impact:** No retry on transient failures, no connect timeout (can hang indefinitely), no connection pooling, no streaming support. Every LLM call is a cold connection.  
+**Severity:** MEDIUM-HIGH — the refinement pipeline's LLM dependency is fragile.
+
+### 🟡 P5: Strategy converter re-implements rolling functions in pure Python
+**File:** `crabquant/confirm/strategy_converter.py` lines 30–150  
+**Impact:** `_rolling_max`, `_rolling_min`, `_rsi`, `_atr`, `_adx`, `_macd`, `_stoch`, `_bbands` are O(n×window) pure-numpy loops. For a 2-year daily series (500 bars) with typical windows, this is ~10× slower than pandas native. The batch confirm runs 9 backtests per strategy (3 periods × 3 slippage levels) — this compounds.  
+**Severity:** MEDIUM — significant performance bottleneck.
+
+### 🟡 P6: No strategy retirement mechanism
+**File:** `crabquant/production/` (all files)  
+**Impact:** Once promoted to `registry.json`, a strategy stays forever. No re-validation, no expiry, no removal for degraded performance. Over time, the production registry accumulates stale strategies.  
+**Severity:** MEDIUM — data integrity risk grows over time.
+
+### 🟡 P7: `discoveries.py` parses `openclaw cron list` text output
+**File:** `crabquant/brief/discoveries.py` lines 120–160  
+**Impact:** Shells out to `openclaw cron list` and parses stdout with string matching. Any change in OpenClaw's output format breaks the brief. The fallback "assume 4 crons" is misleading.  
+**Severity:** MEDIUM — fragile integration.
+
+### 🟡 P8: `promoter.py` hides missing slippage data with dummy values
+**File:** `crabquant/production/promoter.py` lines ~195–210  
+**Impact:** When `_extract_slippage_results()` can't parse notes, it creates `SlippageResult(passed=True, sharpe=0, return=0, ...)` for ROBUST verdicts. The markdown report shows "✅ 0.0% slippage: Sharpe 0.00" — looks like real data but is fabricated.  
+**Severity:** MEDIUM — misleading production reports.
+
+### 🟠 P9: Hardcoded regime-strategy affinity scores
+**File:** `crabquant/regime.py` lines 80–290 (210 LOC)  
+**Impact:** 110 hardcoded affinity scores (5 regimes × 22 strategies) are never validated against actual backtest results. The brief recommends strategies based on these assumed affinities, not evidence.  
+**Severity:** MEDIUM-LOW — could mislead trading decisions.
+
+### 🟠 P10: `mandate_generator.py` doesn't deduplicate against completed work
+**File:** `crabquant/refinement/mandate_generator.py`  
+**Impact:** Can generate mandates for strategy/ticker combos already in `cron_state.json` completed list. Wastes LLM tokens and compute on already-tested combos.  
+**Severity:** MEDIUM-LOW — inefficiency.
 
 ---
 
-## 5. Top 10 Problems (by severity)
+## 6. Top 10 Improvements (Ranked by Impact)
 
-### 🔴 CRITICAL
+### 💡 I1: Replace `invention.py` mock data with real analysis
+**Impact:** HIGH — unlocks the autonomous improvement pipeline  
+**What:** Replace `analyze_market_data()` with actual regime detection using `crabquant/regime.py` + historical performance analysis from `results/winners/`. The `meta_task.py` already does some of this — consolidate.  
+**Effort:** 2–3 hours
 
-**1. No continuous execution loop**
-The refinement pipeline runs ONE mandate and exits. There's no daemon that picks up mandates, runs them, promotes winners, and queues new ones. This is the #1 blocker for Tristan's vision.
+### 💡 I2: Fix `parallel.py` import + add missing strategy converters
+**Impact:** HIGH — fixes latent bug + unblocks 5 strategies  
+**What:** Change `from crabquant.strategies STRATEGY_REGISTRY` to `from crabquant.strategies import STRATEGY_REGISTRY`. Add converters for the 5 missing strategies (or remove them from the registry).  
+**Effort:** 1–2 hours per converter
 
-**2. Cron agents don't use the refinement pipeline**
-`crabquant-wave` runs parameter sweeps. `crabquant-improve` runs old-style improvements. `crabquant-validate` runs walk-forward. None of them use the 31-component refinement system. The refinement pipeline is completely disconnected from the running system.
+### 💡 I3: Replace `urllib` with `httpx` in `llm_api.py`
+**Impact:** HIGH — reliable LLM calls with retries, timeouts, pooling  
+**What:** Replace `urllib.request` with `httpx.Client(retries=3, timeout=30)`. Add exponential backoff, connection pooling, and proper error handling.  
+**Effort:** 1–2 hours
 
-**3. Two separate strategy worlds**
-The refinement pipeline generates strategies in `refinement_runs/` as temp files. The cron agents work with `crabquant/strategies/` registered strategies. There's no bridge — refinement winners don't get discovered by the sweep engine.
+### 💡 I4: Add strategy retirement to production pipeline
+**Impact:** MEDIUM-HIGH — keeps production registry clean  
+**What:** Add a `retire_strategy()` function that marks strategies as inactive when re-validation fails. Add a weekly re-validation cron. Show active/retired counts in the brief.  
+**Effort:** 3–4 hours
 
-### 🟠 HIGH
+### 💡 I5: Use `backtesting.lib` instead of hand-rolled indicators in strategy_converter
+**Impact:** MEDIUM — 10× faster confirmation backtests  
+**What:** `backtesting.py` includes `backtesting.lib` with optimized `RSI`, `SMA`, `EMA`, `ATR`, etc. Replace the 15 custom indicator functions. If missing functions, use `talib` (already a dependency of pandas_ta).  
+**Effort:** 2–3 hours
 
-**4. LLM API is synchronous and slow**
-Every LLM call takes 30-60 seconds. No async, no streaming, no batching. In a 7-turn refinement loop with 3 retries per gate, that's 7 × 2 × 45s = 10.5 minutes of just waiting for the LLM. The system can't run "every few minutes" with this bottleneck.
+### 💡 I6: Split `cron_task.py` monolith into library + thin script
+**Impact:** MEDIUM — better testability, reusability  
+**What:** Extract sweep logic, winner detection, and state management into `crabquant/pipeline/sweep.py` (or similar). The script becomes a 20-line entry point.  
+**Effort:** 2–3 hours
 
-**5. Mandate generator has no market data integration**
-`mandate_generator.py` creates mandates from the strategy catalog, but it doesn't look at current market conditions, regime, or what tickers are performing well. It generates generic mandates.
+### 💡 I7: Make regime-strategy affinity data-driven
+**Impact:** MEDIUM — evidence-based brief recommendations  
+**What:** After each confirmation batch, compute actual Sharpe-by-regime from backtest results. Update affinity scores from data, not hardcoded assumptions. Store in `results/regime_affinity.json`.  
+**Effort:** 3–4 hours
 
-**6. No resource management**
-The wave manager limits parallel processes to 5, but there's no CPU/RAM monitoring. No API budget tracking. No throttling when rate-limited (we saw rate limits kill the wave cron).
+### 💡 I8: Replace `openclaw cron list` text parsing with proper API
+**Impact:** MEDIUM — robust cron health monitoring  
+**What:** Either use `openclaw cron list --json` (if available) or read cron state from `results/cron_state.json` directly instead of shelling out.  
+**Effort:** 1 hour
 
-### 🟡 MEDIUM
+### 💡 I9: Add token limit awareness to `context_builder.py`
+**Impact:** MEDIUM-LOW — prevents LLM context overflow  
+**What:** Estimate token count of built prompts. If approaching limit, truncate earlier turns or summarize. Use a simple character-based heuristic (1 token ≈ 4 chars for GLM).  
+**Effort:** 1–2 hours
 
-**7. Scripts are monolithic and overlapping**
-`cron_task.py` (795 LOC), `refinement_loop.py` (546 LOC), `crabquant_cron.py` (391 LOC) all have overlapping concerns. `improve_task.py` does strategy improvement, which is what the refinement pipeline does. This should be consolidated.
-
-**8. No strategy deduplication**
-The LLM can generate essentially identical strategies across runs. There's a hash-based check in diagnostics.py but it's not used in the refinement loop to prevent duplicate research.
-
-**9. Classifier is too simple**
-Only 6 deterministic failure modes. No nuance — "too_few_trades" doesn't distinguish between "0 trades" (broken) and "8 trades" (might just need parameter tuning). The LLM gets blunt failure labels.
-
-**10. No observability**
-No metrics, no dashboards, no alerts. `wave_dashboard.py` exists but isn't wired to anything. You can't see "3 strategies being researched, 1 stuck on overtrading gate, 2 pending" without manually checking files.
-
----
-
-## 6. Top 10 Improvements (by impact)
-
-### 1. **Build the continuous execution loop** (CRITICAL)
-Create `scripts/research_daemon.py` — a persistent process that:
-- Maintains a mandate queue (JSON file or directory)
-- Spawns wave_manager for each batch of mandates
-- Promotes winners automatically
-- Generates new mandates when queue runs low
-- Handles graceful shutdown (SIGTERM)
-- Logs state to `results/daemon_state.json`
-
-**Impact:** This is THE missing piece. Without it, the refinement pipeline is just a library.
-
-### 2. **Unify the two systems** (CRITICAL)
-Bridge the refinement pipeline to the existing cron infrastructure:
-- Refinement winners → auto-register in STRATEGY_REGISTRY
-- Cron sweep → includes refinement-invented strategies
-- Meta-analysis → reads refinement run history
-- Remove redundant scripts (improve_task.py replaced by refinement)
-
-### 3. **Async LLM calls with concurrency** (HIGH)
-Replace synchronous `urllib.request` with `asyncio` + `aiohttp`:
-- Parallel gate retries (3 retries can run simultaneously)
-- Parallel mandate processing (send multiple LLM calls at once)
-- Streaming responses for faster time-to-first-token
-- Target: cut effective LLM latency by 3-5x
-
-### 4. **Smart mandate generation** (HIGH)
-Feed market data into mandate creation:
-- Current regime (bull/bear/volatile) → suggest appropriate archetypes
-- Recent winner patterns → generate similar mandates
-- Ticker performance ranking → focus on high-opportunity tickers
-- Gap analysis → identify uncovered ticker/archetype combos
-
-### 5. **Resource-aware scheduling** (MEDIUM)
-- Track API budget (prompt count, not tokens)
-- Monitor CPU/RAM before spawning new waves
-- Rate limit detection → exponential backoff
-- Priority queue: promising strategies get more turns
-
-### 6. **Consolidate scripts** (MEDIUM)
-- `research_daemon.py` replaces `cron_task.py` + `crabquant_cron.py` + `refinement_loop.py`
-- `sweep_task.py` becomes a daemon sub-command
-- `improve_task.py` deleted (replaced by refinement pipeline)
-- Total: 3,177 LOC → ~1,000 LOC
-
-### 7. **Strategy deduplication in loop** (MEDIUM)
-- Before running backtest, hash the strategy code
-- Check against `results/strategy_hashes.json`
-- If duplicate, skip backtest and tell LLM "this is identical to strategy X"
-- Saves API budget and compute
-
-### 8. **Richer failure classification** (MEDIUM)
-- Expand from 6 to 12+ failure modes
-- Add severity levels (broken vs suboptimal)
-- Include quantitative hints (e.g., "max drawdown 45% at bar 87")
-- Feed these into context for better LLM diagnosis
-
-### 9. **Observability layer** (LOW-MEDIUM)
-- Prometheus-style metrics export (or simple JSON)
-- Running count: mandates queued, in-progress, completed, winners
-- Per-component timing: LLM calls, backtests, gates
-- Telegram push for notable events (new winner, stagnation detected)
-- `wave_dashboard.py` wired to real state
-
-### 10. **Prompt optimization** (LOW)
-- A/B test prompt variants
-- Track which prompt patterns lead to faster convergence
-- Extract winning prompt techniques from successful runs
-- Feed back into `prompts.py`
+### 💡 I10: Proper Python packaging (pyproject.toml + `pip install -e .`)
+**Impact:** MEDIUM-LOW — eliminates `sys.path` hacks  
+**What:** Create `pyproject.toml` with project metadata and dependencies. Run `pip install -e .` once. Remove all `sys.path.insert(0, ...)` from scripts.  
+**Effort:** 1 hour
 
 ---
 
 ## 7. Integration Gaps
 
-| Built Component | Integrated With | Status |
-|----------------|-----------------|--------|
-| refinement/orchestrator.py | scripts/refinement_loop.py | ✅ Wired |
-| refinement/promotion.py | refinement_loop.py | ❌ Not called |
-| refinement/mandate_generator.py | Nothing | ❌ Standalone |
-| refinement/wave_dashboard.py | Nothing | ❌ Standalone |
-| refinement/action_analytics.py | refinement_loop.py | ❌ Not called |
-| refinement/auto_promotion (in wave_manager) | Nothing | ❌ Not called |
-| refinement/cron_integration.py | Nothing | ❌ Standalone |
-| production/promoter.py | promote_task.py | ✅ Wired (old system) |
-| production/scanner.py | Nothing | ❌ Standalone |
+### G1: Refinement pipeline ↔ Production pipeline
+**What's built:** The refinement pipeline generates improved strategy code and saves it to the strategies directory.  
+**What's missing:** Improved strategies are not automatically re-entered into the sweep/validation/confirmation pipeline. A human must manually trigger a new sweep.  
+**Fix:** Add a post-refinement hook that queues the improved strategy for immediate sweep+confirm.
 
-**Summary:** 26 refinement modules built, 3 wired into the main loop, 23 standalone. The integration gap is massive.
+### G2: Meta-learner ↔ Strategy registry
+**What's built:** `meta_task.py` analyzes win rates and suggests grid expansions.  
+**What's missing:** Grid expansion suggestions are logged to `meta_report.json` but not automatically applied to strategy files. Requires manual editing.  
+**Fix:** Add auto-apply mode to `meta_task.py` that writes expanded `PARAM_GRID` directly to strategy files.
+
+### G3: Regime detection ↔ Backtest thresholds
+**What's built:** `regime.py` detects 5 market regimes. `guardrails.py` has 3 preset configurations.  
+**What's missing:** No automatic adjustment of backtest thresholds based on detected regime. A strategy discovered during HIGH_VOLATILITY is evaluated with the same thresholds as one discovered during LOW_VOLATILITY.  
+**Fix:** Add `regime_adjusted_config()` that loosens/tightens thresholds per regime.
+
+### G4: Confirmation results ↔ LLM context
+**What's built:** `action_analytics.py` tracks LLM action success rates.  
+**What's missing:** Confirmation results (ROBUST/FRAGILE/FAILED with degradation metrics) are not fed back to the LLM. The LLM doesn't learn that certain modifications tend to produce strategies that fail realistic-fill testing.  
+**Fix:** Extend `context_builder.py` to include confirmation degradation data for previous attempts of the same strategy.
+
+### G5: Cross-strategy correlation monitoring
+**What's built:** `portfolio_correlation.py` exists in refinement/.  
+**What's missing:** Not integrated into the production pipeline. No check whether newly promoted strategies are correlated with existing ones. Could end up with 5 strategies that all trigger on the same RSI signal.  
+**Fix:** Add a correlation check in `promoter.py` before promotion. Reject strategies with >0.7 correlation to existing production strategies on the same ticker.
+
+### G6: Agent workspaces are empty shells
+**What's built:** 4 agent directories in `~/development/crabquant-agents/` (invent, meta, validate, wave) with SOUL.md, TOOLS.md, AGENTS.md, etc.  
+**What's missing:** The `agent/` subdirectories (where agent workspace files would live) are **empty** — no prompt.md, no workspace files. The agents have identity/persona files but no actual task definitions or workspace context. They're bootstrapped but not configured.  
+**Fix:** Create agent workspace files with task prompts, reference paths, and workspace context for each agent.
+
+### G7: Batch confirm ↔ Validation
+**What's built:** `confirm/batch.py` runs 3 periods × 3 slippage levels = 9 backtests per strategy.  
+**What's missing:** The walk-forward validation in `validation/__init__.py` is a separate step that doesn't use the batch confirm results. The two systems produce independent verdicts with no reconciliation.  
+**Fix:** Unify validation and confirmation into a single pipeline stage, or at minimum cross-reference their verdicts.
 
 ---
 
-## 8. Test Coverage
+## Summary Statistics
 
-| Area | Tests | Status |
-|------|-------|--------|
-| refinement/ (unit) | 636 | ✅ All passing |
-| refinement/ (E2E) | 36 | ✅ All passing |
-| core engine | ~96 | ✅ Passing |
-| scripts/ | 0 | ❌ No tests |
-| integration | 0 | ❌ No tests |
-
-The refinement pipeline is well-tested in isolation but there are zero tests for the scripts that actually run the system (`cron_task.py`, `refinement_loop.py`, etc.). This is why integration bugs (like the PARAM_GRID mismatch) only show up in real E2E runs.
-
----
-
-## 9. Summary
-
-CrabQuant has excellent building blocks — a fast backtest engine, a sophisticated refinement pipeline with 31 tested components, and proven validation. But it's currently a collection of parts, not a system. The critical missing piece is the **continuous execution loop** that ties everything together into an always-on research engine.
-
-**Priority order:**
-1. Build `research_daemon.py` (the always-on loop)
-2. Wire existing components into the loop
-3. Async LLM calls for speed
-4. Bridge refinement winners to strategy registry
-5. Everything else
+| Metric | Value |
+|--------|-------|
+| Total Python files | 185 |
+| Total LOC | ~55,000 |
+| Library code | 13,814 LOC |
+| Script code | 3,177 LOC |
+| Test code | 10,751 LOC |
+| Strategy code | ~3,100 LOC |
+| Test-to-code ratio | ~1:1.5 |
+| Strategies defined | 22 |
+| Strategies with converters | 17 (5 missing) |
+| Completed combos | ~55 |
+| Cron agents | 4 (wave, validate, confirm, promote) |
+| Refinement modules | 28 files |
+| Critical bugs | 3 (mock invention, syntax error, missing converters) |
+| Integration gaps | 7 |
+| Hardcoded data | 110 affinity scores + invention mock data |
