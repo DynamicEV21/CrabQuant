@@ -216,7 +216,7 @@ def check_health(
         "heartbeat_age_seconds": round(hb_age, 1) if hb_age is not None else None,
         "current_wave": state.get("current_wave") if state else None,
         "total_mandates_run": state.get("total_mandates_run") if state else None,
-        "total_promoted": state.get("total_promoted") if state else None,
+        "total_promoted": state.get("total_strategies_promoted") if state else None,
         "total_api_calls": state.get("total_api_calls") if state else None,
     }
 

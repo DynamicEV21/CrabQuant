@@ -1,0 +1,16 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "OBV accumulation combined with trend filter and volume spike confirmation can identify institutional buying in MSFT. OBV rising above its signal line indicates accumulation, while price above EMA confirms trend alignment. Volume spikes at entry confirm participation. Exits on OBV breakdown capture when distribution begins.",
+  "new_strategy_code": "\"\"\"\nOBV Accumulation Breakout Strategy\n\nUses OBV crossover with trend filter and volume confirmation.\nDesigned for MSFT to capture institutional accumulation phases.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"obv_signal_len\": 20,\n    \"trend_ema\": 50,\n    \"volume_window\": 20,\n    \"volume_mult\": 1.3,\n    \"rsi_exit\": 75,\n    \"obv_drop_pct\": 0.02,\n}\n\nDESCRIPTION = (\n    \"OBV accumulation breakout with trend and volume confirmation. \"\n    \"Enters when OBV crosses above its SMA signal line, price is above EMA, \"\n    \"and volume exceeds average. Exits on OBV drop below signal or RSI overbought. \"\n    \"Targets institutional accumulation in MSFT.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    obv = cached_indicator(\"obv\", close, volume=volume)\n    obv_signal = cached_indicator(\"sma\", obv, length=p[\"obv_signal_len\"])\n    trend_ema = cached_indicator(\"ema\", close, length=p[\"trend_ema\"])\n    volume_avg = cached_indicator(\"sma\", volume, length=p[\"volume_window\"])\n    rsi = cached_indicator(\"rsi\", close, length=14)\n\n    obv_cross = (obv.shift(1) <= obv_signal.shift(1)) & (obv > obv_signal)\n    trend_ok = close > trend_ema\n    volume_ok = volume > (volume_avg * p[\"volume_mult\"])\n\n    entries = (obv_cross & trend_ok & volume_ok).fillna(False)\n\n    obv_drop = obv < (obv_signal * (1 - p[\"obv_drop_pct\"]))\n    rsi_overbought = rsi > p[\"rsi_exit\"]\n    exits = (obv_drop | rsi_overbought).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "obv_signal_len": 20,
+    "trend_ema": 50,
+    "volume_window": 20,
+    "volume_mult": 1.3,
+    "rsi_exit": 75,
+    "obv_drop_pct": 0.02
+  },
+  "expected_impact": "OBV crossover captures institutional accumulation phases in MSFT. The trend filter avoids false signals in downtrends. Volume confirmation ensures genuine participation. Expect 15-25 trades over 2 years with controlled drawdowns, targeting Sharpe 1.5+."
+}
+```

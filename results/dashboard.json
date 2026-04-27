@@ -1,8 +1,8 @@
 {
   "running_count": 6,
-  "total_mandates": 21,
-  "convergence_rate": 0.06666666666666667,
-  "wave_progress": 0.7904761904761906,
+  "total_mandates": 27,
+  "convergence_rate": 0.047619047619047616,
+  "wave_progress": 0.8370370370370371,
   "best_strategies": [
     {
       "mandate_name": "e2e_test_momentum",
@@ -73,5 +73,5 @@
       "best_sharpe": -999.0
     }
   ],
-  "timestamp": "2026-04-27T06:31:12.055577+00:00"
+  "timestamp": "2026-04-27T06:57:35.182914+00:00"
 }
