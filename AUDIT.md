@@ -1,6 +1,6 @@
 # CrabQuant Codebase Audit
 
-**Date:** 2026-04-26  
+**Date:** 2026-04-27 (updated from 2026-04-26 audit)  
 **Auditor:** CodeCrab 🦀 (automated code review)  
 **Scope:** Full codebase — 185 Python files, ~55K lines (library + scripts + tests)
 
@@ -411,17 +411,20 @@
 ### 🔴 P1: `invention.py` is entirely stubbed with mock data
 **File:** `crabquant/invention.py` lines 15–30  
 **Impact:** The "improve" cron agent (`scripts/improve_task.py`) depends on this for strategy invention. It returns hardcoded ticker lists and regime classifications. Any "invented" strategies are based on fake analysis.  
-**Severity:** HIGH — undermines the entire autonomous improvement pipeline.
+**Severity:** HIGH — undermines the entire autonomous improvement pipeline.  
+**Status:** OPEN — legacy component; the refinement pipeline's `mandate_generator.py` is the active invention path, but `invention.py` is still referenced by legacy scripts.
 
-### 🔴 P2: `parallel.py` has a syntax error in import
+### 🔴 P2: ~~`parallel.py` has a syntax error in import~~ ✅ FIXED
 **File:** `crabquant/engine/parallel.py` line ~20  
-**Impact:** `from crabquant.strategies STRATEGY_REGISTRY` is invalid Python. This file cannot be imported directly. Works only if the import is monkey-patched at runtime by scripts.  
-**Severity:** HIGH — latent bug, breaks if imported outside the specific script context.
+**Impact:** `from crabquant.strategies STRATEGY_REGISTRY` was invalid Python. This file could not be imported directly.  
+**Severity:** HIGH — latent bug.  
+**Status:** RESOLVED — now uses `from crabquant.strategies import STRATEGY_REGISTRY` (correct import syntax).
 
 ### 🔴 P3: 5 of 22 strategies cannot be confirmed
 **File:** `crabquant/confirm/strategy_converter.py` `_CONVERTERS` dict  
 **Impact:** `informed_adaptive_trend_reversion`, `informed_simple_adaptive`, `invented_volume_breakout_adx`, `invented_volume_adx_ema`, and `invented_volume_momentum_trend` have no backtesting.py converters. If any of these win the VectorBT sweep, they **cannot proceed through confirmation**.  
-**Severity:** HIGH — silent pipeline failure.
+**Severity:** HIGH — silent pipeline failure.  
+**Status:** OPEN — not yet addressed. Low priority until Phase 7 (Deployment Readiness) when confirmation integration becomes critical.
 
 ### 🟡 P4: `llm_api.py` uses raw `urllib.request` with no reliability features
 **File:** `crabquant/refinement/llm_api.py` lines 1–302  
@@ -569,6 +572,6 @@
 | Completed combos | ~55 |
 | Cron agents | 4 (wave, validate, confirm, promote) |
 | Refinement modules | 28 files |
-| Critical bugs | 3 (mock invention, syntax error, missing converters) |
+| Critical bugs | 2 open, 1 fixed (parallel.py import) |
 | Integration gaps | 7 |
 | Hardcoded data | 110 affinity scores + invention mock data |

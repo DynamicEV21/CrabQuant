@@ -1,13 +1,15 @@
 # CrabQuant — CodeCrab's Autonomous Strategy Engine
 
-Clean, fast, direct. No LangGraph. No agent overhead. Just Python + VectorBT + judgment.
+Clean, fast, direct. No LangGraph. No agent overhead. Just Python + VectorBT + LLM judgment.
 
 ## What It Does
 
-Autonomously discovers, backtests, and validates trading strategies:
+Autonomously discovers, backtests, validates, and **refines** trading strategies:
 1. **Discovery** — Runs 9 strategy archetypes across 30+ tickers with iterative parameter tuning
 2. **Validation** — Walk-forward testing + cross-ticker validation to separate real edges from curve-fitting
-3. **Scoring** — Composite score that penalizes overfit (low trades, high drawdown)
+3. **Refinement** — LLM-driven iterative improvement: invent new strategies, diagnose failures, refine until they converge
+4. **Scoring** — Composite score that penalizes overfit (low trades, high drawdown)
+5. **Always-On Daemon** — Runs 24/7 as a persistent process with state persistence, health checks, and supervisor monitoring
 
 ## Quick Start
 
@@ -42,15 +44,48 @@ python -m crabquant.run --ticker AAPL,MSFT,GOOGL
 | bollinger_squeeze | — | — | BB squeeze + breakout |
 | ichimoku_trend | — | — | Simplified Ichimoku cloud |
 
+## Always-On Daemon
+
+CrabQuant runs as a persistent daemon (`scripts/run_pipeline.py`) that continuously:
+- Generates mandates from strategy archetypes and market conditions
+- Runs parallel refinement waves (up to 5 concurrent LLM-driven strategy improvements)
+- Promotes winning strategies to the registry
+- Persists state across restarts (picks up where it left off)
+- Reports health via heartbeat file and JSON endpoint
+
+A supervisor cron checks every 5 minutes and restarts the daemon if it dies.
+
+```bash
+# Start the daemon
+python scripts/run_pipeline.py --daemon
+
+# Check status
+python scripts/run_pipeline.py --status
+
+# Stop gracefully
+python scripts/run_pipeline.py --stop
+
+# Run health check
+cd ~/development/CrabQuant && source ~/development/QuantFactory/.venv/bin/activate && python -m crabquant.production.health
+```
+
 ## Architecture
 
 ```
 crabquant/
 ├── engine/          # VectorBT backtest engine + metrics
-├── strategies/      # Strategy library (modular, testable)
+├── strategies/      # Strategy library (28+ strategies, modular, testable)
 ├── data/            # Data loader (yfinance with caching)
 ├── validation/      # Walk-forward + cross-ticker validation
+├── refinement/      # LLM-driven strategy refinement pipeline (31 components)
+├── production/      # Strategy promotion, health checks, scanner
+├── confirm/         # Slippage/commission confirmation (bar-by-bar)
 └── run.py           # Main CLI runner
+
+scripts/
+├── run_pipeline.py  # Always-on daemon (start/stop/status)
+├── refinement_loop.py  # Per-mandate refinement orchestrator
+└── wave_runner.py   # Parallel wave execution CLI
 ```
 
 ## Validation Philosophy

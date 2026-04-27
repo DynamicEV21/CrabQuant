@@ -1,7 +1,7 @@
 # CrabQuant — Vision & Roadmap
 
-**Last Updated:** 2026-04-26  
-**Status:** Phase 1-3 refinement pipeline built (31/31 components passing), moving to integration
+**Last Updated:** 2026-04-27  
+**Status:** Phase 4 ✅ · Phase 5A ✅ · Phase 4.5 (Convergence Tuning) in progress
 
 ---
 
@@ -200,17 +200,20 @@ Target cadence:
 - [x] 96+ tests passing for core engine
 - [x] 31/31 refinement pipeline components built with unit tests
 
-### What's Built But Not Yet Integrated
+### What's Built And Integrated ✅
 
-The refinement pipeline components are individually tested but not yet wired into a working end-to-end loop:
-- [ ] End-to-end integration test with real LLM calls
-- [ ] Real mandate execution (invent → backtest → refine → promote)
-- [ ] Cron integration for continuous autonomous operation
-- [ ] Wave dashboard wired to actual running mandates
+The refinement pipeline is fully wired and running:
+- [x] End-to-end integration with real LLM calls
+- [x] Real mandate execution (invent → backtest → refine → promote)
+- [x] Persistent daemon with state persistence and graceful shutdown
+- [x] Supervisor cron for continuous autonomous operation
+- [x] Health check endpoint
+- [ ] Wave dashboard wired to actual running mandates (not yet connected)
 
-### What Needs to Be Built (Production Gaps)
+### What Needs to Be Built (Remaining Gaps)
 
-- [ ] **Always-on daemon**: The refinement pipeline currently runs as a script. Needs to become a persistent process with supervisor.
+- [ ] **Convergence tuning**: Debug abandoned mandates, tune Sharpe targets per archetype, get first real promotion
+- [ ] **API budget tracker**: Track z.ai prompt count, throttle when approaching limit
 - [ ] **Portfolio-level optimization**: Currently optimizes individual strategies. Needs portfolio construction (risk parity, correlation-aware allocation).
 - [ ] **Strategy decay detection**: Monitor live-ish performance of promoted strategies. Retire strategies whose edge fades.
 - [ ] **Paper trading interface**: Feed validated strategies into a simulated portfolio to track real-time performance.
@@ -238,12 +241,12 @@ From the QuantFactory → CrabQuant migration and 2 days of intensive developmen
 
 | Metric | Target | Current |
 |--------|--------|---------|
-| Convergence rate | >15% of mandates hit Sharpe target | Not yet measured (E2E not run) |
+| Convergence rate | >15% of mandates hit Sharpe target | Measuring baseline (Phase 4.5) |
 | Average turns to converge | <5 | Not yet measured |
 | Validation pass rate | >60% (gates) | Not yet measured |
 | Best Sharpe quality | ≥1.5 on walk-forward | Best raw: 2.40 (CAT/macd_momentum) |
 | Robust rate | ≥30% survive walk-forward | Not yet measured |
-| Unattended runtime | 48+ hours without intervention | Cron runs ~hours, not tested 48h |
+| Unattended runtime | 48+ hours without intervention | Daemon ran 5 waves/9 mandates; 48h not yet tested |
 | Strategies discovered | Growing weekly | 28 registered, 2 LLM-invented |
 | Test coverage | 100% of new code | 31/31 refinement components tested |
 
@@ -261,17 +264,32 @@ From the QuantFactory → CrabQuant migration and 2 days of intensive developmen
 - Parallel wave execution designed
 - Ready for E2E integration
 
-### Phase 4: Integration (NEXT)
-- Wire the refinement pipeline into a working end-to-end loop
-- Run real mandates with actual LLM calls
-- Fix integration bugs (4 test collection errors already known)
-- Measure convergence rate, adjust thresholds
+### Phase 4: Integration ✅ DONE
+- All 31 refinement components wired into a working end-to-end loop
+- Real mandates executed with actual LLM calls
+- Orchestrator class extracted, mandate→orchestrator→promotion flow connected
+- E2E test with real LLM passed
 
-### Phase 5: Always-On Production
-- Convert from cron-triggered to persistent daemon
-- Supervisor process for health monitoring
-- Auto-mandate generation from market analysis
-- Continuous wave execution
+### Phase 5A: Daemon Core ✅ DONE
+- Persistent daemon with PID management, state persistence, graceful shutdown
+- Health check endpoint (`crabquant/production/health.py`)
+- Supervisor cron (`crabquant-supervisor`, every 5min) replaces legacy 4-agent crons
+- Daemon ran 5 waves, 9 mandates, clean shutdown verified
+- Legacy cron agents removed
+
+### Phase 4.5: Convergence Tuning (CURRENT)
+- Debug abandoned mandates and fix root causes
+- Tune Sharpe targets per archetype
+- Wire promotion end-to-end (auto_promotion after successful mandate)
+- Add 10-15 diverse mandates covering all archetypes × major tickers
+- Create `measure_convergence.py` as standing metric
+- Target: first real strategy promoted to STRATEGY_REGISTRY
+
+### Phase 5B: Intelligence & Reliability (NEXT)
+- API budget tracking and enforcement
+- Resource-aware parallelism
+- Auto-mandate generation from market data
+- Status reporting to Telegram
 
 ### Phase 6: Intelligence Layer
 - Portfolio-level optimization

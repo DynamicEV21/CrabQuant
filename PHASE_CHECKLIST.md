@@ -44,6 +44,53 @@ cd ~/development/CrabQuant && git add -A && git commit -m "phaseN: description" 
 
 ---
 
+### Phase 4 Completion Notes ✅
+
+**Date:** 2026-04-26
+**Commit:** `a4ee5f5`
+
+- [x] Unit tests: all passing (refinement/ suite)
+- [x] E2E Integration Tests: all passing
+- [x] Real LLM E2E: pipeline completes with real LLM calls
+- [x] Orchestrator class extracted from `scripts/refinement_loop.py`
+- [x] Mandate → orchestrator → promotion flow wired
+- [x] Wave manager spawns subprocesses correctly
+- [x] Committed and pushed to GitHub
+
+**What passed:**
+- All 31 refinement components wired end-to-end
+- Real LLM calls through z.ai API
+- Mandate execution, backtest, classification, refinement loop
+- E2E smoke test with real LLM completed
+
+---
+
+### Phase 5A Completion Notes ✅
+
+**Date:** 2026-04-26–27
+**Commits:** `cb0354a`, `76c68fc`, `69d4d09`, `f59fe30`
+
+- [x] Daemon runs in foreground and daemon modes
+- [x] PID file management (acquire/release/check)
+- [x] State persistence (`crabquant/refinement/state.py`, `daemon_state.json`)
+- [x] Graceful shutdown (SIGTERM/SIGINT → finish current mandate → save state → exit)
+- [x] Heartbeat file updated each wave
+- [x] Health check endpoint (`crabquant/production/health.py`)
+- [x] Supervisor cron (`crabquant-supervisor`, every 5min)
+- [x] Legacy cron agents removed (crabquant-wave, crabquant-improve, crabquant-validate, crabquant-meta)
+- [x] Daemon smoke test: 5 waves, 9 mandates, clean shutdown
+- [x] Pre-commit hook passes
+- [x] Committed and pushed to GitHub
+
+**What passed:**
+- Daemon starts, runs waves, promotes winners, sleeps, repeats
+- SIGTERM triggers clean shutdown (state saved, PID removed)
+- Supervisor detects dead daemon and restarts
+- Health check returns JSON status
+- 5 waves × ~2 mandates each = 9 total mandates processed
+
+---
+
 ## Phase-Specific Checks
 
 ### Phase 4+ (daemon exists)

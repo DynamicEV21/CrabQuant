@@ -1,19 +1,21 @@
 # CrabQuant — Roadmap
 
-**Last Updated:** 2026-04-26  
-**Status:** Phase 1-3 refinement pipeline built (31/31 components passing), moving to Phase 4 integration
+**Last Updated:** 2026-04-27  
+**Status:** Phase 4 (Integration) ✅ DONE · Phase 5A (Daemon Core) ✅ DONE · Phase 4.5 (Convergence Tuning) IN PROGRESS
 
 ---
 
 ## 1. Current State Summary
 
-CrabQuant has a proven backtest engine (28 strategies, vectorized sweep, walk-forward validation) and a complete refinement pipeline with 31 individually-tested components — including orchestrator, LLM interface, failure classifier, stagnation detection, wave manager, mandate generator, auto-promotion, and action analytics. However, these components are **not yet wired into a working end-to-end loop**. The system currently runs via four legacy cron agents (`crabquant-wave`, `crabquant-improve`, `crabquant-validate`, `crabquant-meta`) that do periodic parameter sweeps and invention, while the refinement pipeline sits unused. The immediate priority is Phase 4: connecting the refinement pipeline components into a continuous autonomous loop, running real mandates with actual LLM calls, and measuring convergence before moving to always-on production.
+CrabQuant has a proven backtest engine (28+ strategies, vectorized sweep, walk-forward validation) and a complete refinement pipeline with 31 individually-tested components — all now **wired into a working end-to-end loop**. Phase 4 integrated the refinement pipeline so it runs real mandates with actual LLM calls. Phase 5A added a persistent daemon with state persistence, health checks, graceful shutdown, and a supervisor cron — the daemon successfully ran 5 waves across 9 mandates with clean shutdown. Legacy cron agents have been replaced by a single `crabquant-supervisor` cron. The current focus is **Phase 4.5: Convergence Tuning** — debugging abandoned mandates, tuning Sharpe targets, wiring promotion properly, and aiming for the first real strategy promoted to `STRATEGY_REGISTRY`.
 
 ---
 
-## 2. Phase 4: Integration & Wire-Up
+## 2. Phase 4: Integration & Wire-Up ✅ COMPLETE
 
 **Goal:** Make the refinement pipeline run end-to-end continuously — real mandates, real LLM calls, real backtests — and measure whether it actually converges.
+
+**Status:** Done (commit `a4ee5f5`). All 31 refinement components wired into `refinement_loop.py`. Orchestrator class extracted, mandate→orchestrator→promotion flow connected, wave_manager spawns subprocesses, E2E test with real LLM calls passed.
 
 ### Key Deliverables
 
@@ -52,35 +54,65 @@ CrabQuant has a proven backtest engine (28 strategies, vectorized sweep, walk-fo
 
 ---
 
-## 3. Phase 5: Always-On Production
+## 3. Phase 4.5: Convergence Tuning (CURRENT)
 
-**Goal:** Convert the refinement pipeline from a manual script into a persistent, self-supervising daemon that runs 24/7 without human intervention.
+**Goal:** Get the refinement pipeline to actually converge — debug why mandates are being abandoned, tune thresholds, wire promotion end-to-end, and promote the first real strategy.
 
 ### Key Deliverables
 
-| # | Deliverable | File(s) | Description |
-|---|-------------|---------|-------------|
-| 1 | **Persistent daemon process** | `scripts/run_pipeline.py` (enhanced) | Add `--daemon` mode: runs the continuous loop, writes PID to `crabquant.pid`, handles SIGTERM/SIGINT for graceful shutdown. No more "run and forget" scripts. |
-| 2 | **Supervisor cron job** | `openclaw cron` (replace existing 4 agents) | Single cron job `crabquant-supervisor` (every 5 min): check `crabquant.pid` alive, restart if dead, report status to Telegram. Replace `crabquant-wave`, `crabquant-improve`, `crabquant-validate`, `crabquant-meta`. |
-| 3 | **Health check endpoint** | `crabquant/production/health.py` | Checks: daemon alive, last wave timestamp, API budget remaining, data cache freshness, disk space. Returns JSON status. Called by supervisor cron. |
-| 4 | **State persistence & resume** | `crabquant/refinement/state.py` (new) | Track: current wave number, pending mandates, last completed mandate, total API calls this session. On restart, pick up where we left off instead of starting from scratch. |
-| 5 | **API budget tracker** | `crabquant/refinement/api_budget.py` (new) | Track z.ai prompt count per day/week. Throttle to GLM-4.7 only when approaching limit. Alert via Telegram at 80% budget. |
-| 6 | **Resource limiter** | `scripts/run_pipeline.py` | Monitor CPU and RAM usage. Reduce `--parallel` from 5→3→1 as available resources drop. Pause if RAM <2GB free. |
-| 7 | **Auto-mandate generation with market data** | `crabquant/refinement/mandate_generator.py` (enhance) | Current generator scans strategy files. Enhance to: pull current SPY/VIX regime, generate mandates targeting underexplored regime-indicator combos, rotate tickers based on recent volatility. |
-| 8 | **Status reporting** | `scripts/status_report.py` | Cron-triggered (or heartbeat): summarize last 24h of pipeline activity — mandates completed, winners promoted, convergence rate, API budget used. Post to Telegram. |
-| 9 | **Graceful shutdown** | `scripts/run_pipeline.py` | On SIGTERM: finish current mandate, write state, save partial results, exit cleanly. On restart, resume from saved state. |
+| # | Deliverable | Description |
+|---|-------------|-------------|
+| 1 | **Debug abandoned mandates** | Investigate why mandates are being abandoned instead of converging. Fix root causes (stagnation triggers too early? Sharpe targets too aggressive? LLM prompts too constraining?). |
+| 2 | **Tune Sharpe targets per archetype** | Different archetypes have different achievable Sharpes. Momentum strategies may hit 1.5 but mean-reversion might cap at 1.0. Set archetype-specific targets. |
+| 3 | **Wire promotion properly** | Ensure `auto_promotion.promote_if_worthy()` is called after a successful mandate. Verify strategies actually appear in `STRATEGY_REGISTRY` post-promotion. |
+| 4 | **Diverse mandate library** | Add 10-15 mandates covering all archetypes (momentum, mean-reversion, breakout, trend, volume) × major tickers (SPY, AAPL, NVDA, TSLA, MSFT, GOOGL). |
+| 5 | **Lightweight slippage check at promotion** | Before promoting, run a quick slippage simulation. Strategies that collapse with slippage should not be promoted. |
+| 6 | **`measure_convergence.py` as standing metric** | Create `scripts/measure_convergence.py` that parses `refinement_runs/` output and reports: convergence rate, avg turns to converge, per-archetype success rates. Run after each wave. |
+| 7 | **First real strategy promoted** | The ultimate success criterion: a strategy invented by the LLM, refined through the pipeline, and registered in `STRATEGY_REGISTRY`. |
 
 ### Success Criteria
-- Pipeline runs unattended for 48+ hours without crash or intervention
-- Supervisor cron successfully restarts daemon if killed
-- API budget tracked and enforced (no unexpected overages)
-- Telegram receives daily status reports
-- State survives daemon restart (resumes from where it stopped)
+- At least 1 strategy promoted to `STRATEGY_REGISTRY` from a real LLM-driven mandate
+- Convergence rate baseline measured (target: ≥10%)
+- 10-15 diverse mandates in `mandates/` directory
+- `measure_convergence.py` produces actionable reports
 
 ### Dependencies
-- Phase 4 complete (pipeline runs end-to-end)
+- Phase 4 complete ✅
 
-### Effort Estimate: **L** (4-5 sessions, includes testing 48h uptime)
+### Effort Estimate: **M** (2-3 focused sessions)
+
+---
+
+## 4. Phase 5: Always-On Production
+
+### Phase 5A: Daemon Core ✅ COMPLETE
+
+**Goal:** Convert the refinement pipeline from a manual script into a persistent, self-supervising daemon that runs 24/7 without human intervention.
+
+**Status:** Done (commits `cb0354a`, `76c68fc`). Daemon runs with PID management, state persistence (`daemon_state.json`), heartbeat file, graceful shutdown (SIGTERM/SIGINT), health check endpoint. Supervisor cron (`crabquant-supervisor`, every 5min) monitors daemon and restarts if dead. Successfully ran 5 waves across 9 mandates with clean shutdown. Legacy cron agents removed.
+
+### Key Deliverables
+
+### Phase 5B: Intelligence & Reliability (NEXT)
+
+**Goal:** Make the daemon smarter — auto-mandate generation from market data, API budget tracking, resource-aware parallelism, and status reporting to Telegram.
+
+| 1 | **API budget tracker** | `crabquant/refinement/api_budget.py` (new) | Track z.ai prompt count per day/week. Throttle to GLM-4.7 only when approaching limit. Alert via Telegram at 80% budget. |
+| 2 | **Resource limiter** | `scripts/run_pipeline.py` | Monitor CPU and RAM usage. Reduce `--parallel` from 5→3→1 as available resources drop. Pause if RAM <2GB free. |
+| 3 | **Auto-mandate generation with market data** | `crabquant/refinement/mandate_generator.py` (enhance) | Current generator scans strategy files. Enhance to: pull current SPY/VIX regime, generate mandates targeting underexplored regime-indicator combos, rotate tickers based on recent volatility. |
+| 4 | **Status reporting** | `scripts/status_report.py` | Cron-triggered (or heartbeat): summarize last 24h of pipeline activity — mandates completed, winners promoted, convergence rate, API budget used. Post to Telegram. |
+
+### Success Criteria
+- API budget tracked and enforced (no unexpected overages)
+- Resource limiter keeps system responsive under load
+- Auto-mandate generation covers diverse archetypes and tickers
+- Telegram receives daily status reports
+
+### Dependencies
+- Phase 5A complete ✅ (daemon running)
+- Phase 4.5 (convergence baseline measured)
+
+### Effort Estimate: **M** (2-3 sessions)
 
 ### Risks & Mitigations
 
@@ -94,7 +126,7 @@ CrabQuant has a proven backtest engine (28 strategies, vectorized sweep, walk-fo
 
 ---
 
-## 4. Phase 6: Intelligence Layer
+## 5. Phase 6: Intelligence Layer
 
 **Goal:** Make the system learn from its own experience — not just run mandates, but get smarter about which mandates to run, what prompts work, and when strategies are decaying.
 
@@ -132,7 +164,7 @@ CrabQuant has a proven backtest engine (28 strategies, vectorized sweep, walk-fo
 
 ---
 
-## 5. Phase 7: Deployment Readiness
+## 6. Phase 7: Deployment Readiness
 
 **Goal:** Validate that refined strategies would survive real market conditions — not just backtests with perfect fills.
 
@@ -169,7 +201,7 @@ CrabQuant has a proven backtest engine (28 strategies, vectorized sweep, walk-fo
 
 ---
 
-## 6. Phase 8: Live Trading (Far Future)
+## 7. Phase 8: Live Trading (Far Future)
 
 **Goal:** Deploy validated strategies to a real brokerage with proper risk management.
 
@@ -207,18 +239,18 @@ CrabQuant has a proven backtest engine (28 strategies, vectorized sweep, walk-fo
 
 ---
 
-## 7. PRDs Needed
+## 8. PRDs Needed
 
 | # | Document | Covers | Priority | Complexity |
 |---|----------|--------|----------|------------|
-| 1 | **PRD-4: Integration & Wire-Up** | Phase 4 detail: orchestrator class extraction, subprocess wiring, E2E test plan, mandate template spec, convergence measurement methodology | **Immediate** | M |
-| 2 | **PRD-5: Always-On Daemon** | Phase 5 detail: daemon architecture (PID management, signal handling), supervisor cron spec, state persistence format, API budget tracking logic, resource limiter thresholds | **Next Sprint** | L |
-| 3 | **PRD-6: Intelligence Layer** | Phase 6 detail: action analytics→prompt feedback format, adaptive prompt template spec, decay detection algorithm, portfolio scoring methodology, mandate scoring formula | **Next Sprint** | L |
-| 4 | **PRD-7: Paper Trading & Slippage** | Phase 7 detail: slippage model spec (commission rates, slippage assumptions), paper trading architecture, data feed selection, dashboard wireframes, multi-timeframe data requirements | **Future** | L |
-| 5 | **PRD-8: Broker Integration** | Phase 8 detail: broker abstraction interface, Alpaca API mapping, order lifecycle, risk management rules, deployment checklist, monitoring/alerting spec | **Future** | XL |
-| 6 | **PRD-Data: Data Pipeline Reliability** | Yahoo Finance cache management, fallback data sources (Polygon.io free tier, Alpha Vantage), data quality checks, cache invalidation, stale data detection | **Immediate** | S |
-| 7 | **PRD-Testing: Integration Test Strategy** | E2E test matrix (real LLM vs mocked), stress test plan, 48h soak test spec, test data fixtures, CI pipeline (pytest on push) | **Immediate** | M |
-| 8 | **PRD-Ops: Operational Runbook** | How to start/stop/restart the daemon, how to check status, how to manually intervene, how to add a new strategy, how to interpret results, troubleshooting guide | **Next Sprint** | S |
+| 1 | **PRD-4: Integration & Wire-Up** | Phase 4 detail: orchestrator class extraction, subprocess wiring, E2E test plan, mandate template spec, convergence measurement methodology | **DONE** ✅ | M |
+| 2 | **PRD-5A: Daemon Core** | Phase 5A detail: daemon architecture (PID management, signal handling), supervisor cron spec, state persistence format, health check endpoint | **DONE** ✅ | M |
+| 3 | **PRD-4.5: Convergence Tuning** | Phase 4.5 detail: abandoned mandate debugging, archetype-specific Sharpe targets, promotion wiring, diverse mandate library, slippage check, convergence measurement | **Immediate** | M |
+| 4 | **PRD-5B: Intelligence & Reliability** | Phase 5B detail: API budget tracking logic, resource limiter thresholds, auto-mandate generation from market data, status reporting | **Next Sprint** | M |
+| 5 | **PRD-6: Intelligence Layer** | Phase 6 detail: action analytics→prompt feedback format, adaptive prompt template spec, decay detection algorithm, portfolio scoring methodology, mandate scoring formula | **Future** | L |
+| 6 | **PRD-7: Paper Trading & Slippage** | Phase 7 detail: slippage model spec (commission rates, slippage assumptions), paper trading architecture, data feed selection, dashboard wireframes, multi-timeframe data requirements | **Future** | L |
+| 7 | **PRD-8: Broker Integration** | Phase 8 detail: broker abstraction interface, Alpaca API mapping, order lifecycle, risk management rules, deployment checklist, monitoring/alerting spec | **Future** | XL |
+| 8 | **PRD-Data: Data Pipeline Reliability** | Yahoo Finance cache management, fallback data sources (Polygon.io free tier, Alpha Vantage), data quality checks, cache invalidation, stale data detection | **Future** | S |
 
 ---
 
@@ -234,17 +266,17 @@ CrabQuant has a proven backtest engine (28 strategies, vectorized sweep, walk-fo
 ├── strategies/                        # Registered strategy .py files
 ├── refinement_runs/                   # Output from refinement pipeline runs
 ├── scripts/
-│   ├── refinement_loop.py             # Main orchestrator script (needs extraction)
+│   ├── run_pipeline.py               # Main daemon (start/stop/status/foreground modes)
+│   ├── refinement_loop.py             # Per-mandate refinement orchestrator
 │   ├── wave_runner.py                 # Parallel wave CLI
-│   ├── crabquant_cron.py              # Legacy cron entry point
-│   └── sweep_task.py, improve_task.py, validate_task.py, meta_task.py  # Legacy cron tasks
+│   └── crabquant_cron.py              # Legacy cron entry point (being phased out)
 ├── crabquant/
 │   ├── engine/                        # BacktestEngine, parallel_backtest
 │   ├── data/                          # Yahoo Finance data loading + cache
 │   ├── strategies/                    # STRATEGY_REGISTRY, 28 strategies
 │   ├── validation/                    # walk_forward, cross_ticker, full_validation
 │   ├── refinement/                    # 31 pipeline components (all unit-tested)
-│   │   ├── orchestrator.py            # ← MISSING (logic is in scripts/refinement_loop.py)
+│   │   ├── orchestrator.py            # ✅ extracted from scripts/refinement_loop.py
 │   │   ├── wave_manager.py            # ✅
 │   │   ├── mandate_generator.py       # ✅
 │   │   ├── auto_promotion.py          # ✅
@@ -273,9 +305,10 @@ CrabQuant has a proven backtest engine (28 strategies, vectorized sweep, walk-fo
 │   │   ├── portfolio_correlation.py   # ✅
 │   │   ├── wave_dashboard.py          # ✅
 │   │   ├── cron_integration.py        # ✅
+│   │   ├── state.py                   # ✅ daemon state persistence
 │   │   └── promotion.py               # ✅
-│   ├── production/                    # scanner.py, promoter.py, report.py
-│   ├── confirm/                       # Slippage/commission (exists, not wired)
+│   ├── production/                    # scanner.py, promoter.py, report.py, health.py
+│   ├── confirm/                       # Slippage/commission (exists, not yet wired into refinement loop)
 │   ├── guardrails.py                  # GuardrailConfig, check_guardrails
 │   ├── regime.py                      # Market regime detection
 │   └── invention.py                   # Strategy invention module (legacy)
