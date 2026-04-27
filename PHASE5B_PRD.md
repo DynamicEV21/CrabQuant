@@ -45,17 +45,60 @@
 
 Track z.ai prompt usage per day/week. The GLM Coding Plan limits by prompt count (not tokens). When approaching the daily or weekly limit, throttle the model to a cheaper option (GLM-4.7) and alert via Telegram.
 
+**Smart Model Routing (Task-Aware):** Not all LLM calls need the same model. The budget tracker should provide a `get_model_for_task(task_type)` method that routes calls based on reasoning requirements:
+
+| Task Type | Model | Rationale |
+|-----------|-------|-----------|
+| `invention` (Turn 1, novel strategy) | GLM-5-Turbo | Needs creative reasoning, no prior code to iterate on |
+| `retry_with_feedback` (gate failure fix) | GLM-4.7 | Simple error repair — specific error message provided, minimal creativity |
+| `refinement` (Turns 2-5, improving existing code) | GLM-4.7 | Iterative improvement on existing code, not novel invention |
+| `classification` (failure mode analysis) | GLM-4.7 | Structured output, pattern matching, no creativity needed |
+| `analytics` (action analytics, regime detection) | GLM-4.7 | Data analysis, structured JSON output |
+
+**Expected savings:** ~60-70% reduction in API cost. Only 1 out of every ~5 calls uses GLM-5-Turbo.
+
+**Agent Budget Reservation:** Reserve 30% of the daily budget for interactive/coding agents (OpenClaw sub-agents). The daemon should never consume more than 70% of the budget. When daemon usage hits 70%, pause until the rolling window resets.
+
+```python
+# Budget allocation example (400 prompts / 5hr rolling window)
+daemon_limit = 280          # 70% for daemon
+interactive_reserve = 120   # 30% for coding agents, user interactions
+daemon_throttle = 224       # 80% of daemon limit → switch to GLM-4.7
+daemon_alert = 252          # 90% of daemon limit → send alert
+```
+
 ### 2.2 Interface
 
 ```python
+```python
+from enum import Enum
+
+class TaskType(Enum):
+    INVENTION = "invention"                    # Turn 1, novel strategy generation
+    RETRY_WITH_FEEDBACK = "retry_with_feedback"  # Gate failure, fixing specific error
+    REFINEMENT = "refinement"                    # Turns 2-5, improving existing code
+    CLASSIFICATION = "classification"            # Failure mode analysis
+    ANALYTICS = "analytics"                      # Action analytics, regime detection
+
 @dataclass
 class ApiBudgetConfig:
-    daily_limit: int = 100          # Max prompts per day
-    weekly_limit: int = 500         # Max prompts per week
-    throttle_threshold: float = 0.80  # Switch to cheap model at 80%
-    alert_threshold: float = 0.90    # Alert at 90%
+    daily_limit: int = 400         # Max prompts per 5hr rolling window (GLM Coding Plan)
+    weekly_limit: int = 2000       # Max prompts per week
+    daemon_budget_pct: float = 0.70  # Daemon gets 70% of budget
+    throttle_threshold: float = 0.80  # Switch to cheap model at 80% of daemon budget
+    alert_threshold: float = 0.90    # Alert at 90% of daemon budget
     state_file: str = "results/api_budget_state.json"
-    throttle_model: str = "glm-4.7"  # Fallback model when budget tight
+    premium_model: str = "glm-5-turbo"    # Creative tasks
+    throttle_model: str = "glm-4.7"        # Routine tasks, retries
+    
+    # Task-based model routing (task_type → model)
+    task_model_map: dict = field(default_factory=lambda: {
+        TaskType.INVENTION: "glm-5-turbo",       # Needs creative reasoning
+        TaskType.RETRY_WITH_FEEDBACK: "glm-4.7",  # Simple error repair
+        TaskType.REFINEMENT: "glm-4.7",            # Iterative improvement
+        TaskType.CLASSIFICATION: "glm-4.7",        # Structured output
+        TaskType.ANALYTICS: "glm-4.7",             # Data analysis
+    })
 
 @dataclass
 class ApiBudgetState:
@@ -64,23 +107,41 @@ class ApiBudgetState:
     weekly_count: int
     weekly_start: str               # YYYY-MM-DD (Monday)
     last_prompt_time: str           # ISO timestamp
+    is_throttled: bool = False
+    is_paused: bool = False         # True when daemon budget exhausted
+
+@dataclass 
+class PromptRecord:
+    timestamp: str
+    model: str
+    task_type: str
+    mandate: str
+    turn: int
+    success: bool
 
 class ApiBudgetTracker:
     def __init__(self, config: ApiBudgetConfig | None = None): ...
     
-    def record_prompt(self, model: str = "glm-5-turbo") -> dict:
-        """Record an API call. Returns {should_throttle: bool, recommended_model: str, remaining: int}.
-        Automatically switches to throttle_model if over threshold."""
+    def get_model_for_task(self, task_type: TaskType) -> str:
+        """Route to appropriate model based on task reasoning requirements.
+        If budget is tight (over throttle_threshold), force throttle_model regardless."""
+    
+    def record_prompt(self, model: str, task_type: TaskType, mandate: str = "", turn: int = 0) -> dict:
+        """Record an API call with full context. Returns {should_throttle, recommended_model, remaining, daemon_remaining}.
+        Automatically checks daemon budget allocation."""
+    
+    def should_pause(self) -> bool:
+        """Return True if daemon has consumed its 70% allocation. Caller should pause until window resets."""
     
     def get_status(self) -> dict:
-        """Return current budget status: daily_count, daily_limit, weekly_count, weekly_limit, 
-        usage_pct, is_throttled, recommended_model."""
+        """Return full budget status: daily_count, daily_limit, weekly_count, weekly_limit, 
+        usage_pct, is_throttled, is_paused, daemon_remaining, interactive_remaining."""
     
     def should_throttle(self) -> bool:
-        """Return True if we should use cheaper model."""
+        """Return True if daemon usage is over throttle_threshold (80% of 70% allocation)."""
     
     def get_recommended_model(self) -> str:
-        """Return glm-5-turbo if budget OK, else throttle_model."""
+        """Return premium_model if budget OK, else throttle_model."""
     
     def reset_if_new_day(self) -> None:
         """Check if date rolled over, reset daily counter if so."""
@@ -88,8 +149,11 @@ class ApiBudgetTracker:
     def reset_if_new_week(self) -> None:
         """Check if week rolled over (Monday), reset weekly counter if so."""
     
+    def get_recent_history(self, hours: int = 1) -> list[dict]:
+        """Return prompt records from the last N hours for debugging."""
+    
     def save(self) -> None:
-        """Persist state to JSON atomically."""
+        """Persist state + recent history to JSON atomically."""
     
     def load(self) -> None:
         """Load state from JSON. Start fresh if corrupted or missing."""
@@ -97,18 +161,25 @@ class ApiBudgetTracker:
 
 ### 2.3 Integration Points
 
-- `crabquant/refinement/llm_api.py` — call `budget_tracker.record_prompt()` after each LLM call. If `should_throttle()`, override model to `glm-4.7`.
-- `scripts/run_pipeline.py` — check `budget_tracker.should_throttle()` before each wave. If throttled, reduce parallel count.
-- `crabquant/refinement/state.py` — add `api_budget_used_today` and `api_budget_throttled` fields to `DaemonState`.
+- `crabquant/refinement/llm_api.py` — call `budget_tracker.record_prompt(model, task_type, ...)` after each LLM call. Use `budget_tracker.get_model_for_task(task_type)` to select model BEFORE making the call. The `call_llm_inventor()` function should accept an optional `task_type` parameter.
+- `scripts/refinement_loop.py` — pass `task_type=INVENTION` for Turn 1 calls, `task_type=RETRY_WITH_FEEDBACK` for retry calls, `task_type=REFINEMENT` for Turn 2+ calls.
+- `scripts/run_pipeline.py` — check `budget_tracker.should_pause()` before each wave. If paused, sleep until window resets. Check `budget_tracker.should_throttle()` to reduce parallel count.
+- `crabquant/refinement/state.py` — add `api_budget_used_today`, `api_budget_throttled`, `api_budget_paused` fields to `DaemonState`.
 - Status reporter reads `budget_tracker.get_status()` for the daily report.
 
 ### 2.4 Test Requirements
 
-**File:** `~/development/CrabQuant/tests/refinement/test_api_budget.py` (10+ tests)
+**File:** `~/development/CrabQuant/tests/refinement/test_api_budget.py` (15+ tests)
 
 - `test_record_prompt_increments_counter`
+- `test_task_routing_invention_uses_premium`
+- `test_task_routing_retry_uses_throttle`
+- `test_task_routing_refinement_uses_throttle`
 - `test_throttle_at_threshold`
+- `test_throttle_forces_all_tasks_to_cheap_model`
 - `test_alert_at_threshold`
+- `test_daemon_pause_at_budget_limit`
+- `test_daemon_budget_is_70pct_of_total`
 - `test_reset_on_new_day`
 - `test_reset_on_new_week`
 - `test_persistence_roundtrip`
@@ -116,9 +187,10 @@ class ApiBudgetTracker:
 - `test_recommended_model_before_threshold`
 - `test_recommended_model_after_threshold`
 - `test_get_status_fields`
+- `test_recent_history_tracking`
 
 ### 2.5 Effort Estimate
-**S (1 session)** — straightforward counter with persistence.
+**S-M (1-1.5 sessions)** — counter with persistence + task routing + budget allocation.
 
 ---
 
