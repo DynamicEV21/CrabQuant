@@ -42,6 +42,17 @@ from crabquant.refinement.llm_api import call_zai_llm, call_llm_inventor, load_a
 from crabquant.refinement.config import RefinementConfig
 from crabquant.guardrails import check_guardrails, GuardrailReport, GuardrailConfig
 
+# Phase 3 module imports — replace all inline implementations
+from crabquant.refinement.circuit_breaker import CircuitBreaker
+from crabquant.refinement.cosmetic_guard import check_cosmetic_guard, CosmeticGuardState
+from crabquant.refinement.action_analytics import (
+    track_action_result, generate_llm_context as generate_analytics_context,
+    load_run_history,
+)
+from crabquant.refinement.promotion import auto_promote, run_full_validation_check
+from crabquant.refinement.stagnation import compute_stagnation, get_stagnation_response
+from crabquant.refinement.wave_dashboard import generate_dashboard, snapshot_to_json
+
 
 def load_json(path: str) -> Dict[str, Any]:
     """Load JSON from file."""
@@ -129,42 +140,22 @@ def load_report(run_dir: Path, turn: int) -> Optional[BacktestReport]:
         return None
 
 
-def promote_to_winner(strategy_code: str, result, validation, state, strategy_module=None) -> None:
-    """Promote successful strategy to winner registry."""
-    winners_dir = project_root / "refinement_winners"
-    winners_dir.mkdir(exist_ok=True)
-    
-    winner_name = f"{state.mandate_name}_turn{state.best_turn}_sharpe{state.best_sharpe:.2f}"
-    winner_path = winners_dir / f"{winner_name}.py"
-    
-    # Create winner module with strategy and metadata
-    winner_content = f'''# Auto-generated winner strategy
-# Mandate: {state.mandate_name}
-# Turn: {state.best_turn}
-# Sharpe: {state.best_sharpe:.2f}
-# Validation: {validation}
+# Backwards-compatible aliases: keep these in the module namespace so that
+# existing test patches (e.g. @patch("refinement_loop.promote_to_winner"))
+# continue to resolve correctly.
+promote_to_winner = None  # Will be set below
+run_full_validation = None  # Will be set below
 
-{strategy_code}
-
-# Winner metadata
-WINNER_METADATA = {{
-    "mandate_name": "{state.mandate_name}",
-    "turn": {state.best_turn},
-    "sharpe": {state.best_sharpe},
-    "validation": {validation},
-    "timestamp": "{datetime.now().isoformat()}",
-    "strategy_hash": "{compute_strategy_hash(strategy_code)}",
-}}
-'''
-    
-    winner_path.write_text(winner_content)
-    print(f"  🏆 Promoted to winner: {winner_path}")
+# Import the promotion module's promote_to_winner for backwards compat
+from crabquant.refinement.promotion import promote_to_winner as _module_promote_to_winner
+promote_to_winner = _module_promote_to_winner
 
 
 def run_full_validation(state: RunState, run_dir: Path) -> Dict[str, Any]:
     """Run full validation on the best strategy (walk-forward + cross-ticker).
     
-    Returns a validation result dict.
+    This is a lightweight wrapper that returns a simple result dict.
+    The heavy lifting is done by the promotion module's run_full_validation_check.
     """
     try:
         from crabquant.validation import full_validation
@@ -179,77 +170,6 @@ def clear_cache() -> None:
     """Clear indicator cache between turns."""
     # Implementation depends on your caching system
     pass
-
-
-def compute_stagnation(history: List[Dict[str, Any]]) -> Tuple[float, str]:
-    """Compute stagnation score and trend from history.
-    
-    Returns (score, trend) where:
-    - score: 0.0 (great progress) to 1.0 (completely stuck)
-    - trend: "improving" | "flat" | "declining" | "slow_progress"
-    """
-    if len(history) < 2:
-        return 0.0, "improving"
-    
-    sharpes = [h.get("sharpe", 0) for h in history]
-    
-    # Factor 1: Trend via linear regression slope
-    try:
-        slope = sum(
-            (i - (len(sharpes) - 1) / 2) * (s - sum(sharpes) / len(sharpes))
-            for i, s in enumerate(sharpes)
-        ) / max(sum((i - (len(sharpes) - 1) / 2) ** 2 for i in range(len(sharpes))), 1e-10)
-    except (ZeroDivisionError, ValueError):
-        slope = 0.0
-    
-    if slope < -0.05:
-        trend_score, trend = 1.0, "declining"
-    elif slope < 0.02:
-        trend_score, trend = 0.85, "flat"
-    elif slope < 0.05:
-        trend_score, trend = 0.5, "slow_progress"
-    else:
-        trend_score, trend = 0.0, "improving"
-    
-    # Factor 2: Variance + stability (low variance with flat trend = stuck)
-    if len(sharpes) >= 3:
-        mean_sharpe = sum(sharpes[-3:]) / 3
-        variance = (sum((s - mean_sharpe) ** 2 for s in sharpes[-3:]) / 3) ** 0.5
-    else:
-        variance = 0.0
-    # High variance = oscillating (bad), near-zero variance with flat trend = stuck (bad)
-    variance_score = min(variance / 0.3, 1.0)
-    # Stability penalty: if recent values barely move AND trend is flat, add stagnation
-    recent_range = max(sharpes[-3:]) - min(sharpes[-3:]) if len(sharpes) >= 3 else abs(sharpes[-1] - sharpes[0])
-    stability_penalty = max(0, 1.0 - recent_range / 0.1) * (0.7 if trend_score > 0.5 else 0.0)
-    
-    # Factor 3: Action repetition (only counts if actions are non-empty)
-    actions = [h.get("action", "") for h in history[-3:] if h.get("action", "")]
-    if len(actions) >= 2:
-        unique_actions = len(set(actions))
-        repetition_score = 1.0 - (unique_actions / len(actions))
-    else:
-        repetition_score = 0.0
-    
-    # Weighted combination
-    score = 0.5 * trend_score + 0.15 * variance_score + 0.15 * repetition_score + 0.2 * stability_penalty
-    return round(score, 3), trend
-
-
-def get_stagnation_response(turn: int, stagnation_score: float) -> Dict[str, str]:
-    """Get stagnation response protocol.
-    
-    Based on PRD §7 stagnation detection thresholds.
-    """
-    # Abandon: extremely stuck, but only after several turns
-    if stagnation_score > 0.8 and turn >= 4:
-        return {"constraint": "abandon"}
-    
-    # Force structural change
-    if stagnation_score > 0.5 and turn >= 3:
-        return {"constraint": "force_structural"}
-    
-    return {"constraint": "none"}
 
 
 def refinement_loop(mandate_path: str, max_turns: int = 7, 
@@ -285,6 +205,17 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
     state.status = "running"
     save_state(run_dir, state)
     
+    # Phase 3: Initialize circuit breaker and cosmetic guard
+    cb = CircuitBreaker(
+        window=20,
+        min_pass_rate=0.3,
+    )
+    cosmetic_state = CosmeticGuardState(threshold=3)
+    
+    # Results directory for dashboard and analytics
+    results_dir = project_root / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+    
     for turn in range(1, max_turns + 1):
         turn_start = time.time()
         state.current_turn = turn
@@ -294,9 +225,32 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         # 0. Clear indicator cache between turns
         clear_cache()
         
+        # Phase 3: Check circuit breaker BEFORE calling LLM
+        if cb.is_open():
+            print(f"  🛑 Circuit breaker OPEN — pass rate too low ({cb.pass_rate:.0%}). Halting.")
+            state.status = "abandoned"
+            state.history.append({
+                "turn": turn, "status": "circuit_breaker_open",
+                "circuit_breaker_summary": cb.summary(),
+            })
+            save_state(run_dir, state)
+            _write_dashboard(run_dir)
+            release_lock(run_dir)
+            return state
+        
         # 1. Build context
         prev_report = load_report(run_dir, turn - 1) if turn > 1 else None
         context = build_llm_context(state, prev_report, mandate)
+        
+        # Phase 3: Append action analytics context to LLM prompt
+        try:
+            run_history = load_run_history(str(results_dir / "run_history.jsonl"))
+            analytics_text = generate_analytics_context(run_history)
+            # Inject analytics into the context as an additional section
+            context["action_analytics"] = analytics_text
+        except Exception:
+            context["action_analytics"] = "No historical action data available."
+        
         context_path = run_dir / f"context_v{turn}.json"
         write_json(context_path, context)
         
@@ -316,15 +270,22 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 
                 if modification is None:
                     print(f"  LLM call failed (attempt {attempt+1})")
+                    # Phase 3: Record validation failure for circuit breaker
+                    cb.record(False, turn=turn, mandate=state.mandate_name)
                     continue
                 
                 strategy_code = modification.get("new_strategy_code", "")
                 if not strategy_code:
                     print(f"  No strategy code in LLM response (attempt {attempt+1})")
+                    cb.record(False, turn=turn, mandate=state.mandate_name)
                     continue
                 
                 # 3. Validate through gates
                 gates_ok, gate_errors = run_validation_gates(strategy_code)
+                
+                # Phase 3: Record pass/fail for circuit breaker
+                cb.record(gates_ok, turn=turn, mandate=state.mandate_name)
+                
                 if gates_ok:
                     break
                 
@@ -332,6 +293,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                     
             except Exception as e:
                 print(f"  LLM call error (attempt {attempt+1}): {e}")
+                cb.record(False, turn=turn, mandate=state.mandate_name)
                 continue
         
         if not gates_ok or strategy_code is None:
@@ -341,6 +303,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 "errors": gate_errors
             })
             save_state(run_dir, state)
+            _write_dashboard(run_dir)
             continue
         
         # Create modification object from LLM response
@@ -357,6 +320,17 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             expected_impact=expected_impact
         )
         
+        # Phase 3: Cosmetic guard — check if LLM is stuck doing consecutive modify_params
+        temp_history_for_cosmetic = list(state.history)
+        temp_history_for_cosmetic.append({"turn": turn, "action": action})
+        cosmetic_state, cosmetic_result = check_cosmetic_guard(temp_history_for_cosmetic, cosmetic_state)
+        
+        if cosmetic_result.forced:
+            print(f"  ⚠️ Cosmetic guard: {cosmetic_result.warning}")
+            print(f"  🔧 Overriding action: {action} → {cosmetic_result.forced_action}")
+            action = cosmetic_result.forced_action
+            modification.action = action
+        
         # Save strategy code
         strategy_path = run_dir / f"strategy_v{turn}.py"
         strategy_path.write_text(strategy_code)
@@ -367,6 +341,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             print(f"  Failed to load strategy module. Advancing turn.")
             state.history.append({"turn": turn, "status": "module_load_failed"})
             save_state(run_dir, state)
+            _write_dashboard(run_dir)
             continue
         
         # 4. Backtest on primary ticker
@@ -384,10 +359,21 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         
         if backtest_output is None:
             print(f"  Backtest crashed. Advancing turn.")
+            # Phase 3: Track action analytics for failed turn
+            track_action_result(
+                mandate=state.mandate_name,
+                turn=turn,
+                action=action,
+                sharpe=0.0,
+                success=False,
+                failure_mode="backtest_crash",
+                path=str(results_dir / "run_history.jsonl"),
+            )
             state.history.append({
                 "turn": turn, "status": "backtest_crash"
             })
             save_state(run_dir, state)
+            _write_dashboard(run_dir)
             continue
         
         result, df, portfolio = backtest_output
@@ -410,7 +396,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             sharpe_target=sharpe_target
         )
         
-        # 6. Compute stagnation
+        # 6. Compute stagnation (using Phase 3 module)
         stagnation_score, stagnation_trend = compute_stagnation(state.history)
         
         # 7. Build report
@@ -450,12 +436,37 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         
         save_report(run_dir, turn, report)
         
+        # Phase 3: Track action analytics for this turn
+        turn_success = result.sharpe >= sharpe_target
+        track_action_result(
+            mandate=state.mandate_name,
+            turn=turn,
+            action=action,
+            sharpe=result.sharpe,
+            success=turn_success,
+            failure_mode="" if turn_success else failure_mode,
+            path=str(results_dir / "run_history.jsonl"),
+        )
+        
         # 8. Check success
         if result.sharpe >= sharpe_target and result.passed:
             print(f"  🏆 SUCCESS! Sharpe {result.sharpe:.2f} >= {sharpe_target}")
             
-            # Run full validation
-            validation = run_full_validation(state, run_dir)
+            # Phase 3: Run full validation check (walk-forward + cross-ticker)
+            validation = {"status": "ok", "passed": False}
+            try:
+                strategy_fn = strategy_module.generate_signals
+                params = result.params if result.params else strategy_module.DEFAULT_PARAMS.copy()
+                validation_tickers = mandate.get("tickers", [primary_ticker])
+                validation = run_full_validation_check(
+                    strategy_fn=strategy_fn,
+                    params=params,
+                    discovery_ticker=primary_ticker,
+                    validation_tickers=validation_tickers,
+                )
+            except Exception as e:
+                print(f"  ⚠️ Full validation error: {e}")
+                validation = {"status": "error", "message": str(e), "passed": False}
             
             state.status = "success"
             state.best_sharpe = result.sharpe
@@ -474,8 +485,32 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             })
             save_state(run_dir, state)
             
-            # Promote to winner
-            promote_to_winner(strategy_code, result, validation, state, strategy_module=strategy_module)
+            # Phase 3: Auto-promote if validation passed
+            if validation.get("passed", False):
+                print(f"  📋 Validation passed — auto-promoting to registry...")
+                try:
+                    promo_result = auto_promote(
+                        strategy_code=strategy_code,
+                        strategy_module=strategy_module,
+                        result=result,
+                        validation=validation,
+                        state=state,
+                    )
+                    if promo_result.get("registered"):
+                        print(f"  ✅ Strategy registered: {promo_result['strategy_name']}")
+                    else:
+                        print(f"  ⚠️ Promotion skipped: {promo_result.get('error', 'unknown')}")
+                except Exception as e:
+                    print(f"  ⚠️ Auto-promote error: {e}")
+            else:
+                # Fall back to legacy promote_to_winner
+                print(f"  📋 Validation not passed — using legacy promotion...")
+                try:
+                    promote_to_winner(strategy_code, result, validation, state, strategy_module=strategy_module)
+                except Exception as e:
+                    print(f"  ⚠️ Legacy promotion error: {e}")
+            
+            _write_dashboard(run_dir)
             turn_elapsed = time.time() - turn_start
             print(f"  Turn {turn} completed in {turn_elapsed:.1f}s", flush=True)
             release_lock(run_dir)
@@ -493,6 +528,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             print(f"  🛑 Abandoning: stagnation score {stagnation_score:.2f}")
             state.status = "abandoned"
             save_state(run_dir, state)
+            _write_dashboard(run_dir)
             turn_elapsed = time.time() - turn_start
             print(f"  Turn {turn} completed in {turn_elapsed:.1f}s", flush=True)
             release_lock(run_dir)
@@ -511,6 +547,9 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         })
         save_state(run_dir, state)
         
+        # Phase 3: Write dashboard snapshot after each turn
+        _write_dashboard(run_dir)
+        
         turn_elapsed = time.time() - turn_start
         print(f"  Turn {turn} completed in {turn_elapsed:.1f}s", flush=True)
     
@@ -518,8 +557,21 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
     state.status = "max_turns_exhausted"
     save_state(run_dir, state)
     print(f"  Max turns exhausted. Best Sharpe: {state.best_sharpe:.2f} at turn {state.best_turn}")
+    _write_dashboard(run_dir)
     release_lock(run_dir)
     return state
+
+
+def _write_dashboard(run_dir: Path) -> None:
+    """Write dashboard snapshot to results/dashboard.json."""
+    try:
+        runs_dir = project_root / "refinement_runs"
+        snapshot = generate_dashboard(runs_dir)
+        dashboard_path = project_root / "results" / "dashboard.json"
+        dashboard_path.parent.mkdir(parents=True, exist_ok=True)
+        dashboard_path.write_text(snapshot_to_json(snapshot, indent=2))
+    except Exception:
+        pass  # Dashboard is non-critical
 
 
 def main():

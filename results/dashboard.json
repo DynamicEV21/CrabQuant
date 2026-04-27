@@ -1,0 +1,65 @@
+{
+  "running_count": 4,
+  "total_mandates": 13,
+  "convergence_rate": 0.0,
+  "wave_progress": 0.7384615384615384,
+  "best_strategies": [
+    {
+      "mandate_name": "e2e_test_momentum",
+      "best_sharpe": 1.8728166181760793,
+      "best_turn": 2,
+      "status": "max_turns_exhausted"
+    },
+    {
+      "mandate_name": "e2e_test_momentum",
+      "best_sharpe": 1.2076056943016404,
+      "best_turn": 1,
+      "status": "max_turns_exhausted"
+    },
+    {
+      "mandate_name": "e2e_stress_test",
+      "best_sharpe": 1.1316145178326538,
+      "best_turn": 4,
+      "status": "max_turns_exhausted"
+    },
+    {
+      "mandate_name": "e2e_stress_test",
+      "best_sharpe": 1.0673885620782462,
+      "best_turn": 5,
+      "status": "max_turns_exhausted"
+    },
+    {
+      "mandate_name": "e2e_stress_test",
+      "best_sharpe": 0.7754615652256672,
+      "best_turn": 2,
+      "status": "running"
+    }
+  ],
+  "running_mandates": [
+    {
+      "mandate_name": "e2e_stress_test",
+      "current_turn": 3,
+      "max_turns": 5,
+      "best_sharpe": 0.7754615652256672
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 0,
+      "max_turns": 1,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "e2e_test_momentum",
+      "current_turn": 0,
+      "max_turns": 2,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 0,
+      "max_turns": 2,
+      "best_sharpe": -999.0
+    }
+  ],
+  "timestamp": "2026-04-27T03:41:16.692494+00:00"
+}
