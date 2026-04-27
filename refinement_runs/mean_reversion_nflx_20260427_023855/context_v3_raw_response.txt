@@ -1,0 +1,18 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "The -30.6% drawdown is caused by holding losing mean reversion trades too long, waiting for BB mid reversion that never comes during trending moves (evidenced by -1.73 Sharpe in 2026). Adding an ATR-based stop loss (2x ATR below entry) will cap individual trade losses, directly reducing max drawdown. Faster exits also free up capital for new entries, potentially increasing trade count toward the 15-trade minimum.",
+  "new_strategy_code": "import pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"bb_len\": 20,\n    \"bb_std\": 1.5,\n    \"rsi_len\": 14,\n    \"rsi_oversold\": 40,\n    \"stoch_oversold\": 30,\n    \"near_band_pct\": 0.02,\n    \"atr_len\": 14,\n    \"atr_stop_mult\": 2.0,\n}\n\nDESCRIPTION = (\n    \"Mean reversion with 2-of-3 confluence (BB lower, RSI oversold, Stoch oversold) \"\n    \"and ATR-based stop loss to cap drawdown. Exits on BB middle reversion or stop hit.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    bb = cached_indicator(\"bbands\", close, length=p[\"bb_len\"], std=p[\"bb_std\"])\n    bbl = bb[[c for c in bb.columns if c.startswith(\"BBL\")][0]]\n    bbm = bb[[c for c in bb.columns if c.startswith(\"BBM\")][0]]\n\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n    stoch = cached_indicator(\"stoch\", df[\"high\"], df[\"low\"], close, k=14, d=3, smooth_k=3)\n    stoch_k = stoch[[c for c in stoch.columns if c.startswith(\"STOCHk\")][0]]\n\n    atr = cached_indicator(\"atr\", df[\"high\"], df[\"low\"], close, length=p[\"atr_len\"])\n    atr_val = atr[[c for c in atr.columns if c.startswith(\"ATRr\")][0]]\n\n    band_range = bbm - bbl\n    near_lower = close <= (bbl + band_range * p[\"near_band_pct\"])\n    rsi_oversold = rsi < p[\"rsi_oversold\"]\n    stoch_oversold = stoch_k < p[\"stoch_oversold\"]\n\n    confluence = rsi_oversold.astype(int) + stoch_oversold.astype(int) + near_lower.astype(int)\n    entries = (near_lower & (confluence >= 2)).fillna(False)\n\n    entry_price = close.where(entries).ffill()\n    in_position = entry_price.notna()\n    stop_hit = in_position & (close < (entry_price - atr_val * p[\"atr_stop_mult\"]))\n\n    exits = ((close >= bbm) | stop_hit).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "bb_len": 20,
+    "bb_std": 1.5,
+    "rsi_len": 14,
+    "rsi_oversold": 40,
+    "stoch_oversold": 30,
+    "near_band_pct": 0.02,
+    "atr_len": 14,
+    "atr_stop_mult": 2.0
+  },
+  "expected_impact": "Max drawdown should drop from -30.6% to under -20% by capping individual trade losses at ~2x ATR below entry. Sharpe should improve from 0.63 toward 0.9+ as losing trades are cut shorter, reducing the severity of the 2026 drawdown period. Trade count may increase modestly (from 9 toward 12-15) as faster exits recycle capital for new entries."
+}
+```

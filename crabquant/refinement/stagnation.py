@@ -24,7 +24,11 @@ def compute_stagnation(history: list[dict]) -> tuple[float, str]:
     if len(history) < 2:
         return (0.0, "improving")
 
-    sharpes = [h["sharpe"] for h in history]
+    # Only consider entries that have a sharpe value (skip failed turns)
+    sharpes = [h["sharpe"] for h in history if "sharpe" in h]
+
+    if len(sharpes) < 2:
+        return (0.0, "improving")
 
     # Factor 1: Sharpe trend (linear regression slope)
     slope = float(np.polyfit(range(len(sharpes)), sharpes, 1)[0])

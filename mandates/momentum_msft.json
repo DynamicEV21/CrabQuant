@@ -1,0 +1,15 @@
+{
+  "name": "momentum_msft",
+  "description": "Large cap tech momentum strategy using MACD, RSI, and price momentum signals on MSFT. Targets sustained moves in Microsoft driven by trend acceleration and relative strength.",
+  "strategy_archetype": "momentum",
+  "tickers": ["MSFT", "AAPL", "SPY"],
+  "primary_ticker": "MSFT",
+  "period": "2y",
+  "sharpe_target": 1.0,
+  "max_turns": 7,
+  "constraints": {
+    "max_parameters": 8,
+    "min_trades": 10,
+    "max_drawdown_pct": 22
+  }
+}

@@ -1,0 +1,17 @@
+```json
+{
+  "action": "refine",
+  "hypothesis": "The regime fragility stems from entering Keltner breakouts during low-volatility choppy periods where breakouts are false signals. In 2024-2025, SPY was range-bound with contracting ATR, so breakouts above the channel were whipsaws. In 2026, genuine trend expansion had rising ATR. Adding an ATR expansion filter (ATR > 20-day ATR SMA) ensures we only enter breakouts when volatility is genuinely expanding — a hallmark of real trend initiation. Adding RSI < 65 prevents buying at overbought tops during weak breakouts. These filters directly target the false breakout pattern without being so restrictive that trade count drops below 10.",
+  "new_strategy_code": "import pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"ema_len\": 10,\n    \"atr_len\": 10,\n    \"mult\": 1.5,\n    \"trend_ema\": 30,\n    \"rsi_len\": 14,\n    \"rsi_max\": 65,\n    \"vol_sma_len\": 20,\n}\n\nDESCRIPTION = (\n    \"Keltner Channel breakout with volatility regime and RSI filters. \"\n    \"Enters when price breaks above upper channel, price above trend EMA, \"\n    \"ATR expanding above its SMA (volatility regime), and RSI below 65. \"\n    \"Exits when price falls below channel midpoint. \"\n    \"Reduces false breakouts in choppy markets for SPY/QQQ/IWM.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    atr = cached_indicator(\"atr\", high, low, close, length=p[\"atr_len\"])\n    trend_ema = cached_indicator(\"ema\", close, length=p[\"trend_ema\"])\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n\n    upper = ema + atr * p[\"mult\"]\n    atr_sma = atr.rolling(p[\"vol_sma_len\"]).mean()\n\n    breakout = close > upper.shift(1)\n    trend_filter = close > trend_ema\n    vol_filter = atr > atr_sma\n    rsi_filter = rsi < p[\"rsi_max\"]\n\n    entries = (breakout & trend_filter & vol_filter & rsi_filter).fillna(False)\n    exits = (close < ema).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "ema_len": 10,
+    "atr_len": 10,
+    "mult": 1.5,
+    "trend_ema": 30,
+    "rsi_len": 14,
+    "rsi_max": 65,
+    "vol_sma_len": 20
+  },
+  "expected_impact": "The ATR expansion filter should eliminate most false breakouts from 2024-2025 choppy regimes, reducing losses in those years while preserving entries in 2026's trending market. RSI < 65 avoids overbought entries that lead to immediate reversals. Trade count may drop from 13 to ~8-12 — potentially borderline on the 10-trade minimum. Win rate should improve significantly (from 30.8% to 40%+) as fewer false signals enter. Expected Sharpe improvement from 0.48 to 0.7-1.0 if regime filtering works as intended, with more stable year-over-year performance."
+}
+```

@@ -1,0 +1,281 @@
+{
+  "mandate": {
+    "name": "momentum_msft",
+    "description": "Large cap tech momentum strategy using MACD, RSI, and price momentum signals on MSFT. Targets sustained moves in Microsoft driven by trend acceleration and relative strength.",
+    "strategy_archetype": "momentum",
+    "tickers": [
+      "MSFT",
+      "AAPL",
+      "SPY"
+    ],
+    "primary_ticker": "MSFT",
+    "period": "2y",
+    "sharpe_target": 1.0,
+    "max_turns": 7,
+    "constraints": {
+      "max_parameters": 8,
+      "min_trades": 10,
+      "max_drawdown_pct": 22
+    }
+  },
+  "current_turn": 4,
+  "max_turns": 3,
+  "sharpe_target": 1.0,
+  "tickers": [
+    "MSFT",
+    "AAPL",
+    "SPY"
+  ],
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": -1.0587859366102923,
+      "failure_mode": "too_few_trades",
+      "action": "new_strategy",
+      "hypothesis": "MSFT exhibits sustained trend moves where momentum acceleration (MACD histogram turning positive) combined with RSI pullback timing avoids buying at tops. The EMA trend filter ensures we only trade in the dominant direction, while volume confirmation validates institutional participation. This confluence should capture MSFT's characteristic trend accelerations while the histogram-based exits provide timely risk management to stay under 22% drawdown.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/momentum_msft_20260427_025021/strategy_v1.py",
+      "params_used": {
+        "ema_len": 50,
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "rsi_len": 14,
+        "rsi_max": 65,
+        "volume_window": 20,
+        "volume_mult": 1.1
+      },
+      "strategy_hash": "8c8a29dd2650",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "sharpe": -1.3721154049590585,
+      "failure_mode": "low_sharpe",
+      "action": "new_strategy",
+      "hypothesis": "The original strategy is far too selective with 4 simultaneous conditions (EMA trend + MACD zero-cross + RSI filter + volume filter), yielding only 3 trades. The volume filter is the biggest culprit \u2014 requiring above-average volume on the exact day MACD crosses zero is extremely rare. The fix: remove volume and RSI filters entirely, and expand MACD entry to include histogram strengthening above zero (not just zero crosses), matching the proven macd_momentum template that achieved Sharpe 2.15+. Also switch from zero-cross exit to threshold-based exit to exit earlier on momentum decay rather than waiting for full reversal.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/momentum_msft_20260427_025021/strategy_v2.py",
+      "params_used": {
+        "ema_len": 50,
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "exit_hist": -0.3
+      },
+      "strategy_hash": "7ca3b17c3769",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "best_sharpe_so_far": -1.0587859366102923,
+  "best_turn": 1,
+  "strategy_examples": [
+    {
+      "name": "macd_momentum",
+      "description": "MACD histogram momentum shift with trend and volume confirmation. Enters on histogram turning positive or strengthening above zero, when price is above SMA and volume is above average. Exits when histogram drops below exit threshold or momentum weakens. Works best on high-momentum stocks with volume confirmation.",
+      "default_params": {
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "exit_hist": -0.5,
+        "sma_len": 50,
+        "volume_window": 20,
+        "volume_mult": 1.2
+      },
+      "source_code": "\"\"\"\nMACD Momentum Strategy\n\nMACD histogram momentum shift with trend filter.\nBest performer: AMD (Sharpe 2.15, 208% return), GOOGL (Sharpe 2.09).\nWorks best on high-momentum stocks with volume confirmation.\n\"\"\"\n\nfrom itertools import product\n\nimport pandas as pd\nimport pandas_ta\n\nfrom crabquant.indicator_cache import cached_indicator, clear_cache\n\n\nDEFAULT_PARAMS = {\n    \"macd_fast\": 12,\n    \"macd_slow\": 26,\n    \"macd_signal\": 9,\n    \"exit_hist\": -0.5,\n    \"sma_len\": 50,\n    \"volume_window\": 20,\n    \"volume_mult\": 1.2,\n}\n\n\nDESCRIPTION = (\n    \"MACD histogram momentum shift with trend and volume confirmation. \"\n    \"Enters on histogram turning positive or strengthening above zero, \"\n    \"when price is above SMA and volume is above average. \"\n    \"Exits when histogram drops below exit threshold or momentum weakens. \"\n    \"Works best on high-momentum stocks with volume confirmation.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    # MACD calculation\n    macd = cached_indicator(\n        \"macd\",\n        close,\n        fast=p[\"macd_fast\"],\n        slow=p[\"macd_slow\"],\n        signal=p[\"macd_signal\"],\n    )\n    hist_col = f\"MACDh_{p['macd_fast']}_{p['macd_slow']}_{p['macd_signal']}\"\n    hist = macd[hist_col]\n\n    # Trend filter\n    sma = cached_indicator(\"sma\", close, length=p[\"sma_len\"])\n    trend_ok = close > sma\n\n    # Volume confirmation\n    volume_avg = cached_indicator(\"sma\", volume, length=p[\"volume_window\"])\n    volume_ok = volume > (volume_avg * p[\"volume_mult\"])\n\n    # Entry conditions: MACD histogram turns positive or strengthens\n    hist_prev = hist.shift(1)\n    hist_prev2 = hist.shift(2)\n    \n    # Histogram turning positive (crosses zero line)\n    mom_cross = (hist_prev <= 0) & (hist > 0)\n    # Histogram strengthening while positive\n    mom_strong = (hist_prev < hist_prev2) & (hist > hist_prev) & (hist > 0)\n\n    entries = (trend_ok & volume_ok & (mom_cross | mom_strong)).fillna(False)\n    \n    # Exit conditions: histogram drops below threshold or momentum weakens\n    exits = (hist < p[\"exit_hist\"]).fillna(False)\n\n    return entries, exits"
+    },
+    {
+      "name": "ema_crossover",
+      "description": "Pure EMA fast/slow crossover. Enters when fast EMA crosses above slow EMA (golden cross). Exits when fast EMA crosses below slow EMA (death cross). Sharpe 2.10 in QF backtests. Simplest winning strategy \u2014 works best in cleanly trending markets.",
+      "default_params": {
+        "fast_len": 9,
+        "slow_len": 21
+      },
+      "source_code": "\"\"\"\nEMA Crossover Strategy\n\nPure EMA fast/slow crossover \u2014 the simplest winning strategy. Sharpe 2.10 in\nQuantFactory backtests. Entry on golden cross (fast crosses above slow),\nexit on death cross (fast crosses below slow).\n\"\"\"\n\nfrom itertools import product\n\nimport pandas as pd\nimport pandas_ta\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"fast_len\": 9,\n    \"slow_len\": 21,\n}\n\n\nDESCRIPTION = (\n    \"Pure EMA fast/slow crossover. \"\n    \"Enters when fast EMA crosses above slow EMA (golden cross). \"\n    \"Exits when fast EMA crosses below slow EMA (death cross). \"\n    \"Sharpe 2.10 in QF backtests. Simplest winning strategy \u2014 \"\n    \"works best in cleanly trending markets.\"\n)\n\n\ndef _valid_combos(param_grid: dict) -> list[dict]:\n    \"\"\"Filter param combos where fast_len < slow_len.\"\"\"\n    pg = param_grid or PARAM_GRID\n    keys = list(pg.keys())\n    valid = []\n    for vals in product(*(pg[k] for k in keys)):\n        params = dict(zip(keys, vals))\n        if params[\"fast_len\"] < params[\"slow_len\"]:\n            valid.append(params)\n    return valid\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    \"\"\"\n    Generate entry/exit signals.\n\n    Args:\n        df: DataFrame with columns open, high, low, close, volume\n        params: Strategy parameters (uses defaults if None)\n\n    Returns:\n        (entries, exits) as boolean Series\n    \"\"\"\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    ema_fast = cached_indicator(\"ema\", close, length=p[\"fast_len\"])\n    ema_slow = cached_indicator(\"ema\", close, length=p[\"slow_len\"])\n\n    entries = (\n        (ema_fast.shift(1) < ema_slow.shift(1))\n        & (ema_fast > ema_slow)\n    ).fillna(False)\n\n    exits = (\n        (ema_fast.shift(1) > ema_slow.shift(1))\n        & (ema_fast < ema_slow)\n    ).fillna(False)\n\n    return entries, exits"
+    }
+  ],
+  "strategy_catalog": [
+    {
+      "name": "rsi_crossover",
+      "description": "Fast/slow RSI crossover with regime filter. Enters when fast RSI crosses above slow RSI in a bullish regime. Exits when fast RSI drops below exit_level. Best in trending markets with regular pullbacks."
+    },
+    {
+      "name": "macd_momentum",
+      "description": "MACD histogram momentum shift with trend and volume confirmation. Enters on histogram turning positive or strengthening above zero, when price is above SMA and volume is above average. Exits when histogram drops below exit threshold or momentum weakens. Works best on high-momentum stocks with volume confirmation."
+    },
+    {
+      "name": "adx_pullback",
+      "description": "ADX trend strength with pullback to EMA entry. Enters when ADX confirms strong trend and price pulls back to EMA. Exits when price reaches take-profit (EMA + ATR multiplier). Best risk-adjusted returns \u2014 NFLX achieved Sharpe 2.09 with only 14.2% drawdown."
+    },
+    {
+      "name": "atr_channel_breakout",
+      "description": "ATR-based Keltner Channel breakout with volume and trend confirmation. Enters when price breaks above upper channel with above-average volume, and price is above 50 EMA (trend filter). Exits when price falls back below channel midpoint (EMA). Good for catching momentum breakouts from consolidation."
+    },
+    {
+      "name": "volume_breakout",
+      "description": "Donchian Channel breakout with volume spike confirmation. Enters when price breaks above N-day high with volume spike. Exits when price falls below channel midpoint. Low drawdown profile \u2014 NFLX achieved 33.6% return with only 8.6% max drawdown."
+    },
+    {
+      "name": "multi_rsi_confluence",
+      "description": "Multiple timeframe RSI confluence with volume confirmation. Enters when RSI-7, RSI-14, and RSI-28 are all below threshold and the fastest RSI starts turning up. Exits when fastest RSI recovers above exit threshold. Designed for catching deep pullback reversals in uptrends."
+    },
+    {
+      "name": "ema_ribbon_reversal",
+      "description": "EMA ribbon alignment with RSI pullback entry. Enters when 10/20/30/50 EMAs are perfectly aligned (bullish order) and RSI dips below dip_level. Exits on RSI recovery above 60 or alignment break. Designed for strong trends with regular healthy pullbacks."
+    },
+    {
+      "name": "bollinger_squeeze",
+      "description": "Bollinger Band squeeze breakout with volume confirmation. Enters when BB width narrows below average (squeeze) then price breaks above upper band with above-average volume. Exits when price falls back to middle band. Classic volatility expansion play \u2014 works well before earnings or major moves."
+    },
+    {
+      "name": "ichimoku_trend",
+      "description": "Simplified Ichimoku Cloud trend following. Enters when Tenkan-sen crosses above Kijun-sen and price is above the cloud. Exits when price falls below Senkou Span A (cloud top). Parameter-free \u2014 pure price action. Works best on trending instruments."
+    },
+    {
+      "name": "invented_momentum_rsi_atr",
+      "description": "Momentum RSI ATR confluence strategy. Enters on RSI recovery from pullback in a confirmed uptrend (price > EMA, ROC > 0). Exits on ATR-based trailing stop or RSI overbought. Designed for trending stocks with regular pullbacks \u2014 targets momentum continuation after healthy dips."
+    },
+    {
+      "name": "invented_momentum_rsi_stoch",
+      "description": "Simple RSI oversold strategy with volume confirmation. Enters when RSI is oversold with volume spike. Exits when RSI becomes overbought. Best for momentum stocks (CAT, JPM, SPY) with pullback reversals."
+    },
+    {
+      "name": "invented_vpt_roc_ema",
+      "description": "VPT + ROC + EMA Confluence Strategy\n\nCombines Volume Price Trend (VPT), Rate of Change (ROC), and EMA for trend-following signals:\n- Entries: VPT above signal line + bullish ROC + price above EMA\n- Exits: VPT below signal line + bearish ROC + price below EMA\n- Optimized for capturing strong momentum with volume confirmation\n\nBest for: trending stocks with high volume momentum\n\nInspired by: roc_ema_volume (127k wins) and vpt_crossover (18.9% win rate) patterns"
+    },
+    {
+      "name": "invented_volume_momentum_trend",
+      "description": "\nInvented Volume Momentum Trend Strategy\n\nThis strategy combines volume confirmation with trend filtering and momentum analysis:\n- Uses volume breakout above moving average to confirm interest\n- ADX indicator to establish trend strength and direction\n- RSI to time entries and identify reversals\n- ATR-based trailing stops for risk management\n\nIdeal for trending markets where volume precedes price movements.\nWorks well on liquid stocks with consistent volume patterns.\n\nEntry: Volume breakout + ADX trend + RSI momentum confirmation\nExit: ATR trailing stop or RSI reversal signal\n"
+    },
+    {
+      "name": "invented_volume_adx_ema",
+      "description": "\nVolume-ADX-EMA Strategy: Combines volume momentum (OBV), trend strength (ADX), \nand directional bias (EMA) for trend-following entries. Uses ATR-based stops\nand RSI for exit timing. Works best in trending markets with volume confirmation.\n\nEntry:\n- OBV crossover (fast > slow)\n- ADX > threshold (trend strength > 25)\n- Price above EMA (uptrend) or below EMA (downtrend)\n\nExit:\n- RSI > 70 (overbought) or RSI < 30 (oversold)\n- ATR trailing stop (price - 2*ATR)\n\nBest for: AAPL, NVDA, CAT, SPY - trending tickers with good volume\n"
+    },
+    {
+      "name": "invented_momentum_confluence",
+      "description": "\nInvented Momentum Confluence Strategy\n\nCombines multiple momentum indicators with volume confirmation and volatility filtering.\n\n- Uses ROC for momentum direction\n- RSI for mean reversion levels\n- ADX for trend strength\n- Volume expansion for confirmation\n- ATR-based dynamic exits for risk management\n\nEntry signals (multiple conditions):\n- Momentum: ROC > 0 or < 0 + volume expansion\n- RSI mean reversion: RSI oversold/overbought + volume\n- Trending: ADX strong + momentum direction\n\nExit signals:\n- ATR price stops\n- RSI reversals\n\nWorks well in trending markets with occasional mean-reversion phases.\n"
+    },
+    {
+      "name": "invented_volume_breakout_adx",
+      "description": "\nVolume Breakout with ADX Trend Confirmation Strategy\n\nThis strategy identifies volume breakouts that occur during strong confirmed trends,\nusing ADX to filter for only high-quality trend setups. It combines volume confirmation \nwith trend filtering to improve signal quality.\n\nEntry Rules:\n- Volume spike above N-period SMA (multiplier dependent on ticker)\n- ADX > threshold confirms strong trend direction  \n- RSI < 70 for uptrends, RSI > 30 for downtrends (avoid extremes)\n- Moving average crossover confirms primary trend direction\n\nExit Rules:  \n- ATR-based trailing stop for dynamic risk management\n- RSI reversal signals (RSI > 80 for long, RSI < 20 for short)\n- Volume dry-up confirmation (volume < 50% of average)\n\nTarget Tickers: AAPL, NVDA, CAT, SPY\nBest for volatile stocks with clear volume patterns and strong trends.\n\nEdge: Filters out false breakouts by requiring trend confirmation and avoids\nextreme overbought/oversold conditions. ATR trailing stops provide dynamic\nrisk management suitable for volatile markets.\n"
+    },
+    {
+      "name": "invented_volume_roc_atr_trend",
+      "description": "\nVolume ROC ATR Trend Strategy\n\nEntry:\n- Volume spike > 20-day SMA * 1.5\n- ROC(21) > 0 (positive momentum)\n- Price > 20 EMA (trend filter)\n\nExit:\n- Trailing stop: 2.5 * ATR(14) below entry\n- Take profit: 3.0 * ATR(14) above entry  \n- RSI > 70 (overbought signal)\n\nCombines volume confirmation with momentum, trend filtering, and ATR-based exits\nfor robust trend-following signals.\n\nInspired by: roc_ema_volume (10.28% win rate) and successful ATR parameters\n"
+    },
+    {
+      "name": "vpt_crossover",
+      "description": "Volume Price Trend crossover with RSI filter and volume confirmation. Enters when VPT crosses above its SMA signal line with RSI above entry threshold and volume above its SMA. Exits on VPT cross below signal or RSI overbought. Works well in volume-confirmed trending markets."
+    },
+    {
+      "name": "roc_ema_volume",
+      "description": "ROC + EMA + Volume entry with ATR trailing stop exit. Enters when ROC is positive, price above EMA, and volume above its SMA. Exits via ATR trailing stop (rolling high minus ATR * multiplier). Sharpe 2.21 in QF backtests. Best for trending stocks with momentum."
+    },
+    {
+      "name": "bb_stoch_macd",
+      "description": "BB + Stochastic + MACD triple confluence mean reversion. Enters when price below BB mid, Stoch K < 20 with K > D, and MACD histogram rising. Exits on Stoch K > 80 with K < D, or price above BB upper. Sharpe 2.02 in QF backtests. Best for range-bound or mean-reverting markets."
+    },
+    {
+      "name": "rsi_regime_dip",
+      "description": "RSI regime filter with dip timing. Long RSI determines market regime (bullish when above threshold). Short RSI times entry on dips (below dip_level in bullish regime). Exits when short RSI recovers or regime turns bearish. Sharpe 2.18 in QF backtests. Works well in trending markets with pullbacks."
+    },
+    {
+      "name": "ema_crossover",
+      "description": "Pure EMA fast/slow crossover. Enters when fast EMA crosses above slow EMA (golden cross). Exits when fast EMA crosses below slow EMA (death cross). Sharpe 2.10 in QF backtests. Simplest winning strategy \u2014 works best in cleanly trending markets."
+    },
+    {
+      "name": "injected_momentum_atr_volume",
+      "description": "Injected Momentum ATR Volume Strategy\n\nCombines momentum with volume confirmation and ATR-based exits.\nUses RSI regime filter to avoid entries in weak markets.\n\nStrategy logic:\n- ROC for momentum detection (positive price change)\n- Volume spike confirmation (above moving average)\n- RSI regime filter (avoid extreme values in opposite trend)\n- ATR trailing stops for exits\n\nBest for: Momentum-driven markets with volume confirmation\nTimeframe: 1D+\nRisk management: ATR-based trailing stops\n"
+    },
+    {
+      "name": "informed_simple_adaptive",
+      "description": "Simple adaptive strategy using ADX to detect market regime. Entries on RSI extremes in mean-reverting markets, RSI pullbacks in trending markets with volume confirmation. Designed for mixed-regime stocks like AAPL, NVDA, CAT, SPY."
+    },
+    {
+      "name": "invented_rsi_volume_atr",
+      "description": "\nRSI Volume ATR Confluence Strategy\n\nEntry signals:\n- RSI crosses above oversold level (RSI > 35)\n- Volume spike > 1.5x 20-day average volume\n- Optional: MACD histogram positive for trend confirmation\n\nExit signals:\n- RSI crosses below overbought level (RSI < 65) - take profit\n- Price touches ATR trailing stop - dynamic stop loss\n- ATR trailing stop = close - (ATR * 2.0)\n\nWorks well in:\n- Mean-reverting markets with volume confirmation\n- Stocks with clear support/resistance levels\n- Medium-term swing trading (1-4 weeks holding period)\n\nStrategy strengths:\n- Volume reduces false signals\n- ATR trailing stops adapt to volatility\n- MACD filter improves timing in trends\n"
+    }
+  ],
+  "backtest_report": {
+    "strategy_id": "momentum_msft_20260427_025021",
+    "iteration": 2,
+    "sharpe_ratio": -1.3721154049590585,
+    "total_return_pct": -0.26460637815904453,
+    "max_drawdown_pct": -0.2799682026372815,
+    "win_rate": 0.09090909090909091,
+    "total_trades": 11,
+    "profit_factor": 0.05791436352616316,
+    "calmar_ratio": -0.7165767038629691,
+    "sortino_ratio": -1.5389995370652554,
+    "composite_score": -0.7326957303225571,
+    "failure_mode": "low_sharpe",
+    "failure_details": "Sharpe -1.37 < target 1.0. Return -26.5%, MaxDD -28.0%.",
+    "sharpe_by_year": {
+      "2024": -1.0804,
+      "2025": -0.7385,
+      "2026": -2.0716
+    },
+    "stagnation_score": 0.0,
+    "stagnation_trend": "improving",
+    "previous_sharpes": [
+      -1.0587859366102923
+    ],
+    "previous_actions": [
+      "new_strategy"
+    ],
+    "guardrail_violations": [
+      "Sharpe too low: -1.37 < 1.0",
+      "Return too low: -26.5% < 5%",
+      "Win rate too low: 9.1% < 30%",
+      "Profit factor too low: 0.06 < 1.0",
+      "Drawdown too deep: -28.0% > 25%"
+    ],
+    "guardrail_warnings": [
+      "Win rate below 50%: 9.1% (relies on large winners)"
+    ],
+    "regime_sharpe": null,
+    "regime_regime_shift": null,
+    "top_drawdowns": null,
+    "portfolio_correlation": null,
+    "benchmark_return_pct": null,
+    "market_regime": null,
+    "current_strategy_code": "\"\"\"\nMSFT MACD Trend Strategy\n\nMACD histogram momentum with EMA trend filter. Relaxed entry conditions\nto generate sufficient trades while maintaining trend alignment.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"ema_len\": 50,\n    \"macd_fast\": 12,\n    \"macd_slow\": 26,\n    \"macd_signal\": 9,\n    \"exit_hist\": -0.3,\n}\n\nDESCRIPTION = (\n    \"MACD histogram momentum with EMA trend filter. \"\n    \"Enters on histogram crossing zero or strengthening while positive, \"\n    \"when price is above EMA. No volume or RSI filters to maximize \"\n    \"trade frequency. Exits when histogram drops below threshold.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    macd = cached_indicator(\"macd\", close, fast=p[\"macd_fast\"], slow=p[\"macd_slow\"], signal=p[\"macd_signal\"])\n    hist_col = f\"MACDh_{p['macd_fast']}_{p['macd_slow']}_{p['macd_signal']}\"\n    hist = macd[hist_col]\n    hist_prev = hist.shift(1)\n    hist_prev2 = hist.shift(2)\n\n    mom_cross = (hist_prev <= 0) & (hist > 0)\n    mom_strong = (hist_prev < hist_prev2) & (hist > hist_prev) & (hist > 0)\n\n    entries = (trend_ok & (mom_cross | mom_strong)).fillna(False)\n    exits = (hist < p[\"exit_hist\"]).fillna(False)\n\n    return entries, exits",
+    "current_params": {
+      "ema_len": 50,
+      "macd_fast": 12,
+      "macd_slow": 26,
+      "macd_signal": 9,
+      "exit_hist": -0.3
+    },
+    "previous_attempts": [
+      {
+        "turn": 1,
+        "sharpe": -1.0587859366102923,
+        "failure_mode": "too_few_trades",
+        "action": "new_strategy",
+        "hypothesis": "MSFT exhibits sustained trend moves where momentum acceleration (MACD histogram turning positive) combined with RSI pullback timing avoids buying at tops. The EMA trend filter ensures we only trade in the dominant direction, while volume confirmation validates institutional participation. This confluence should capture MSFT's characteristic trend accelerations while the histogram-based exits provide timely risk management to stay under 22% drawdown.",
+        "code_path": "/home/Zev/development/CrabQuant/refinement_runs/momentum_msft_20260427_025021/strategy_v1.py",
+        "params_used": {
+          "ema_len": 50,
+          "macd_fast": 12,
+          "macd_slow": 26,
+          "macd_signal": 9,
+          "rsi_len": 14,
+          "rsi_max": 65,
+          "volume_window": 20,
+          "volume_mult": 1.1
+        },
+        "strategy_hash": "8c8a29dd2650",
+        "delta_from_prev": "Initial strategy (no prior version)"
+      }
+    ]
+  },
+  "current_strategy_code": "\"\"\"\nMSFT MACD Trend Strategy\n\nMACD histogram momentum with EMA trend filter. Relaxed entry conditions\nto generate sufficient trades while maintaining trend alignment.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"ema_len\": 50,\n    \"macd_fast\": 12,\n    \"macd_slow\": 26,\n    \"macd_signal\": 9,\n    \"exit_hist\": -0.3,\n}\n\nDESCRIPTION = (\n    \"MACD histogram momentum with EMA trend filter. \"\n    \"Enters on histogram crossing zero or strengthening while positive, \"\n    \"when price is above EMA. No volume or RSI filters to maximize \"\n    \"trade frequency. Exits when histogram drops below threshold.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    macd = cached_indicator(\"macd\", close, fast=p[\"macd_fast\"], slow=p[\"macd_slow\"], signal=p[\"macd_signal\"])\n    hist_col = f\"MACDh_{p['macd_fast']}_{p['macd_slow']}_{p['macd_signal']}\"\n    hist = macd[hist_col]\n    hist_prev = hist.shift(1)\n    hist_prev2 = hist.shift(2)\n\n    mom_cross = (hist_prev <= 0) & (hist > 0)\n    mom_strong = (hist_prev < hist_prev2) & (hist > hist_prev) & (hist > 0)\n\n    entries = (trend_ok & (mom_cross | mom_strong)).fillna(False)\n    exits = (hist < p[\"exit_hist\"]).fillna(False)\n\n    return entries, exits",
+  "current_params": {
+    "ema_len": 50,
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "exit_hist": -0.3
+  },
+  "action_analytics": "Historical action success rates (most successful first):\n  - novel: 53/126 (42%), avg Sharpe: 0.84\n  - new_strategy: 1/26 (4%), avg Sharpe: 0.21\n  - create: 0/4 (0%), avg Sharpe: -0.51\n  - refine: 0/6 (0%), avg Sharpe: 0.46\n  - modify: 0/1 (0%), avg Sharpe: 0.65\n  - propose: 0/1 (0%), avg Sharpe: 1.05\n\nRecommendation: 'novel' has the highest success rate. 'propose' has the lowest \u2014 consider alternative approaches.",
+  "retry_feedback": "Your previous code failed validation with 1 error(s). Fix them:\n  - Runtime error in generate_signals: atr() missing 2 required positional arguments: 'low' and 'close'. Your entry/exit conditions may be too restrictive or produce wrong types. Loosen them or fix the logic."
+}

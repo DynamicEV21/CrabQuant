@@ -1,0 +1,77 @@
+{
+  "run_id": "momentum_msft_20260427_025021",
+  "mandate_name": "momentum_msft",
+  "created_at": "2026-04-27T09:50:21.796767+00:00",
+  "max_turns": 3,
+  "sharpe_target": 1.0,
+  "tickers": [
+    "MSFT",
+    "AAPL",
+    "SPY"
+  ],
+  "period": "2y",
+  "current_turn": 3,
+  "status": "max_turns_exhausted",
+  "best_sharpe": -0.7710457916414333,
+  "best_turn": 3,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/momentum_msft_20260427_025021/strategy_v3.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": -1.0587859366102923,
+      "failure_mode": "too_few_trades",
+      "action": "new_strategy",
+      "hypothesis": "MSFT exhibits sustained trend moves where momentum acceleration (MACD histogram turning positive) combined with RSI pullback timing avoids buying at tops. The EMA trend filter ensures we only trade in the dominant direction, while volume confirmation validates institutional participation. This confluence should capture MSFT's characteristic trend accelerations while the histogram-based exits provide timely risk management to stay under 22% drawdown.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/momentum_msft_20260427_025021/strategy_v1.py",
+      "params_used": {
+        "ema_len": 50,
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "rsi_len": 14,
+        "rsi_max": 65,
+        "volume_window": 20,
+        "volume_mult": 1.1
+      },
+      "strategy_hash": "8c8a29dd2650",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "sharpe": -1.3721154049590585,
+      "failure_mode": "low_sharpe",
+      "action": "new_strategy",
+      "hypothesis": "The original strategy is far too selective with 4 simultaneous conditions (EMA trend + MACD zero-cross + RSI filter + volume filter), yielding only 3 trades. The volume filter is the biggest culprit \u2014 requiring above-average volume on the exact day MACD crosses zero is extremely rare. The fix: remove volume and RSI filters entirely, and expand MACD entry to include histogram strengthening above zero (not just zero crosses), matching the proven macd_momentum template that achieved Sharpe 2.15+. Also switch from zero-cross exit to threshold-based exit to exit earlier on momentum decay rather than waiting for full reversal.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/momentum_msft_20260427_025021/strategy_v2.py",
+      "params_used": {
+        "ema_len": 50,
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "exit_hist": -0.3
+      },
+      "strategy_hash": "7ca3b17c3769",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 3,
+      "sharpe": -0.7710457916414333,
+      "failure_mode": "too_few_trades",
+      "action": "new_strategy",
+      "hypothesis": "The MACD momentum approach has failed twice on MSFT with terrible win rates (9%) and negative Sharpe. MACD histogram signals likely enter too late in moves on a large-cap stock that doesn't exhibit clean momentum acceleration patterns. Pivoting entirely to RSI regime-dip strategy: use a long RSI (28) to confirm bullish regime, and a short RSI (7) to time pullback recovery entries. This is a fundamentally different signal \u2014 buying dips in established uptrends rather than chasing momentum. The EMA-50 trend filter prevents counter-trend entries. RSI-7 hitting 30 then recovering is far more frequent than MACD histogram conditions, which should solve the trade frequency issue while the dip-buying nature should dramatically improve win rate over momentum-chasing entries.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/momentum_msft_20260427_025021/strategy_v3.py",
+      "params_used": {
+        "rsi_long": 28,
+        "rsi_short": 7,
+        "regime_threshold": 55,
+        "dip_level": 30,
+        "ema_len": 50,
+        "rsi_exit": 72
+      },
+      "strategy_hash": "3cf41d5a3879",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}

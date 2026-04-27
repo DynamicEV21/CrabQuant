@@ -1,0 +1,17 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "Large cap tech momentum can be captured by combining MACD histogram direction with ADX trend strength and RSI entry timing. Entering when MACD histogram is positive and rising, ADX confirms strong trend (>20), and RSI is not overbought (<70) should capture sustained moves in GOOGL while avoiding late entries. Exiting on MACD histogram turning negative or RSI overbought provides timely exits.",
+  "new_strategy_code": "\"\"\"\nMACD + ADX + RSI Momentum Strategy for Large Cap Tech\n\nCombines MACD histogram momentum with ADX trend strength and RSI timing.\nDesigned for GOOGL, META, SPY to capture sustained directional moves.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"macd_fast\": 12,\n    \"macd_slow\": 26,\n    \"macd_signal\": 9,\n    \"adx_len\": 14,\n    \"adx_thresh\": 20,\n    \"rsi_len\": 14,\n    \"rsi_ob\": 70,\n}\n\nDESCRIPTION = (\n    \"MACD momentum with ADX trend strength and RSI entry timing. \"\n    \"Enters when MACD histogram positive and rising, ADX confirms trend, \"\n    \"RSI not overbought. Exits on histogram turning negative or RSI overbought. \"\n    \"Optimized for large cap tech momentum (GOOGL, META, SPY).\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n\n    # MACD histogram\n    macd = cached_indicator(\"macd\", close, fast=p[\"macd_fast\"], slow=p[\"macd_slow\"], signal=p[\"macd_signal\"])\n    hist_col = f\"MACDh_{p['macd_fast']}_{p['macd_slow']}_{p['macd_signal']}\"\n    hist = macd[hist_col]\n    hist_prev = hist.shift(1)\n\n    # ADX for trend strength\n    adx = cached_indicator(\"adx\", high, low, close, length=p[\"adx_len\"])\n    adx_col = f\"ADX_{p['adx_len']}\"\n    trend_strong = adx[adx_col] > p[\"adx_thresh\"]\n\n    # RSI for timing\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n    rsi_col = f\"RSI_{p['rsi_len']}\"\n    rsi_ok = rsi[rsi_col] < p[\"rsi_ob\"]\n\n    # Entry: histogram positive AND rising, trend strong, RSI not overbought\n    hist_positive_rising = (hist > 0) & (hist > hist_prev)\n    entries = (hist_positive_rising & trend_strong & rsi_ok).fillna(False)\n\n    # Exit: histogram turns negative OR RSI overbought\n    hist_turns_neg = (hist_prev >= 0) & (hist < 0)\n    rsi_overbought = rsi[rsi_col] > p[\"rsi_ob\"]\n    exits = (hist_turns_neg | rsi_overbought).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "adx_len": 14,
+    "adx_thresh": 20,
+    "rsi_len": 14,
+    "rsi_ob": 70
+  },
+  "expected_impact": "Expected Sharpe 1.2-1.8 based on MACD momentum's proven track record on GOOGL (2.09 in prior tests). ADX filter should reduce whipsaw trades in choppy markets, improving risk-adjusted returns. RSI overbought exit should limit drawdowns by exiting before major reversals. Should generate 15-25 trades over 2 years with controlled drawdown under 20%."
+}
+```

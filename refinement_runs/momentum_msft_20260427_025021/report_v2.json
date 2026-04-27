@@ -1,0 +1,74 @@
+{
+  "strategy_id": "momentum_msft_20260427_025021",
+  "iteration": 2,
+  "sharpe_ratio": -1.3721154049590585,
+  "total_return_pct": -0.26460637815904453,
+  "max_drawdown_pct": -0.2799682026372815,
+  "win_rate": 0.09090909090909091,
+  "total_trades": 11,
+  "profit_factor": 0.05791436352616316,
+  "calmar_ratio": -0.7165767038629691,
+  "sortino_ratio": -1.5389995370652554,
+  "composite_score": -0.7326957303225571,
+  "failure_mode": "low_sharpe",
+  "failure_details": "Sharpe -1.37 < target 1.0. Return -26.5%, MaxDD -28.0%.",
+  "sharpe_by_year": {
+    "2024": -1.0804,
+    "2025": -0.7385,
+    "2026": -2.0716
+  },
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    -1.0587859366102923
+  ],
+  "previous_actions": [
+    "new_strategy"
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: -1.37 < 1.0",
+    "Return too low: -26.5% < 5%",
+    "Win rate too low: 9.1% < 30%",
+    "Profit factor too low: 0.06 < 1.0",
+    "Drawdown too deep: -28.0% > 25%"
+  ],
+  "guardrail_warnings": [
+    "Win rate below 50%: 9.1% (relies on large winners)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nMSFT MACD Trend Strategy\n\nMACD histogram momentum with EMA trend filter. Relaxed entry conditions\nto generate sufficient trades while maintaining trend alignment.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"ema_len\": 50,\n    \"macd_fast\": 12,\n    \"macd_slow\": 26,\n    \"macd_signal\": 9,\n    \"exit_hist\": -0.3,\n}\n\nDESCRIPTION = (\n    \"MACD histogram momentum with EMA trend filter. \"\n    \"Enters on histogram crossing zero or strengthening while positive, \"\n    \"when price is above EMA. No volume or RSI filters to maximize \"\n    \"trade frequency. Exits when histogram drops below threshold.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    macd = cached_indicator(\"macd\", close, fast=p[\"macd_fast\"], slow=p[\"macd_slow\"], signal=p[\"macd_signal\"])\n    hist_col = f\"MACDh_{p['macd_fast']}_{p['macd_slow']}_{p['macd_signal']}\"\n    hist = macd[hist_col]\n    hist_prev = hist.shift(1)\n    hist_prev2 = hist.shift(2)\n\n    mom_cross = (hist_prev <= 0) & (hist > 0)\n    mom_strong = (hist_prev < hist_prev2) & (hist > hist_prev) & (hist > 0)\n\n    entries = (trend_ok & (mom_cross | mom_strong)).fillna(False)\n    exits = (hist < p[\"exit_hist\"]).fillna(False)\n\n    return entries, exits",
+  "current_params": {
+    "ema_len": 50,
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "exit_hist": -0.3
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": -1.0587859366102923,
+      "failure_mode": "too_few_trades",
+      "action": "new_strategy",
+      "hypothesis": "MSFT exhibits sustained trend moves where momentum acceleration (MACD histogram turning positive) combined with RSI pullback timing avoids buying at tops. The EMA trend filter ensures we only trade in the dominant direction, while volume confirmation validates institutional participation. This confluence should capture MSFT's characteristic trend accelerations while the histogram-based exits provide timely risk management to stay under 22% drawdown.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/momentum_msft_20260427_025021/strategy_v1.py",
+      "params_used": {
+        "ema_len": 50,
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "rsi_len": 14,
+        "rsi_max": 65,
+        "volume_window": 20,
+        "volume_mult": 1.1
+      },
+      "strategy_hash": "8c8a29dd2650",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

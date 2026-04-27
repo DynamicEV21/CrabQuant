@@ -1,0 +1,18 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "Previous attempt failed with zero signals due to overly strict confluence requirements. Relaxing to require only 2 of 3 conditions (BB touch, RSI oversold, Stochastic oversold) instead of all 3 will generate sufficient signals while maintaining mean-reversion edge on volatile NVDA.",
+  "new_strategy_code": "\"\"\"\nMean Reversion BB RSI Stoch Strategy\n\nRelaxed confluence: 2 of 3 conditions trigger entry.\nDesigned for volatile stocks (NVDA, AMD, SMCI).\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"bb_len\": 20,\n    \"bb_std\": 2.0,\n    \"rsi_len\": 14,\n    \"rsi_oversold\": 38,\n    \"stoch_k\": 14,\n    \"stoch_d\": 3,\n    \"stoch_oversold\": 28,\n    \"exit_rsi\": 62,\n}\n\nDESCRIPTION = (\n    \"Mean reversion using BB lower band, RSI oversold, and stochastic oversold. \"\n    \"Requires 2 of 3 conditions to trigger entry for reliable signal generation. \"\n    \"Exits on RSI recovery or price returning to BB middle. \"\n    \"Designed for volatile mean-reverting stocks like NVDA.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    bb = cached_indicator(\"bbands\", close, length=p[\"bb_len\"], std=p[\"bb_std\"])\n    bbl_col = [c for c in bb.columns if c.startswith(\"BBL\")][0]\n    bbm_col = [c for c in bb.columns if c.startswith(\"BBM\")][0]\n    bbl = bb[bbl_col]\n    bbm = bb[bbm_col]\n\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n\n    stoch = cached_indicator(\"stoch\", df[\"high\"], df[\"low\"], close, k=p[\"stoch_k\"], d=p[\"stoch_d\"])\n    stoch_k_col = [c for c in stoch.columns if c.startswith(\"STOCHk\")][0]\n    stoch_k = stoch[stoch_k_col]\n\n    below_bb = (close <= bbl).fillna(False)\n    rsi_low = (rsi < p[\"rsi_oversold\"]).fillna(False)\n    stoch_low = (stoch_k < p[\"stoch_oversold\"]).fillna(False)\n\n    score = below_bb.astype(int) + rsi_low.astype(int) + stoch_low.astype(int)\n    entries = (score >= 2).fillna(False)\n\n    exits = ((rsi > p[\"exit_rsi\"]) | (close > bbm)).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "bb_len": 20,
+    "bb_std": 2.0,
+    "rsi_len": 14,
+    "rsi_oversold": 38,
+    "stoch_k": 14,
+    "stoch_d": 3,
+    "stoch_oversold": 28,
+    "exit_rsi": 62
+  },
+  "expected_impact": "Relaxed confluence from 3-of-3 to 2-of-3 conditions should generate 15-30 trades over 2 years on NVDA. RSI threshold raised to 38 and stochastic to 28 to further increase signal frequency. Should fix zero-signal issue while maintaining mean-reversion edge."
+}
+```

@@ -1,0 +1,99 @@
+{
+  "run_id": "breakout_aapl_20260427_020655",
+  "mandate_name": "breakout_aapl",
+  "created_at": "2026-04-27T09:06:55.365745+00:00",
+  "max_turns": 7,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "AAPL",
+    "MSFT",
+    "SPY"
+  ],
+  "period": "2y",
+  "current_turn": 4,
+  "status": "running",
+  "best_sharpe": 0.9198784588303709,
+  "best_turn": 2,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_aapl_20260427_020655/strategy_v2.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": -0.9020422886759996,
+      "failure_mode": "too_few_trades",
+      "action": "create",
+      "hypothesis": "Donchian channel breakout with volume confirmation and ATR trailing stop should capture AAPL's range expansions. The volume filter reduces false breakouts while ATR stops adapt to volatility, limiting drawdown under 20%.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_aapl_20260427_020655/strategy_v1.py",
+      "params_used": {
+        "dc_len": 20,
+        "atr_len": 14,
+        "vol_len": 20,
+        "vol_mult": 1.3,
+        "atr_stop_mult": 2.5,
+        "ema_len": 50
+      },
+      "strategy_hash": "3da626471057",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "sharpe": 0.9198784588303709,
+      "failure_mode": "low_sharpe",
+      "action": "refine",
+      "hypothesis": "The Donchian 20-day channel combined with volume spike and EMA filter is far too restrictive, generating only 4 trades. Switching to tighter Keltner channels (EMA + 1.5*ATR vs 20-day extreme) will produce more breakout signals since ATR-adaptive channels hug price more closely. Adding a secondary RSI pullback entry in uptrends further boosts trade count without abandoning the breakout archetype. Lowering volume threshold to 1.0x (just above average) removes the overly strict filter. EMA-based exit replaces the ATR trailing stop which was too loose at 2.5x.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_aapl_20260427_020655/strategy_v2.py",
+      "params_used": {
+        "ema_len": 15,
+        "atr_len": 10,
+        "mult": 1.5,
+        "vol_mult": 1.0,
+        "trend_ema": 30,
+        "rsi_len": 14,
+        "rsi_level": 40
+      },
+      "strategy_hash": "79b2a0af47e7",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 3,
+      "sharpe": 0.8035839762417226,
+      "failure_mode": "low_sharpe",
+      "action": "refine",
+      "hypothesis": "The 2026 negative Sharpe (-0.30) indicates entries without genuine momentum backing are causing losses in choppy conditions. Lowering the Keltner channel multiplier from 1.5 to 1.3 generates more breakout candidates, but adding a ROC(10) > 0 momentum filter ensures only signals with positive intermediate-term momentum proceed. The ROC filter replaces the looser entry criteria as the quality gate, while the tighter channel compensates to maintain trade count above 10. Both breakout and RSI pullback entries now require ROC confirmation, which should eliminate the weak 2026 entries without momentum.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_aapl_20260427_020655/strategy_v3.py",
+      "params_used": {
+        "ema_len": 15,
+        "atr_len": 10,
+        "mult": 1.3,
+        "vol_mult": 1.0,
+        "trend_ema": 30,
+        "rsi_len": 14,
+        "rsi_level": 40,
+        "roc_len": 10
+      },
+      "strategy_hash": "8ea7061da3c1",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 4,
+      "sharpe": 0.05168061010048161,
+      "failure_mode": "low_sharpe",
+      "action": "refine",
+      "hypothesis": "The 2026 negative Sharpe (-0.30) reveals the single EMA trend filter fails to prevent entries in choppy/range-bound conditions. Replacing price > EMA(30) with a dual EMA alignment filter (EMA20 > EMA50) is a much stronger trend confirmation that should reject 2026's false breakouts. The simple 'close < EMA' exit is cutting winners prematurely \u2014 profit factor of 2.35 shows winners are large but exits are too tight. Adding an ATR buffer below the EMA (EMA - 1.0*ATR) gives winning trades more room. Removing the RSI pullback secondary entry eliminates noise. Channel mult raised back to 1.5 to reduce false breakout triggers that plagued 2026, and volume threshold increased to 1.2x for higher signal quality.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_aapl_20260427_020655/strategy_v4.py",
+      "params_used": {
+        "ema_len": 15,
+        "atr_len": 10,
+        "mult": 1.5,
+        "vol_mult": 1.2,
+        "fast_ema": 20,
+        "slow_ema": 50,
+        "roc_len": 10,
+        "exit_buffer": 1.0
+      },
+      "strategy_hash": "4fe4539fec19",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}

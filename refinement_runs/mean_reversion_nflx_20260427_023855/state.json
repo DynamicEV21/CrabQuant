@@ -1,0 +1,60 @@
+{
+  "run_id": "mean_reversion_nflx_20260427_023855",
+  "mandate_name": "mean_reversion_nflx",
+  "created_at": "2026-04-27T09:38:55.419992+00:00",
+  "max_turns": 7,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "NFLX",
+    "DIS",
+    "SPY"
+  ],
+  "period": "2y",
+  "current_turn": 2,
+  "status": "running",
+  "best_sharpe": 0.6278160282217591,
+  "best_turn": 2,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/mean_reversion_nflx_20260427_023855/strategy_v2.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": -0.3338885835313783,
+      "failure_mode": "too_few_trades",
+      "action": "new_strategy",
+      "hypothesis": "NFLX exhibits volatile price swings that overshoot Bollinger Band boundaries. Combining BB lower band touches with RSI oversold and Stochastic oversold creates high-conviction mean reversion entries. Exiting on mean reversion (BB mid) or RSI overbought captures the snapback move while limiting drawdown.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/mean_reversion_nflx_20260427_023855/strategy_v1.py",
+      "params_used": {
+        "bb_len": 20,
+        "bb_std": 2.0,
+        "rsi_len": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "stoch_len": 14,
+        "stoch_oversold": 20
+      },
+      "strategy_hash": "9a092037567a",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "sharpe": 0.6278160282217591,
+      "failure_mode": "excessive_drawdown",
+      "action": "new_strategy",
+      "hypothesis": "The triple-conjunction entry (BB touch AND RSI oversold AND Stoch oversold) is far too restrictive, producing only 2 trades. Relaxing to require 2-of-3 conditions with looser thresholds (BB 1.5 std, RSI < 40, Stoch < 30) and using a near-band proximity check instead of exact touch will dramatically increase trade frequency while preserving mean reversion edge on NFLX volatility.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/mean_reversion_nflx_20260427_023855/strategy_v2.py",
+      "params_used": {
+        "bb_len": 20,
+        "bb_std": 1.5,
+        "rsi_len": 14,
+        "rsi_oversold": 40,
+        "stoch_len": 14,
+        "stoch_oversold": 30,
+        "near_band_pct": 0.02
+      },
+      "strategy_hash": "4e3a51c6c1c5",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}

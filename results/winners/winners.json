@@ -1226,5 +1226,41 @@
       "error": null
     },
     "promoted_at": "2026-04-27T06:21:24.426940+00:00"
+  },
+  {
+    "strategy": "refined_mean_reversion_nvda",
+    "ticker": "NVDA",
+    "sharpe": 1.7422784491824221,
+    "return": 1.0324036885277874,
+    "max_drawdown": -0.15475975842384265,
+    "trades": 10,
+    "params": {},
+    "refinement_run": "mean_reversion_nvda_20260427_025514",
+    "refinement_turns": 2,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": false,
+      "walk_forward": {
+        "test_sharpe": 2.1153067705319826,
+        "train_sharpe": 1.8671608154281285,
+        "degradation": -0.1329001514242659,
+        "robust": true,
+        "notes": "Train: Sharpe 1.87, Return 148.8% | Test: Sharpe 2.12, Return 15.2% | Degradation: -13.3% | Train regime: mean_reversion | Test regime: trending_up | \u26a0\ufe0f Regime shift detected",
+        "regime_shift": true,
+        "test_regime": "trending_up",
+        "train_regime": "mean_reversion"
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.3196524552678187,
+        "median_sharpe": 0.35300513820470725,
+        "robust": false,
+        "tickers_profitable": 1,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 1/2 (50%) | Passed: 0/2 | Avg Sharpe: 0.32 (\u03c3=0.03) | Median Sharpe: 0.35 | Avg Return: 3.6%"
+      },
+      "error": null
+    },
+    "promoted_at": "2026-04-27T09:59:40.106076+00:00"
   }
 ]

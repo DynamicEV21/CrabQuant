@@ -1,0 +1,14 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "The ATR trailing stop (2.5x) is the primary drawdown culprit — when breakouts fail, too much loss accumulates before exit. Switching to Donchian Channel breakout with midpoint exit (like the proven volume_breakout pattern that achieved 8.6% drawdown) will cut losses faster. To address the low trade count (7 vs 15 minimum), I'm shortening the Donchian period to 15, lowering volume threshold to 1.2x, and using a shorter 30 EMA trend filter to allow more entries while still filtering noise.",
+  "new_strategy_code": "\"\"\"\nDonchian Volume Breakout with Trend Filter\n\nDonchian Channel breakout with volume confirmation and EMA trend filter.\nExits at channel midpoint for tight risk control on volatile semis.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"dc_len\": 15,\n    \"vol_len\": 20,\n    \"vol_mult\": 1.2,\n    \"trend_ema\": 30,\n}\n\nDESCRIPTION = (\n    \"Donchian Channel breakout with volume confirmation and EMA trend filter. \"\n    \"Enters when price breaks above N-day high with volume spike and price above \"\n    \"trend EMA. Exits at channel midpoint for fast risk control on failed breakouts. \"\n    \"Shorter channel and relaxed filters increase trade count for AMD volatility.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n    volume = df[\"volume\"]\n\n    donch_high = high.rolling(p[\"dc_len\"]).max()\n    donch_low = low.rolling(p[\"dc_len\"]).min()\n    dc_mid = (donch_high + donch_low) / 2\n\n    breakout = close > donch_high.shift(1)\n    vol_spike = volume > volume.rolling(p[\"vol_len\"]).mean() * p[\"vol_mult\"]\n    trend = close > cached_indicator(\"ema\", close, length=p[\"trend_ema\"])\n\n    entries = (breakout & vol_spike & trend).fillna(False)\n    exits = (close < dc_mid).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "dc_len": 15,
+    "vol_len": 20,
+    "vol_mult": 1.2,
+    "trend_ema": 30
+  },
+  "expected_impact": "Switching from ATR trailing stop to midpoint exit should cut max drawdown from -44.6% to under 25% by exiting failed breakouts much faster. Shorter Donchian period (15 vs 20 equivalent), lower volume threshold (1.2x vs 1.3x), and shorter trend EMA (30 vs 50) should double trade count from 7 to 14-18, approaching the 15-trade minimum. Sharpe may initially dip as more marginal trades are included, but the drawdown improvement and trade count increase are prerequisites for further refinement."
+}
+```

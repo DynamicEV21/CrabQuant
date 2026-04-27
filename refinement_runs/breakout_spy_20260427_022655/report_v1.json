@@ -1,0 +1,51 @@
+{
+  "strategy_id": "breakout_spy_20260427_022655",
+  "iteration": 1,
+  "sharpe_ratio": -0.407838569637082,
+  "total_return_pct": -0.030866228106804193,
+  "max_drawdown_pct": -0.05537970398603183,
+  "win_rate": 0.0,
+  "total_trades": 3,
+  "profit_factor": 0.0,
+  "calmar_ratio": -0.40778180166582295,
+  "sortino_ratio": -0.4680305160252279,
+  "composite_score": -0.1492076866611428,
+  "failure_mode": "too_few_trades",
+  "failure_details": "Only 3 trades (min 5). Strategy is too selective.",
+  "sharpe_by_year": {
+    "2024": -0.2675,
+    "2025": -0.5596,
+    "2026": 0.0
+  },
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [],
+  "previous_actions": [],
+  "guardrail_violations": [
+    "Too few trades: 3 < 5",
+    "Sharpe too low: -0.41 < 1.0",
+    "Return too low: -3.1% < 5%",
+    "Win rate too low: 0.0% < 30%",
+    "Profit factor too low: 0.00 < 1.0"
+  ],
+  "guardrail_warnings": [
+    "Low trade count: 3 (marginal statistical significance)",
+    "Win rate below 50%: 0.0% (relies on large winners)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nBroad Market Breakout Strategy\n\nDonchian Channel breakout with ATR trailing stops and volume confirmation.\nOptimized for index ETFs (SPY, QQQ, IWM).\n\"\"\"\n\nimport pandas as pd\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"dc_len\": 20,\n    \"atr_len\": 14,\n    \"vol_len\": 20,\n    \"vol_mult\": 1.3,\n    \"trend_ema\": 50,\n    \"trail_mult\": 2.5,\n}\n\n\nDESCRIPTION = (\n    \"Broad market breakout using Donchian Channel with volume confirmation. \"\n    \"Enters when price breaks above N-day high with volume spike and price \"\n    \"above 50 EMA trend filter. Exits on ATR trailing stop from rolling high. \"\n    \"Designed for index ETFs like SPY, QQQ, IWM with smoother trends.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n    volume = df[\"volume\"]\n\n    # Donchian Channel\n    dc_high = high.rolling(p[\"dc_len\"]).max()\n\n    # ATR for trailing stop\n    atr = cached_indicator(\"atr\", high, low, close, length=p[\"atr_len\"])\n\n    # Volume confirmation\n    vol_avg = volume.rolling(p[\"vol_len\"]).mean()\n    vol_spike = volume > vol_avg * p[\"vol_mult\"]\n\n    # Trend filter\n    trend_ema = cached_indicator(\"ema\", close, length=p[\"trend_ema\"])\n    in_uptrend = close > trend_ema\n\n    # Breakout: close above prior bar's channel high\n    breakout = close > dc_high.shift(1)\n\n    entries = (breakout & vol_spike & in_uptrend).fillna(False)\n\n    # ATR trailing stop from rolling high\n    rolling_high = close.rolling(p[\"dc_len\"], min_periods=1).max()\n    trailing_stop = rolling_high - atr * p[\"trail_mult\"]\n    exits = (close < trailing_stop).fillna(False)\n\n    return entries, exits",
+  "current_params": {
+    "dc_len": 20,
+    "atr_len": 14,
+    "vol_len": 20,
+    "vol_mult": 1.3,
+    "trend_ema": 50,
+    "trail_mult": 2.5
+  },
+  "previous_attempts": []
+}

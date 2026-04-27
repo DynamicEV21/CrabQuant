@@ -1,14 +1,20 @@
 {
-  "running_count": 6,
-  "total_mandates": 27,
-  "convergence_rate": 0.047619047619047616,
-  "wave_progress": 0.8370370370370371,
+  "running_count": 15,
+  "total_mandates": 38,
+  "convergence_rate": 0.08695652173913043,
+  "wave_progress": 0.7325814536340852,
   "best_strategies": [
     {
       "mandate_name": "e2e_test_momentum",
       "best_sharpe": 1.8728166181760793,
       "best_turn": 2,
       "status": "max_turns_exhausted"
+    },
+    {
+      "mandate_name": "mean_reversion_nvda",
+      "best_sharpe": 1.7422784491824221,
+      "best_turn": 2,
+      "status": "success"
     },
     {
       "mandate_name": "e2e_test_momentum",
@@ -27,12 +33,6 @@
       "best_sharpe": 1.2076056943016404,
       "best_turn": 1,
       "status": "max_turns_exhausted"
-    },
-    {
-      "mandate_name": "mean_reversion_spy",
-      "best_sharpe": 1.164204704296117,
-      "best_turn": 3,
-      "status": "running"
     }
   ],
   "running_mandates": [
@@ -41,6 +41,24 @@
       "current_turn": 3,
       "max_turns": 5,
       "best_sharpe": 0.7754615652256672
+    },
+    {
+      "mandate_name": "mean_reversion_nflx",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.6278160282217591
+    },
+    {
+      "mandate_name": "momentum_msft",
+      "current_turn": 2,
+      "max_turns": 3,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "breakout_spy",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": -0.007327286449673106
     },
     {
       "mandate_name": "mean_reversion_spy",
@@ -67,11 +85,47 @@
       "best_sharpe": -999.0
     },
     {
+      "mandate_name": "breakout_amd",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.703084793928381
+    },
+    {
+      "mandate_name": "breakout_spy",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 0.4833610139102345
+    },
+    {
       "mandate_name": "Momentum Strategy for SPY",
       "current_turn": 0,
       "max_turns": 2,
       "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "mean_reversion_nflx",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.6505920723491151
+    },
+    {
+      "mandate_name": "breakout_aapl",
+      "current_turn": 4,
+      "max_turns": 7,
+      "best_sharpe": 0.9198784588303709
+    },
+    {
+      "mandate_name": "mean_reversion_nvda",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 1.0504761504747684
+    },
+    {
+      "mandate_name": "momentum_googl",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -999.0
     }
   ],
-  "timestamp": "2026-04-27T06:57:35.182914+00:00"
+  "timestamp": "2026-04-27T10:00:43.137330+00:00"
 }

@@ -1,0 +1,15 @@
+{
+  "name": "trend_tsla",
+  "description": "Volatile trend following strategy using EMA crossovers, ADX, and volatility-adjusted stops on TSLA. Rides strong directional moves in Tesla while managing whipsaws with volatility filters.",
+  "strategy_archetype": "trend_following",
+  "tickers": ["TSLA", "RIVN", "SPY"],
+  "primary_ticker": "TSLA",
+  "period": "2y",
+  "sharpe_target": 1.2,
+  "max_turns": 7,
+  "constraints": {
+    "max_parameters": 8,
+    "min_trades": 12,
+    "max_drawdown_pct": 28
+  }
+}

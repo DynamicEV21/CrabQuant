@@ -1063,6 +1063,400 @@ def _convert_injected_momentum_atr_volume(params, pos_pct, slip_pct):
     return S
 
 
+def _convert_informed_simple_adaptive(params, pos_pct, slip_pct):
+    """Informed Simple Adaptive: ADX regime + RSI extremes with volume."""
+    class S(CrabQuantBacktest):
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
+
+        def init(self):
+            p = self._cq_params
+            c = self.data.Close
+            h = self.data.High
+            l = self.data.Low
+            v = self.data.Volume
+            self.adx_val = self.I(_adx, h, l, c, p["adx_len"])
+            self.rsi = self.I(_rsi, c, p["rsi_len"])
+            self.vol_avg = self.I(_sma, v, p["volume_window"])
+
+        def next(self):
+            p = self._cq_params
+            close = self.data.Close[-1]
+            adx = self.adx_val[-1]
+            rsi = self.rsi[-1]
+            rsi_prev = self.rsi[-2]
+            vol = self.data.Volume[-1]
+            va = self.vol_avg[-1]
+
+            if any(np.isnan(v) for v in [adx, rsi, rsi_prev, va]):
+                return
+
+            trending = adx > p["adx_threshold"]
+            volume_spike = vol > (va * p["volume_mult"])
+
+            if trending:
+                entry = (rsi < p["rsi_overbought"]) and volume_spike
+                exit_cond = rsi > p["rsi_overbought"]
+            else:
+                entry = ((rsi < p["rsi_oversold"]) or (rsi > p["rsi_overbought"])) and volume_spike
+                exit_cond = (rsi > 50) and (rsi_prev <= 50)
+
+            self._safe_entry(entry)
+            self._safe_exit(exit_cond)
+
+    return S
+
+
+def _convert_invented_momentum_confluence(params, pos_pct, slip_pct):
+    """Momentum Confluence: ROC + volume + RSI + ADX with ATR exits."""
+    class S(CrabQuantBacktest):
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
+
+        def init(self):
+            p = self._cq_params
+            c = self.data.Close
+            h = self.data.High
+            l = self.data.Low
+            v = self.data.Volume
+            self.roc = self.I(_roc, c, p["roc_len"])
+            self.rsi = self.I(_rsi, c, p["rsi_len"])
+            self.adx_val = self.I(_adx, h, l, c, p["adx_len"])
+            self.atr = self.I(_atr, h, l, c, p["atr_len"])
+            self.vol_avg = self.I(_sma, v, p["vol_sma_len"])
+
+        def next(self):
+            p = self._cq_params
+            close = self.data.Close[-1]
+            roc = self.roc[-1]
+            rsi = self.rsi[-1]
+            rsi_prev = self.rsi[-2]
+            adx = self.adx_val[-1]
+            atr = self.atr[-1]
+            vol = self.data.Volume[-1]
+            va = self.vol_avg[-1]
+
+            if any(np.isnan(v) for v in [roc, rsi, rsi_prev, adx, atr, va]):
+                return
+
+            momentum_up = roc > 0
+            volume_expansion = vol > (va * p["volume_mult"])
+            atr_stop = close - (atr * p["atr_mult"])
+
+            entry = momentum_up and volume_expansion and (rsi < p["rsi_overbought"])
+            exit_cond = (close < atr_stop) or (rsi > p["rsi_overbought"] and rsi_prev <= p["rsi_overbought"])
+
+            self._safe_entry(entry)
+            self._safe_exit(exit_cond)
+
+    return S
+
+
+def _convert_invented_rsi_volume_atr(params, pos_pct, slip_pct):
+    """RSI Volume ATR: RSI oversold cross + volume spike + optional MACD filter."""
+    class S(CrabQuantBacktest):
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
+
+        def init(self):
+            p = self._cq_params
+            c = self.data.Close
+            h = self.data.High
+            l = self.data.Low
+            v = self.data.Volume
+            self.rsi = self.I(_rsi, c, p["rsi_len"])
+            self.rsi_prev = self.I(lambda x: np.roll(x, 1), self.rsi) if False else None
+            self.vol_avg = self.I(_sma, v, p["volume_ma_len"])
+            self.atr = self.I(_atr, h, l, c, p["atr_len"])
+            if p.get("macd_filter", False):
+                self.macd_h = self.I(_macd, c, p["macd_fast"], p["macd_slow"], p["macd_signal"])
+            else:
+                self.macd_h = None
+
+        def next(self):
+            p = self._cq_params
+            i = len(self.data) - 1
+            if i < 2:
+                return
+            close = self.data.Close[-1]
+            low = self.data.Low[-1]
+            rsi_now = self.rsi[-1]
+            rsi_prev = self.rsi[-2]
+            vol = self.data.Volume[-1]
+            va = self.vol_avg[-1]
+            atr = self.atr[-1]
+
+            if any(np.isnan(v) for v in [rsi_now, rsi_prev, va, atr]):
+                return
+
+            rsi_cross_up = (rsi_prev <= p["rsi_oversold"]) and (rsi_now > p["rsi_oversold"])
+            volume_spike = vol > (va * p["volume_spike_mult"])
+            macd_ok = True
+            if self.macd_h is not None:
+                mh = self.macd_h[-1]
+                if np.isnan(mh):
+                    return
+                macd_ok = mh > 0
+
+            atr_stop = close - (atr * p["atr_mult"])
+
+            entry = rsi_cross_up and volume_spike and macd_ok
+            exit_cond = (rsi_now < p["rsi_overbought"] and rsi_prev >= p["rsi_overbought"]) or (low <= atr_stop)
+
+            self._safe_entry(entry)
+            self._safe_exit(exit_cond)
+
+    return S
+
+
+def _convert_invented_volume_adx_ema(params, pos_pct, slip_pct):
+    """Volume ADX EMA: OBV crossover + ADX trend + EMA direction + ATR/RSI exits."""
+    class S(CrabQuantBacktest):
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
+
+        def init(self):
+            p = self._cq_params
+            c = self.data.Close
+            h = self.data.High
+            l = self.data.Low
+            v = self.data.Volume
+            self.obv = self.I(_vpt, c, v)  # Use VPT as OBV proxy (similar cumulative volume logic)
+            self.obv_fast = self.I(_ewm_mean, c, p["obv_fast"])  # Simplified: EMA of close as OBV proxy
+            self.obv_slow = self.I(_ewm_mean, c, p["obv_slow"])
+            self.adx_val = self.I(_adx, h, l, c, p["adx_len"])
+            self.ema = self.I(_ewm_mean, c, p["ema_len"])
+            self.rsi = self.I(_rsi, c, p["rsi_len"])
+            self.atr = self.I(_atr, h, l, c, 14)
+
+        def next(self):
+            p = self._cq_params
+            i = len(self.data) - 1
+            if i < 2:
+                return
+            close = self.data.Close[-1]
+            obv_f = self.obv_fast[-1]
+            obv_f_prev = self.obv_fast[-2]
+            obv_s = self.obv_slow[-1]
+            adx = self.adx_val[-1]
+            ema = self.ema[-1]
+            rsi = self.rsi[-1]
+            atr = self.atr[-1]
+
+            if any(np.isnan(v) for v in [obv_f, obv_f_prev, obv_s, adx, ema, rsi, atr]):
+                return
+
+            obv_cross = (obv_f_prev <= obv_s) and (obv_f > obv_s)
+            strong_trend = adx > p["adx_threshold"]
+            above_ema = close > ema
+            atr_stop = close - (p["atr_mult"] * atr)
+
+            entry = obv_cross and strong_trend and above_ema
+            exit_cond = (close < atr_stop) or (rsi > p["rsi_overbought"])
+
+            self._safe_entry(entry)
+            self._safe_exit(exit_cond)
+
+    return S
+
+
+def _convert_invented_volume_breakout_adx(params, pos_pct, slip_pct):
+    """Volume Breakout ADX: volume spike + ADX trend + SMA trend direction."""
+    class S(CrabQuantBacktest):
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
+
+        def init(self):
+            p = self._cq_params
+            c = self.data.Close
+            h = self.data.High
+            l = self.data.Low
+            v = self.data.Volume
+            self.vol_avg = self.I(_sma, v, p["vol_sma_len"])
+            self.adx_val = self.I(_adx, h, l, c, p["adx_len"])
+            self.rsi = self.I(_rsi, c, p["rsi_len"])
+            self.atr = self.I(_atr, h, l, c, p["atr_len"])
+            self.sma_fast = self.I(_sma, c, p["sma_fast"])
+            self.sma_slow = self.I(_sma, c, p["sma_slow"])
+
+        def next(self):
+            p = self._cq_params
+            close = self.data.Close[-1]
+            vol = self.data.Volume[-1]
+            va = self.vol_avg[-1]
+            adx = self.adx_val[-1]
+            rsi = self.rsi[-1]
+            atr = self.atr[-1]
+            sf = self.sma_fast[-1]
+            ss = self.sma_slow[-1]
+
+            if any(np.isnan(v) for v in [va, adx, rsi, atr, sf, ss]):
+                return
+
+            vol_spike = vol > (va * p["vol_mult"])
+            strong_trend = adx > p["adx_threshold"]
+            trend_up = sf > ss
+            atr_stop = close - (p["atr_mult"] * atr)
+
+            entry = vol_spike and strong_trend and trend_up and (rsi < 70)
+            exit_cond = (close < atr_stop) or (rsi > 80)
+
+            self._safe_entry(entry)
+            self._safe_exit(exit_cond)
+
+    return S
+
+
+def _convert_invented_volume_momentum_trend(params, pos_pct, slip_pct):
+    """Volume Momentum Trend: volume breakout + ADX + RSI + ATR trailing stop."""
+    class S(CrabQuantBacktest):
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
+
+        def init(self):
+            p = self._cq_params
+            c = self.data.Close
+            h = self.data.High
+            l = self.data.Low
+            v = self.data.Volume
+            self.vol_avg = self.I(_sma, v, p["volume_sma_len"])
+            self.adx_val = self.I(_adx, h, l, c, p["adx_len"])
+            self.rsi = self.I(_rsi, c, p["rsi_len"])
+            self.atr = self.I(_atr, h, l, c, p["atr_len"])
+
+        def next(self):
+            p = self._cq_params
+            close = self.data.Close[-1]
+            open_ = self.data.Open[-1]
+            vol = self.data.Volume[-1]
+            va = self.vol_avg[-1]
+            adx = self.adx_val[-1]
+            rsi = self.rsi[-1]
+            atr = self.atr[-1]
+
+            if any(np.isnan(v) for v in [va, adx, rsi, atr]):
+                return
+
+            green_candle = close > open_
+            vol_breakout = vol > (va * p["volume_mult"])
+            strong_trend = adx > p["adx_threshold"]
+            rsi_ok = rsi > p["rsi_oversold"]
+            atr_stop = close - (p["atr_mult"] * atr)
+
+            entry = green_candle and strong_trend and rsi_ok and vol_breakout
+            exit_cond = (close < atr_stop) or (rsi > p["rsi_overbought"])
+
+            self._safe_entry(entry)
+            self._safe_exit(exit_cond)
+
+    return S
+
+
+def _convert_invented_volume_roc_atr_trend(params, pos_pct, slip_pct):
+    """Volume ROC ATR Trend: volume spike + ROC momentum + EMA trend + RSI/ATR exits."""
+    class S(CrabQuantBacktest):
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
+
+        def init(self):
+            p = self._cq_params
+            c = self.data.Close
+            h = self.data.High
+            l = self.data.Low
+            v = self.data.Volume
+            self.roc = self.I(_roc, c, p["roc_len"])
+            self.ema = self.I(_ewm_mean, c, p["ema_len"])
+            self.vol_avg = self.I(_sma, v, p["vol_sma_len"])
+            self.atr = self.I(_atr, h, l, c, p["atr_len"])
+            self.rsi = self.I(_rsi, c, p["rsi_len"])
+            self.trailing_high = self.I(_rolling_max, c, p["atr_len"] * 3)
+
+        def next(self):
+            p = self._cq_params
+            close = self.data.Close[-1]
+            roc = self.roc[-1]
+            ema = self.ema[-1]
+            vol = self.data.Volume[-1]
+            va = self.vol_avg[-1]
+            atr = self.atr[-1]
+            rsi = self.rsi[-1]
+            rmax = self.trailing_high[-1]
+
+            if any(np.isnan(v) for v in [roc, ema, va, atr, rsi, rmax]):
+                return
+
+            vol_spike = vol > (va * p["volume_mult"])
+            momentum = roc > 0
+            above_ema = close > ema
+            atr_stop = rmax - (p["atr_mult"] * atr)
+
+            entry = vol_spike and momentum and above_ema
+            exit_cond = (close < atr_stop) or (rsi > p["rsi_overbought"])
+
+            self._safe_entry(entry)
+            self._safe_exit(exit_cond)
+
+    return S
+
+
+def _convert_invented_vpt_roc_ema(params, pos_pct, slip_pct):
+    """VPT ROC EMA: VPT signal + ROC momentum + EMA trend."""
+    class S(CrabQuantBacktest):
+        _cq_params = params
+        _cq_position_pct = pos_pct
+        _cq_slippage_pct = slip_pct
+
+        def init(self):
+            p = self._cq_params
+            c = self.data.Close
+            v = self.data.Volume
+            self.vpt = self.I(_vpt, c, v)
+            self.vpt_signal = self.I(lambda x: _rolling_mean(
+                _vpt(self.data.Close.values, self.data.Volume.values),
+                p["vpt_len"]
+            ), self.data.Close)
+            self.roc = self.I(_roc, c, p["roc_len"])
+            self.ema = self.I(_ewm_mean, c, p["ema_len"])
+
+        def next(self):
+            p = self._cq_params
+            i = len(self.data) - 1
+            if i < 2:
+                return
+            close = self.data.Close[-1]
+            vpt = self.vpt[-1]
+            vpt_prev = self.vpt[-2]
+            sig = self.vpt_signal[-1]
+            sig_prev = self.vpt_signal[-2]
+            roc = self.roc[-1]
+            ema = self.ema[-1]
+
+            if any(np.isnan(v) for v in [vpt, vpt_prev, sig, sig_prev, roc, ema]):
+                return
+
+            vpt_bullish = vpt > sig
+            roc_bullish = roc > p["roc_threshold"]
+            above_ema = close > ema
+            vpt_bearish = (vpt_prev >= sig_prev) and (vpt < sig)
+            roc_bearish = roc < -p["roc_threshold"]
+            below_ema = close < ema
+
+            entry = vpt_bullish and roc_bullish and above_ema
+            exit_cond = vpt_bearish and roc_bearish and below_ema
+
+            self._safe_entry(entry)
+            self._safe_exit(exit_cond)
+
+    return S
+
+
 # ---------------------------------------------------------------------------
 # Registry of all converters
 # ---------------------------------------------------------------------------
@@ -1085,6 +1479,14 @@ _CONVERTERS = {
     "rsi_regime_dip": _convert_rsi_regime_dip,
     "ema_crossover": _convert_ema_crossover,
     "injected_momentum_atr_volume": _convert_injected_momentum_atr_volume,
+    "informed_simple_adaptive": _convert_informed_simple_adaptive,
+    "invented_momentum_confluence": _convert_invented_momentum_confluence,
+    "invented_rsi_volume_atr": _convert_invented_rsi_volume_atr,
+    "invented_volume_adx_ema": _convert_invented_volume_adx_ema,
+    "invented_volume_breakout_adx": _convert_invented_volume_breakout_adx,
+    "invented_volume_momentum_trend": _convert_invented_volume_momentum_trend,
+    "invented_volume_roc_atr_trend": _convert_invented_volume_roc_atr_trend,
+    "invented_vpt_roc_ema": _convert_invented_vpt_roc_ema,
 }
 
 

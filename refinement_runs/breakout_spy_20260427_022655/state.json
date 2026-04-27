@@ -1,0 +1,57 @@
+{
+  "run_id": "breakout_spy_20260427_022655",
+  "mandate_name": "breakout_spy",
+  "created_at": "2026-04-27T09:26:55.435754+00:00",
+  "max_turns": 7,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "SPY",
+    "QQQ",
+    "IWM"
+  ],
+  "period": "2y",
+  "current_turn": 2,
+  "status": "running",
+  "best_sharpe": -0.007327286449673106,
+  "best_turn": 2,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_spy_20260427_022655/strategy_v2.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": -0.407838569637082,
+      "failure_mode": "too_few_trades",
+      "action": "create",
+      "hypothesis": "Index ETFs like SPY, QQQ, IWM exhibit smoother trends than individual stocks, making them ideal for breakout strategies with volume confirmation. Donchian Channel breakouts filtered by above-average volume and a 50 EMA trend filter should capture major trend initiations while avoiding false breakouts. ATR-based trailing stops will protect profits during volatile reversals, keeping drawdown under 20% while targeting 1.0+ Sharpe.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_spy_20260427_022655/strategy_v1.py",
+      "params_used": {
+        "dc_len": 20,
+        "atr_len": 14,
+        "vol_len": 20,
+        "vol_mult": 1.3,
+        "trend_ema": 50,
+        "trail_mult": 2.5
+      },
+      "strategy_hash": "30221eda4545",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "sharpe": -0.007327286449673106,
+      "failure_mode": "regime_fragility",
+      "action": "refine",
+      "hypothesis": "The strategy is far too selective for index ETFs \u2014 requiring simultaneous 20-day Donchian breakout + 1.3x volume spike + 50 EMA trend filter produces only 3 trades in 2 years. Index ETFs like SPY have gradual volume profiles, making volume spike filters too restrictive. Switching to Keltner Channels (EMA + ATR) with a shorter lookback (15 vs 20), removing the volume multiplier requirement (just above average), and using a shorter trend EMA (30 vs 50) will generate 10+ trades while maintaining breakout edge. Exit at channel midpoint (EMA) instead of trailing stop to avoid premature exits on normal pullbacks.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_spy_20260427_022655/strategy_v2.py",
+      "params_used": {
+        "ema_len": 15,
+        "atr_len": 10,
+        "mult": 1.5,
+        "vol_mult": 1.0,
+        "trend_ema": 30
+      },
+      "strategy_hash": "6fc438796374",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}

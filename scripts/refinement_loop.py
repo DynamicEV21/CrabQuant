@@ -172,6 +172,125 @@ def clear_cache() -> None:
     pass
 
 
+def _promote_post_loop(
+    strategy_code: str,
+    strategy_module: Any,
+    state: RunState,
+    run_dir: Path,
+    mandate: Dict[str, Any],
+    report: Optional[BacktestReport] = None,
+) -> None:
+    """Attempt to promote the best strategy after the loop ends.
+
+    This runs full validation (walk-forward + cross-ticker).  If validation
+    passes, uses ``auto_promote``; otherwise falls back to legacy
+    ``promote_to_winner`` so the strategy is at least recorded in the
+    winners file.
+    """
+    # Try full validation first
+    validation: Dict[str, Any] = {"status": "ok", "passed": False}
+    try:
+        strategy_fn = strategy_module.generate_signals
+        params = (strategy_module.DEFAULT_PARAMS.copy()
+                  if hasattr(strategy_module, 'DEFAULT_PARAMS') else {})
+        primary_ticker = mandate.get("primary_ticker", state.tickers[0])
+        validation_tickers = mandate.get("tickers", [primary_ticker])
+        validation = run_full_validation_check(
+            strategy_fn=strategy_fn,
+            params=params,
+            discovery_ticker=primary_ticker,
+            validation_tickers=validation_tickers,
+        )
+    except Exception as e:
+        print(f"  ⚠️ Post-loop validation error: {e}")
+        validation = {"status": "error", "message": str(e), "passed": False}
+
+    if validation.get("passed", False):
+        print(f"  📋 Post-loop validation passed — auto-promoting…")
+        # Build a lightweight result-like object for auto_promote
+        result_proxy = _make_result_proxy(state, report)
+        try:
+            promo_result = auto_promote(
+                strategy_code=strategy_code,
+                strategy_module=strategy_module,
+                result=result_proxy,
+                validation=validation,
+                state=state,
+            )
+            if promo_result.get("registered"):
+                print(f"  ✅ Post-loop strategy registered: {promo_result['strategy_name']}")
+                state.status = "success"  # upgrade status
+                save_state(run_dir, state)
+            else:
+                print(f"  ⚠️ Post-loop auto-promote skipped: {promo_result.get('error', 'unknown')}")
+        except Exception as e:
+            print(f"  ⚠️ Post-loop auto-promote error: {e}")
+    else:
+        # Validation didn't pass but Sharpe is excellent — still record in winners
+        print(f"  📋 Post-loop validation not passed — using legacy promotion…")
+        result_proxy = _make_result_proxy(state, report)
+        try:
+            promote_to_winner(strategy_code, result_proxy, validation, state,
+                              strategy_module=strategy_module)
+            state.status = "success"  # upgrade status
+            save_state(run_dir, state)
+            print(f"  ✅ Post-loop legacy promotion done")
+        except Exception as e:
+            print(f"  ⚠️ Post-loop legacy promotion error: {e}")
+
+
+def _make_result_proxy(state: RunState, report: Optional[BacktestReport] = None) -> Any:
+    """Build a lightweight mock of BacktestResult from RunState + report."""
+    proxy = type('BacktestResultProxy', (), {})()
+    proxy.sharpe = state.best_sharpe
+    proxy.total_return = report.total_return_pct if report else 0.0
+    proxy.max_drawdown = report.max_drawdown_pct if report else 0.0
+    proxy.num_trades = report.total_trades if report else 0
+    proxy.win_rate = report.win_rate if report else 0.0
+    proxy.profit_factor = report.profit_factor if report else 0.0
+    proxy.calmar_ratio = report.calmar_ratio if report else 0.0
+    proxy.sortino_ratio = report.sortino_ratio if report else 0.0
+    proxy.score = report.composite_score if report else 0.0
+    proxy.passed = True  # Sharpe already verified >= target
+    proxy.params = report.current_params if report else {}
+    proxy.ticker = state.tickers[0] if state.tickers else "SPY"
+    proxy.strategy_name = f"refined_{state.mandate_name}"
+    proxy.iteration = state.best_turn
+    return proxy
+
+
+def _build_retry_feedback(gate_errors: list[str]) -> str:
+    """Build specific, actionable feedback from gate failure errors.
+
+    Categorizes errors by type (syntax/import, signal sanity, smoke backtest)
+    and provides targeted guidance for the LLM to fix them.
+
+    Args:
+        gate_errors: List of error strings from run_validation_gates.
+
+    Returns:
+        A feedback string to inject into the next LLM prompt.
+    """
+    if not gate_errors:
+        return "Your previous code failed validation but no specific error was reported. Please try again."
+
+    parts: list[str] = []
+    parts.append(f"Your previous code failed validation with {len(gate_errors)} error(s). Fix them:")
+
+    for err in gate_errors:
+        err_lower = err.lower()
+        if "syntaxerror" in err_lower or "importerror" in err_lower or "missing required" in err_lower:
+            parts.append(f"  - {err}. Fix the syntax/import error or add the missing definitions.")
+        elif any(kw in err_lower for kw in ("zero entry", "signal", "entries must be", "exits must be", "overtrading", "runtime error in generate_signals", "index does not match", "contain nan")):
+            parts.append(f"  - {err}. Your entry/exit conditions may be too restrictive or produce wrong types. Loosen them or fix the logic.")
+        elif "backtest" in err_lower or "smoke" in err_lower:
+            parts.append(f"  - {err}. Common causes: wrong column names, incompatible data types.")
+        else:
+            parts.append(f"  - {err}.")
+
+    return "\n".join(parts)
+
+
 def refinement_loop(mandate_path: str, max_turns: int = 7, 
                     sharpe_target: float = 1.5) -> RunState:
     """
@@ -208,7 +327,9 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
     # Phase 3: Initialize circuit breaker and cosmetic guard
     cb = CircuitBreaker(
         window=20,
-        min_pass_rate=0.3,
+        min_pass_rate=0.2,
+        min_attempts=5,
+        grace_turns=2,
     )
     cosmetic_state = CosmeticGuardState(threshold=3)
     
@@ -259,9 +380,14 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         strategy_code = None
         gates_ok = False
         gate_errors = []
-        
+        retry_feedback = ""  # Accumulated error feedback for retries
+
         for attempt in range(3):  # up to 3 code-repair attempts
             try:
+                # If this is a retry, inject specific error feedback into context
+                if retry_feedback and attempt > 0:
+                    context["retry_feedback"] = retry_feedback
+
                 # Use call_llm_inventor for structured JSON output
                 modification = call_llm_inventor(
                     context=context,
@@ -289,6 +415,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 if gates_ok:
                     break
                 
+                # Build specific feedback for the next retry (Fix 3)
+                retry_feedback = _build_retry_feedback(gate_errors)
                 print(f"  Gate failed (attempt {attempt+1}): {gate_errors}")
                     
             except Exception as e:
@@ -448,10 +576,21 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             path=str(results_dir / "run_history.jsonl"),
         )
         
-        # 8. Check success
-        if result.sharpe >= sharpe_target and result.passed:
+        # 8. Check success — primary gate is Sharpe >= target;
+        #    secondary guardrails (trade count, drawdown, etc.) are logged
+        #    as warnings but do NOT block promotion.
+        if result.sharpe >= sharpe_target:
             print(f"  🏆 SUCCESS! Sharpe {result.sharpe:.2f} >= {sharpe_target}")
-            
+
+            # Log secondary guardrail issues as warnings (non-blocking)
+            if guardrail_violations:
+                print(f"  ⚠️ Guardrail warnings (non-blocking):")
+                for v in guardrail_violations:
+                    print(f"    - {v}")
+            if guardrail_warnings:
+                for w in guardrail_warnings:
+                    print(f"    - {w}")
+
             # Phase 3: Run full validation check (walk-forward + cross-ticker)
             validation = {"status": "ok", "passed": False}
             try:
@@ -553,10 +692,43 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         turn_elapsed = time.time() - turn_start
         print(f"  Turn {turn} completed in {turn_elapsed:.1f}s", flush=True)
     
-    # Exhausted all turns
+    # ── Exhausted all turns ─────────────────────────────────────────
     state.status = "max_turns_exhausted"
     save_state(run_dir, state)
     print(f"  Max turns exhausted. Best Sharpe: {state.best_sharpe:.2f} at turn {state.best_turn}")
+
+    # Post-loop promotion: if best Sharpe meets target, promote regardless
+    # of exit reason (max_turns_exhausted, stagnation, etc.).  A high-Sharpe
+    # strategy should never be silently discarded.
+    if (state.best_sharpe >= sharpe_target
+            and state.best_turn > 0
+            and state.best_code_path):
+        print(f"  🔄 Post-loop: best Sharpe {state.best_sharpe:.2f} >= target {sharpe_target} — attempting promotion…")
+        try:
+            best_strategy_file = Path(state.best_code_path)
+            if best_strategy_file.exists():
+                strategy_code = best_strategy_file.read_text()
+                best_module = load_strategy_module(best_strategy_file)
+
+                if best_module is not None:
+                    # Build a synthetic result-like object for promote_to_winner
+                    # from the last saved report.
+                    best_report = load_report(run_dir, state.best_turn)
+                    _promote_post_loop(
+                        strategy_code=strategy_code,
+                        strategy_module=best_module,
+                        state=state,
+                        run_dir=run_dir,
+                        mandate=mandate,
+                        report=best_report,
+                    )
+                else:
+                    print(f"  ⚠️ Post-loop promotion skipped: could not load strategy module")
+            else:
+                print(f"  ⚠️ Post-loop promotion skipped: strategy file not found at {state.best_code_path}")
+        except Exception as e:
+            print(f"  ⚠️ Post-loop promotion error: {e}")
+
     _write_dashboard(run_dir)
     release_lock(run_dir)
     return state

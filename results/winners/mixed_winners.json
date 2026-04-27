@@ -3020,5 +3020,9 @@
     "ct_generalizes": false,
     "verdict": "MIXED",
     "status": "partial"
+  },
+  {
+    "status": "error",
+    "reason": "Strategy refined_e2e_test_momentum not in registry"
   }
 ]

@@ -522,7 +522,7 @@ class TestFullPipelineE2E:
         """Verify circuit breaker opens when LLM consistently produces invalid code."""
         from crabquant.refinement.circuit_breaker import CircuitBreaker
 
-        cb = CircuitBreaker(window=5, min_pass_rate=0.4)
+        cb = CircuitBreaker(window=5, min_pass_rate=0.4, grace_turns=0, min_attempts=1)
         # 4 failures out of 5 = 20% < 40%
         for _ in range(4):
             cb.record(False, turn=1, mandate="test")

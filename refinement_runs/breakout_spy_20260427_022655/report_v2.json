@@ -1,0 +1,71 @@
+{
+  "strategy_id": "breakout_spy_20260427_022655",
+  "iteration": 2,
+  "sharpe_ratio": -0.007327286449673106,
+  "total_return_pct": -0.0037233509047790727,
+  "max_drawdown_pct": -0.08371073542109073,
+  "win_rate": 0.4444444444444444,
+  "total_trades": 9,
+  "profit_factor": 0.9503756591532868,
+  "calmar_ratio": -0.03242109792125416,
+  "sortino_ratio": -0.009322670611691612,
+  "composite_score": -0.004503830370915418,
+  "failure_mode": "regime_fragility",
+  "failure_details": "Sharpe varies 2.8 across years ({'2024': np.float64(0.7058), '2025': np.float64(0.0009), '2026': np.float64(-2.0886)}). Strategy is regime-dependent.",
+  "sharpe_by_year": {
+    "2024": 0.7058,
+    "2025": 0.0009,
+    "2026": -2.0886
+  },
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    -0.407838569637082
+  ],
+  "previous_actions": [
+    "create"
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: -0.01 < 1.0",
+    "Return too low: -0.4% < 5%",
+    "Profit factor too low: 0.95 < 1.0"
+  ],
+  "guardrail_warnings": [
+    "Low trade count: 9 (marginal statistical significance)",
+    "Win rate below 50%: 44.4% (relies on large winners)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nKeltner Channel Breakout for Index ETFs\n\nATR-based channel breakout with relaxed filters for broad market ETFs.\nOptimized for SPY, QQQ, IWM.\n\"\"\"\n\nimport pandas as pd\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"ema_len\": 15,\n    \"atr_len\": 10,\n    \"mult\": 1.5,\n    \"vol_mult\": 1.0,\n    \"trend_ema\": 30,\n}\n\n\nDESCRIPTION = (\n    \"Keltner Channel breakout for index ETFs with relaxed volume filter. \"\n    \"Enters when price breaks above upper channel (EMA + ATR*mult) with \"\n    \"volume above average and price above trend EMA. Shorter lookback (15) \"\n    \"than Donchian for more signals. Exits at channel midpoint (EMA).\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n    volume = df[\"volume\"]\n\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    atr = cached_indicator(\"atr\", high, low, close, length=p[\"atr_len\"])\n\n    upper = ema + atr * p[\"mult\"]\n\n    breakout = close > upper.shift(1)\n    vol_confirm = volume > volume.rolling(20).mean() * p[\"vol_mult\"]\n    trend_filter = close > cached_indicator(\"ema\", close, length=p[\"trend_ema\"])\n\n    entries = (breakout & vol_confirm & trend_filter).fillna(False)\n    exits = (close < ema).fillna(False)\n\n    return entries, exits",
+  "current_params": {
+    "ema_len": 15,
+    "atr_len": 10,
+    "mult": 1.5,
+    "vol_mult": 1.0,
+    "trend_ema": 30
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": -0.407838569637082,
+      "failure_mode": "too_few_trades",
+      "action": "create",
+      "hypothesis": "Index ETFs like SPY, QQQ, IWM exhibit smoother trends than individual stocks, making them ideal for breakout strategies with volume confirmation. Donchian Channel breakouts filtered by above-average volume and a 50 EMA trend filter should capture major trend initiations while avoiding false breakouts. ATR-based trailing stops will protect profits during volatile reversals, keeping drawdown under 20% while targeting 1.0+ Sharpe.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_spy_20260427_022655/strategy_v1.py",
+      "params_used": {
+        "dc_len": 20,
+        "atr_len": 14,
+        "vol_len": 20,
+        "vol_mult": 1.3,
+        "trend_ema": 50,
+        "trail_mult": 2.5
+      },
+      "strategy_hash": "30221eda4545",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "volatility_tsla",
+  "description": "High volatility strategy using ATR, Bollinger Band width, and volatility-scaled entries/exits on TSLA. Exploits Tesla's extreme volatility with adaptive position sizing and regime-aware signals.",
+  "strategy_archetype": "volatility",
+  "tickers": ["TSLA", "RIVN", "SPY"],
+  "primary_ticker": "TSLA",
+  "period": "2y",
+  "sharpe_target": 1.2,
+  "max_turns": 7,
+  "constraints": {
+    "max_parameters": 8,
+    "min_trades": 15,
+    "max_drawdown_pct": 30
+  }
+}

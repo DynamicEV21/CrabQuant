@@ -569,7 +569,8 @@
     "GOOGL|roc_ema_volume|abc569144c5b",
     "GOOGL|roc_ema_volume|c061d91cebbf",
     "GOOGL|roc_ema_volume|4949c7f76cbe",
-    "GOOGL|roc_ema_volume|1029ad9551b2"
+    "GOOGL|roc_ema_volume|1029ad9551b2",
+    "AAPL|refined_e2e_test_momentum|44136fa355b3"
   ],
   "total_runs": 459,
   "total_winners": 8156,

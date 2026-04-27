@@ -1,5 +1,11 @@
 """
 Strategy invention and improvement system.
+
+.. deprecated:: 0.3
+    This module is being phased out in favor of the refinement pipeline
+    (``crabquant.refinement``). The functions below use hardcoded mock data
+    and do not reflect the current state of the codebase. For strategy
+    invention, use ``crabquant.refinement`` instead.
 """
 
 import json
@@ -14,7 +20,12 @@ RESULTS_DIR = Path(__file__).parent.parent / "results"
 
 
 def analyze_market_data(tickers: list = None) -> dict:
-    """Analyze market data to identify regimes and patterns."""
+    """Analyze market data to identify regimes and patterns.
+
+    .. deprecated:: 0.3
+        Returns hardcoded mock data. Use ``crabquant.refinement`` for
+        real market analysis.
+    """
     
     # Mock analysis for now - in reality this would analyze actual market data
     return {
@@ -68,7 +79,12 @@ def get_market_regime_summary() -> str:
 
 
 def test_strategy_code(strategy_code: str, strategy_name: str) -> bool:
-    """Test if strategy code can be imported and has required functions."""
+    """Test if strategy code can be imported and has required functions.
+
+    .. deprecated:: 0.3
+        Checks for ``generate_signals_matrix`` which is missing from most
+        strategies. Use ``crabquant.refinement`` for strategy validation.
+    """
     try:
         # Create temporary file for the strategy
         with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:

@@ -1,0 +1,75 @@
+{
+  "run_id": "breakout_spy_20260427_023514",
+  "mandate_name": "breakout_spy",
+  "created_at": "2026-04-27T09:35:14.752654+00:00",
+  "max_turns": 7,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "SPY",
+    "QQQ",
+    "IWM"
+  ],
+  "period": "2y",
+  "current_turn": 3,
+  "status": "running",
+  "best_sharpe": 0.4833610139102345,
+  "best_turn": 2,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_spy_20260427_023514/strategy_v2.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": -0.407838569637082,
+      "failure_mode": "too_few_trades",
+      "action": "create",
+      "hypothesis": "Broad market indices like SPY trend smoothly with fewer false breakouts than individual stocks. A Donchian Channel breakout with ATR-based trailing stops and volume confirmation should capture major trend moves while avoiding choppy whipsaws. Using a shorter channel for entries (15-day) and longer ATR lookback for stops will be responsive to index volatility regimes.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_spy_20260427_023514/strategy_v1.py",
+      "params_used": {
+        "dc_len": 15,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "vol_len": 20,
+        "vol_mult": 1.3,
+        "trend_ema": 50
+      },
+      "strategy_hash": "7218a973d23d",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "sharpe": 0.4833610139102345,
+      "failure_mode": "regime_fragility",
+      "action": "refine",
+      "hypothesis": "The Donchian Channel with triple confirmation (breakout + volume spike + EMA filter) is far too selective for SPY, yielding only 3 trades. Switching to Keltner Channels (EMA + ATR) with a lower multiplier generates more frequent breakouts since the bands are tighter and more responsive. Removing the volume filter and shortening the trend EMA from 50 to 30 further reduces selectivity. The exit at channel midpoint (EMA) is also more forgiving than the ATR trailing stop, allowing trades more room to breathe.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_spy_20260427_023514/strategy_v2.py",
+      "params_used": {
+        "ema_len": 10,
+        "atr_len": 10,
+        "mult": 1.5,
+        "trend_ema": 30
+      },
+      "strategy_hash": "8c7894f9bdab",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 3,
+      "sharpe": 0.48000169476171634,
+      "failure_mode": "regime_fragility",
+      "action": "refine",
+      "hypothesis": "The regime fragility stems from entering Keltner breakouts during low-volatility choppy periods where breakouts are false signals. In 2024-2025, SPY was range-bound with contracting ATR, so breakouts above the channel were whipsaws. In 2026, genuine trend expansion had rising ATR. Adding an ATR expansion filter (ATR > 20-day ATR SMA) ensures we only enter breakouts when volatility is genuinely expanding \u2014 a hallmark of real trend initiation. Adding RSI < 65 prevents buying at overbought tops during weak breakouts. These filters directly target the false breakout pattern without being so restrictive that trade count drops below 10.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_spy_20260427_023514/strategy_v3.py",
+      "params_used": {
+        "ema_len": 10,
+        "atr_len": 10,
+        "mult": 1.5,
+        "trend_ema": 30,
+        "rsi_len": 14,
+        "rsi_max": 65,
+        "vol_sma_len": 20
+      },
+      "strategy_hash": "d97dd62db32a",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}

@@ -1,0 +1,73 @@
+{
+  "strategy_id": "mean_reversion_nflx_20260427_023855",
+  "iteration": 2,
+  "sharpe_ratio": 0.6278160282217591,
+  "total_return_pct": 0.177535951477239,
+  "max_drawdown_pct": -0.3062642737182599,
+  "win_rate": 0.6666666666666666,
+  "total_trades": 9,
+  "profit_factor": 1.5027241944274026,
+  "calmar_ratio": 0.4128432586965737,
+  "sortino_ratio": 1.103198944026539,
+  "composite_score": 0.29216804633779103,
+  "failure_mode": "excessive_drawdown",
+  "failure_details": "Max drawdown -30.6% exceeds 30% threshold.",
+  "sharpe_by_year": {
+    "2024": 0.836,
+    "2025": 1.1289,
+    "2026": -1.7263
+  },
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    -0.3338885835313783
+  ],
+  "previous_actions": [
+    "new_strategy"
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: 0.63 < 1.0",
+    "Drawdown too deep: -30.6% > 25%"
+  ],
+  "guardrail_warnings": [
+    "Low trade count: 9 (marginal statistical significance)",
+    "Sharpe near threshold: 0.63 (close to 1.0)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "import pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"bb_len\": 20,\n    \"bb_std\": 1.5,\n    \"rsi_len\": 14,\n    \"rsi_oversold\": 40,\n    \"stoch_len\": 14,\n    \"stoch_oversold\": 30,\n    \"near_band_pct\": 0.02,\n}\n\nDESCRIPTION = (\n    \"Relaxed mean reversion using 2-of-3 confluence: BB near lower band, \"\n    \"RSI oversold, Stochastic oversold. Wider BB (1.5 std) and looser \"\n    \"thresholds increase trade frequency. Exits on BB middle reversion.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    bb = cached_indicator(\"bbands\", close, length=p[\"bb_len\"], std=p[\"bb_std\"])\n    bbl = bb[[c for c in bb.columns if c.startswith(\"BBL\")][0]]\n    bbm = bb[[c for c in bb.columns if c.startswith(\"BBM\")][0]]\n\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n    stoch = cached_indicator(\"stoch\", df[\"high\"], df[\"low\"], close, k=p[\"stoch_len\"], d=3, smooth_k=3)\n    stoch_k = stoch[[c for c in stoch.columns if c.startswith(\"STOCHk\")][0]]\n\n    band_range = bbm - bbl\n    near_lower = close <= (bbl + band_range * p[\"near_band_pct\"])\n    rsi_oversold = rsi < p[\"rsi_oversold\"]\n    stoch_oversold = stoch_k < p[\"stoch_oversold\"]\n\n    confluence = rsi_oversold.astype(int) + stoch_oversold.astype(int) + near_lower.astype(int)\n    entries = (near_lower & (confluence >= 2)).fillna(False)\n\n    exits = (close >= bbm).fillna(False)\n\n    return entries, exits",
+  "current_params": {
+    "bb_len": 20,
+    "bb_std": 1.5,
+    "rsi_len": 14,
+    "rsi_oversold": 40,
+    "stoch_len": 14,
+    "stoch_oversold": 30,
+    "near_band_pct": 0.02
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": -0.3338885835313783,
+      "failure_mode": "too_few_trades",
+      "action": "new_strategy",
+      "hypothesis": "NFLX exhibits volatile price swings that overshoot Bollinger Band boundaries. Combining BB lower band touches with RSI oversold and Stochastic oversold creates high-conviction mean reversion entries. Exiting on mean reversion (BB mid) or RSI overbought captures the snapback move while limiting drawdown.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/mean_reversion_nflx_20260427_023855/strategy_v1.py",
+      "params_used": {
+        "bb_len": 20,
+        "bb_std": 2.0,
+        "rsi_len": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "stoch_len": 14,
+        "stoch_oversold": 20
+      },
+      "strategy_hash": "9a092037567a",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

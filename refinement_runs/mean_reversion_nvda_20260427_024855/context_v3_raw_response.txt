@@ -1,0 +1,18 @@
+```json
+{
+  "action": "propose",
+  "hypothesis": "The 32.7% drawdown comes from entering mean-reversion trades during actual downtrends (catching falling knives) with no stop loss. The 5-trade count is low because 2.0 std BB is too tight for volatile semis. Three fixes: (1) Widen BB to 1.5 std to generate more entry signals since NVDA/AMD regularly probe 1.5 std bands. (2) Add EMA-50 trend filter — only mean-revert when price is above the 50 EMA, avoiding the catastrophic drawdown trades that occur in true downtrends. (3) Add ATR-based stop loss (close < lower BB - 1.5*ATR) to cap losses on any single trade that keeps falling. Also lower exit RSI from 60 to 50 and add BB-mid exit for faster profit-taking. Expect: 15+ trades, drawdown under 25%, Sharpe above 1.2.",
+  "new_strategy_code": "import pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"bb_len\": 20,\n    \"bb_std\": 1.5,\n    \"rsi_len\": 14,\n    \"rsi_entry\": 35,\n    \"stoch_k\": 14,\n    \"stoch_entry\": 25,\n    \"exit_rsi\": 50,\n    \"atr_stop\": 1.5,\n}\n\nDESCRIPTION = (\n    \"Mean reversion with 1.5 std BB for more entries on volatile semis. \"\n    \"EMA-50 trend filter avoids catching falling knives. \"\n    \"ATR stop loss caps drawdown. Exits on RSI > 50 or price > BB mid.\"\n)\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    ema50 = close.ewm(span=50, adjust=False).mean()\n    in_uptrend = close > ema50\n\n    bb = cached_indicator(\"bbands\", close, length=p[\"bb_len\"], std=p[\"bb_std\"])\n    bbl = bb[[c for c in bb.columns if c.startswith(\"BBL\")][0]]\n    bbm = bb[[c for c in bb.columns if c.startswith(\"BBM\")][0]]\n\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n\n    stoch = cached_indicator(\"stoch\", df[\"high\"], df[\"low\"], close, k=p[\"stoch_k\"], d=3)\n    stoch_k = stoch[[c for c in stoch.columns if c.startswith(\"STOCHk\")][0]]\n\n    atr = cached_indicator(\"atr\", df[\"high\"], df[\"low\"], close, length=14)\n\n    bb_oversold = close < bbl\n    rsi_oversold = rsi < p[\"rsi_entry\"]\n    stoch_oversold = stoch_k < p[\"stoch_entry\"]\n\n    entries = (bb_oversold & (rsi_oversold | stoch_oversold) & in_uptrend).fillna(False)\n\n    stop_hit = close < (bbl - p[\"atr_stop\"] * atr)\n    exits = ((rsi > p[\"exit_rsi\"]) | (close > bbm) | stop_hit).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "bb_len": 20,
+    "bb_std": 1.5,
+    "rsi_len": 14,
+    "rsi_entry": 35,
+    "stoch_k": 14,
+    "stoch_entry": 25,
+    "exit_rsi": 50,
+    "atr_stop": 1.5
+  },
+  "expected_impact": "Wider BB (1.5→1.5 std) should roughly double entry frequency from 5 to 10-15+ trades. EMA-50 trend filter eliminates the worst drawdown trades (falling-knife scenarios), expected to cut max drawdown from -32.7% to under -20%. ATR stop loss provides a hard floor on individual trade losses. Faster exits (RSI 50, BB mid) reduce time-in-market and exposure. Net effect: more trades, significantly lower drawdown, Sharpe improvement to 1.3+."
+}
+```

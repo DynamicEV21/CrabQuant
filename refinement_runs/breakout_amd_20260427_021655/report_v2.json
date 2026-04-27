@@ -1,0 +1,70 @@
+{
+  "strategy_id": "breakout_amd_20260427_021655",
+  "iteration": 2,
+  "sharpe_ratio": 0.4878684864990204,
+  "total_return_pct": 0.1785882098264224,
+  "max_drawdown_pct": -0.3731690363724004,
+  "win_rate": 0.3333333333333333,
+  "total_trades": 12,
+  "profit_factor": 1.2478434590165663,
+  "calmar_ratio": 0.3407903365601154,
+  "sortino_ratio": 0.7879349507896308,
+  "composite_score": 0.2368802389624388,
+  "failure_mode": "excessive_drawdown",
+  "failure_details": "Max drawdown -37.3% exceeds 30% threshold.",
+  "sharpe_by_year": {
+    "2024": -0.984,
+    "2025": 1.3105,
+    "2026": -0.599
+  },
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    0.703084793928381
+  ],
+  "previous_actions": [
+    "new_strategy"
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: 0.49 < 1.0",
+    "Drawdown too deep: -37.3% > 25%"
+  ],
+  "guardrail_warnings": [
+    "Sharpe near threshold: 0.49 (close to 1.0)",
+    "Win rate below 50%: 33.3% (relies on large winners)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nDonchian Volume Breakout with Trend Filter\n\nDonchian Channel breakout with volume confirmation and EMA trend filter.\nExits at channel midpoint for tight risk control on volatile semis.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"dc_len\": 15,\n    \"vol_len\": 20,\n    \"vol_mult\": 1.2,\n    \"trend_ema\": 30,\n}\n\nDESCRIPTION = (\n    \"Donchian Channel breakout with volume confirmation and EMA trend filter. \"\n    \"Enters when price breaks above N-day high with volume spike and price above \"\n    \"trend EMA. Exits at channel midpoint for fast risk control on failed breakouts. \"\n    \"Shorter channel and relaxed filters increase trade count for AMD volatility.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n    volume = df[\"volume\"]\n\n    donch_high = high.rolling(p[\"dc_len\"]).max()\n    donch_low = low.rolling(p[\"dc_len\"]).min()\n    dc_mid = (donch_high + donch_low) / 2\n\n    breakout = close > donch_high.shift(1)\n    vol_spike = volume > volume.rolling(p[\"vol_len\"]).mean() * p[\"vol_mult\"]\n    trend = close > cached_indicator(\"ema\", close, length=p[\"trend_ema\"])\n\n    entries = (breakout & vol_spike & trend).fillna(False)\n    exits = (close < dc_mid).fillna(False)\n\n    return entries, exits",
+  "current_params": {
+    "dc_len": 15,
+    "vol_len": 20,
+    "vol_mult": 1.2,
+    "trend_ema": 30
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": 0.703084793928381,
+      "failure_mode": "excessive_drawdown",
+      "action": "new_strategy",
+      "hypothesis": "AMD and other high-beta semiconductors exhibit explosive range expansions that can be captured with ATR-based Keltner Channel breakouts. By requiring ROC momentum confirmation and volume spikes, we filter out false breakouts. Tight ATR trailing stops (2.5x) limit drawdown on volatile whipsaws while letting winners run. The 50 EMA trend filter ensures we only trade in the direction of the broader trend.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/breakout_amd_20260427_021655/strategy_v1.py",
+      "params_used": {
+        "ema_len": 15,
+        "atr_len": 10,
+        "channel_mult": 1.8,
+        "vol_mult": 1.3,
+        "roc_len": 10,
+        "trail_mult": 2.5,
+        "trend_ema": 50
+      },
+      "strategy_hash": "7844de58983f",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

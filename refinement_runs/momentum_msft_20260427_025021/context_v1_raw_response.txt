@@ -1,0 +1,18 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "MSFT exhibits sustained trend moves where momentum acceleration (MACD histogram turning positive) combined with RSI pullback timing avoids buying at tops. The EMA trend filter ensures we only trade in the dominant direction, while volume confirmation validates institutional participation. This confluence should capture MSFT's characteristic trend accelerations while the histogram-based exits provide timely risk management to stay under 22% drawdown.",
+  "new_strategy_code": "\"\"\"\nMSFT Momentum Strategy\n\nMACD momentum acceleration with RSI pullback timing and EMA trend filter.\nDesigned for large cap tech sustained trending moves.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"ema_len\": 50,\n    \"macd_fast\": 12,\n    \"macd_slow\": 26,\n    \"macd_signal\": 9,\n    \"rsi_len\": 14,\n    \"rsi_max\": 65,\n    \"volume_window\": 20,\n    \"volume_mult\": 1.1,\n}\n\nDESCRIPTION = (\n    \"MACD momentum acceleration with RSI pullback timing and EMA trend filter. \"\n    \"Enters when MACD histogram turns positive, price above EMA, RSI below overbought, \"\n    \"and volume above average. Exits on MACD histogram turning negative. \"\n    \"Optimized for MSFT sustained trend moves.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    macd = cached_indicator(\"macd\", close, fast=p[\"macd_fast\"], slow=p[\"macd_slow\"], signal=p[\"macd_signal\"])\n    hist_col = f\"MACDh_{p['macd_fast']}_{p['macd_slow']}_{p['macd_signal']}\"\n    hist = macd[hist_col]\n    hist_prev = hist.shift(1)\n    mom_turn = (hist_prev <= 0) & (hist > 0)\n\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n    rsi_ok = rsi < p[\"rsi_max\"]\n\n    vol_avg = cached_indicator(\"sma\", volume, length=p[\"volume_window\"])\n    vol_ok = volume > (vol_avg * p[\"volume_mult\"])\n\n    entries = (trend_ok & mom_turn & rsi_ok & vol_ok).fillna(False)\n    exits = ((hist_prev > 0) & (hist <= 0)).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "ema_len": 50,
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_signal": 9,
+    "rsi_len": 14,
+    "rsi_max": 65,
+    "volume_window": 20,
+    "volume_mult": 1.1
+  },
+  "expected_impact": "Expected Sharpe 1.2-1.8 on MSFT with 15-25 trades over 2 years. RSI filter at 65 should prevent late entries during overbought conditions, reducing drawdown below 22%. Volume multiplier at 1.1 is conservative to ensure enough signals while still filtering low-conviction moves. Histogram zero-cross entries capture fresh momentum acceleration typical of MSFT's trend phases."
+}
+```

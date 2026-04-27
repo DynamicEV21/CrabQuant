@@ -142,22 +142,27 @@ class TestExtractJsonFromLlm:
 class TestCallZaiLlm:
     """Test the z.ai API call function (mocked HTTP)."""
 
-    def _mock_response(self, content="test response"):
-        """Create a mock urllib response."""
+    def _make_mock_response(self, content="test response", status_code=200):
+        """Create a mock httpx response."""
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
+        mock_resp.status_code = status_code
+        mock_resp.json.return_value = {
             "choices": [{"message": {"content": content}}]
-        }).encode()
-        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
-        mock_resp.__exit__ = MagicMock(return_value=False)
+        }
+        mock_resp.raise_for_status.return_value = None
         return mock_resp
 
     def test_returns_content(self):
         from crabquant.refinement.llm_api import call_zai_llm
 
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.post.return_value = self._make_mock_response("Hello from LLM")
+
         with patch("crabquant.refinement.llm_api.load_api_config",
                    return_value={"base_url": "https://api.test.com", "api_key": "key"}):
-            with patch("urllib.request.urlopen", return_value=self._mock_response("Hello from LLM")):
+            with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
                 result = call_zai_llm([{"role": "user", "content": "hi"}])
                 assert result == "Hello from LLM"
 
@@ -166,14 +171,19 @@ class TestCallZaiLlm:
 
         captured = {}
 
-        def mock_urlopen(req, timeout=120):
-            payload = json.loads(req.data.decode())
-            captured["model"] = payload["model"]
-            return self._mock_response()
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+
+        def mock_post(url, json=None, headers=None):
+            captured["model"] = json["model"]
+            return self._make_mock_response()
+
+        mock_client.post.side_effect = mock_post
 
         with patch("crabquant.refinement.llm_api.load_api_config",
                    return_value={"base_url": "https://api.test.com", "api_key": "key"}):
-            with patch("urllib.request.urlopen", side_effect=mock_urlopen):
+            with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
                 call_zai_llm([{"role": "user", "content": "hi"}], model="glm-5.1")
                 assert captured["model"] == "glm-5.1"
 
@@ -182,14 +192,19 @@ class TestCallZaiLlm:
 
         captured = {}
 
-        def mock_urlopen(req, timeout=120):
-            payload = json.loads(req.data.decode())
-            captured["temperature"] = payload["temperature"]
-            return self._mock_response()
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+
+        def mock_post(url, json=None, headers=None):
+            captured["temperature"] = json["temperature"]
+            return self._make_mock_response()
+
+        mock_client.post.side_effect = mock_post
 
         with patch("crabquant.refinement.llm_api.load_api_config",
                    return_value={"base_url": "https://api.test.com", "api_key": "key"}):
-            with patch("urllib.request.urlopen", side_effect=mock_urlopen):
+            with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
                 call_zai_llm([{"role": "user", "content": "hi"}], temperature=0.3)
                 assert captured["temperature"] == 0.3
 
@@ -197,45 +212,72 @@ class TestCallZaiLlm:
         from crabquant.refinement.llm_api import call_zai_llm
 
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({"choices": []}).encode()
-        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
-        mock_resp.__exit__ = MagicMock(return_value=False)
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"choices": []}
+        mock_resp.raise_for_status.return_value = None
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.post.return_value = mock_resp
 
         with patch("crabquant.refinement.llm_api.load_api_config",
                    return_value={"base_url": "https://api.test.com", "api_key": "key"}):
-            with patch("urllib.request.urlopen", return_value=mock_resp):
+            with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
                 with pytest.raises(ValueError, match="Unexpected API response"):
                     call_zai_llm([{"role": "user", "content": "hi"}])
 
-    def test_timeout_propagated(self):
+    def test_retries_on_server_error(self):
         from crabquant.refinement.llm_api import call_zai_llm
+        import httpx
 
-        captured = {}
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
 
-        def mock_urlopen(req, timeout=120):
-            captured["timeout"] = timeout
-            return self._mock_response()
+        # First 2 calls fail with 500, 3rd succeeds
+        err_resp = MagicMock()
+        err_resp.status_code = 500
+        err_resp.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "Server Error", request=MagicMock(), response=err_resp
+        )
+        mock_client.post.side_effect = [
+            err_resp,
+            err_resp,
+            self._make_mock_response("OK after retries"),
+        ]
 
         with patch("crabquant.refinement.llm_api.load_api_config",
                    return_value={"base_url": "https://api.test.com", "api_key": "key"}):
-            with patch("urllib.request.urlopen", side_effect=mock_urlopen):
-                call_zai_llm([{"role": "user", "content": "hi"}], timeout=60)
-                assert captured["timeout"] == 60
+            with patch("crabquant.refinement.llm_api.time.sleep") as mock_sleep:
+                with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
+                    result = call_zai_llm([{"role": "user", "content": "hi"}])
+                    assert result == "OK after retries"
+                    assert mock_client.post.call_count == 3
+                    assert mock_sleep.call_count == 2
 
 
 class TestCallLlmInventor:
     """Test the high-level inventor call function."""
 
     def _mock_llm_response(self, json_dict):
-        """Create a mock that returns JSON-wrapped LLM response."""
+        """Create a mock that returns JSON-wrapped LLM response via httpx."""
         content = f"```json\n{json.dumps(json_dict)}\n```"
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
             "choices": [{"message": {"content": content}}]
-        }).encode()
-        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
-        mock_resp.__exit__ = MagicMock(return_value=False)
+        }
+        mock_resp.raise_for_status.return_value = None
         return mock_resp
+
+    def _mock_client(self, response):
+        """Create a mock httpx Client that returns the given response."""
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.post.return_value = response
+        return mock_client
 
     def test_returns_parsed_dict(self):
         from crabquant.refinement.llm_api import call_llm_inventor
@@ -250,8 +292,8 @@ class TestCallLlmInventor:
 
         with patch("crabquant.refinement.llm_api.load_api_config",
                    return_value={"base_url": "https://api.test.com", "api_key": "key"}):
-            with patch("urllib.request.urlopen",
-                       return_value=self._mock_llm_response(expected)):
+            with patch("crabquant.refinement.llm_api.httpx.Client",
+                       return_value=self._mock_client(self._mock_llm_response(expected))):
                 result = call_llm_inventor({
                     "backtest_report": {"sharpe": 0.8},
                     "failure_mode": "low_sharpe",
@@ -262,9 +304,14 @@ class TestCallLlmInventor:
     def test_returns_none_on_api_error(self):
         from crabquant.refinement.llm_api import call_llm_inventor
 
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.post.side_effect = Exception("Network error")
+
         with patch("crabquant.refinement.llm_api.load_api_config",
                    return_value={"base_url": "https://api.test.com", "api_key": "key"}):
-            with patch("urllib.request.urlopen", side_effect=Exception("Network error")):
+            with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
                 result = call_llm_inventor({"failure_mode": "low_sharpe"})
                 assert result is None
 
@@ -272,15 +319,16 @@ class TestCallLlmInventor:
         from crabquant.refinement.llm_api import call_llm_inventor
 
         mock_resp = MagicMock()
-        mock_resp.read.return_value = json.dumps({
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
             "choices": [{"message": {"content": "No JSON here at all!"}}]
-        }).encode()
-        mock_resp.__enter__ = MagicMock(return_value=mock_resp)
-        mock_resp.__exit__ = MagicMock(return_value=False)
+        }
+        mock_resp.raise_for_status.return_value = None
 
         with patch("crabquant.refinement.llm_api.load_api_config",
                    return_value={"base_url": "https://api.test.com", "api_key": "key"}):
-            with patch("urllib.request.urlopen", return_value=mock_resp):
+            with patch("crabquant.refinement.llm_api.httpx.Client",
+                       return_value=self._mock_client(mock_resp)):
                 result = call_llm_inventor({"failure_mode": "low_sharpe"})
                 assert result is None
 
@@ -289,14 +337,19 @@ class TestCallLlmInventor:
 
         captured = {}
 
-        def mock_urlopen(req, timeout=120):
-            payload = json.loads(req.data.decode())
-            captured["messages"] = payload["messages"]
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+
+        def mock_post(url, json=None, headers=None):
+            captured["messages"] = json["messages"]
             return self._mock_llm_response({"action": "novel"})
+
+        mock_client.post.side_effect = mock_post
 
         with patch("crabquant.refinement.llm_api.load_api_config",
                    return_value={"base_url": "https://api.test.com", "api_key": "key"}):
-            with patch("urllib.request.urlopen", side_effect=mock_urlopen):
+            with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
                 call_llm_inventor({"prompt": "Invent a strategy using RSI"})
                 user_msg = captured["messages"][1]["content"]
                 assert "Invent a strategy using RSI" in user_msg
@@ -309,9 +362,9 @@ class TestCallLlmInventor:
 
         with patch("crabquant.refinement.llm_api.load_api_config",
                    return_value={"base_url": "https://api.test.com", "api_key": "key"}):
-            with patch("urllib.request.urlopen",
-                       return_value=self._mock_llm_response({"action": "novel"})):
+            with patch("crabquant.refinement.llm_api.httpx.Client",
+                       return_value=self._mock_client(self._mock_llm_response({"action": "novel"}))):
                 call_llm_inventor(context, context_path=context_path)
-        
+
         saved = json.loads(Path(context_path).read_text())
         assert saved["failure_mode"] == "low_sharpe"

@@ -8,10 +8,10 @@ import json
 import logging
 import re
 import time
-import urllib.request
-import urllib.error
 from pathlib import Path
 from typing import Optional
+
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -38,19 +38,20 @@ def call_zai_llm(
     timeout: int = 180,
 ) -> str:
     """Call z.ai API. Returns raw text response.
-    
+
     Args:
         messages: OpenAI-format messages list
         model: model name (without zai/ prefix)
         max_tokens: max response tokens
         temperature: sampling temperature
-        timeout: request timeout in seconds
-    
+        timeout: overall request timeout in seconds (supersedes connect/read timeouts)
+
     Returns:
         Raw text content from the API response.
-    
+
     Raises:
-        urllib.error.URLError: on network errors
+        httpx.HTTPStatusError: on non-retryable HTTP errors
+        httpx.ConnectTimeout / httpx.ReadTimeout: on timeouts after retries
         ValueError: on unexpected response format
     """
     cfg = load_api_config()
@@ -61,51 +62,65 @@ def call_zai_llm(
         "max_tokens": max_tokens,
         "temperature": temperature,
     }
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode(),
-        headers={
-            "Authorization": f"Bearer {cfg['api_key']}",
-            "Content-Type": "application/json",
-        },
-    )
-    # Retry loop for transient errors
-    max_retries = 2
-    backoff_times = [5, 10]
+    headers = {
+        "Authorization": f"Bearer {cfg['api_key']}",
+        "Content-Type": "application/json",
+    }
+
+    # Exponential backoff: 2s, 4s, 8s (3 retries)
+    max_retries = 3
+    backoff_delays = [2, 4, 8]
     last_error = None
-    
+
     for attempt in range(max_retries + 1):
         try:
             t0 = time.time()
             print(f"  Calling LLM...", flush=True)
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                result = json.loads(resp.read())
+            with httpx.Client(
+                timeout=httpx.Timeout(
+                    connect=30.0,
+                    read=120.0,
+                    write=30.0,
+                    pool=30.0,
+                ),
+            ) as client:
+                resp = client.post(url, json=payload, headers=headers)
+                resp.raise_for_status()
+                result = resp.json()
             elapsed = time.time() - t0
             print(f"  LLM responded in {elapsed:.1f}s", flush=True)
             break
-        except urllib.error.HTTPError as e:
-            # Only retry on 5xx server errors
-            if e.code >= 500 and attempt < max_retries:
-                last_error = e
-                backoff = backoff_times[attempt]
-                print(f"  LLM call failed (HTTP {e.code}), retry {attempt+1}/{max_retries} in {backoff}s...", flush=True)
+        except (httpx.ConnectTimeout, httpx.ReadTimeout, httpx.ConnectError) as e:
+            last_error = e
+            if attempt < max_retries:
+                backoff = backoff_delays[attempt]
+                print(
+                    f"  LLM call failed ({type(e).__name__}), "
+                    f"retry {attempt + 1}/{max_retries} in {backoff}s...",
+                    flush=True,
+                )
                 time.sleep(backoff)
                 continue
             raise
-        except urllib.error.URLError as e:
-            if attempt < max_retries:
+        except httpx.HTTPStatusError as e:
+            # Retry on 5xx server errors only
+            if e.response.status_code >= 500 and attempt < max_retries:
                 last_error = e
-                backoff = backoff_times[attempt]
-                print(f"  LLM call timed out, retry {attempt+1}/{max_retries} in {backoff}s...", flush=True)
+                backoff = backoff_delays[attempt]
+                print(
+                    f"  LLM call failed (HTTP {e.response.status_code}), "
+                    f"retry {attempt + 1}/{max_retries} in {backoff}s...",
+                    flush=True,
+                )
                 time.sleep(backoff)
                 continue
             raise
     else:
-        raise last_error  # Should not reach here, but safety net
-    
+        raise last_error  # Safety net
+
     if "choices" not in result or not result["choices"]:
         raise ValueError(f"Unexpected API response: {json.dumps(result)[:200]}")
-    
+
     return result["choices"][0]["message"]["content"]
 
 
