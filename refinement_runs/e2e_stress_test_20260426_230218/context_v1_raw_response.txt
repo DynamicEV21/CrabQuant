@@ -1,0 +1,16 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "SPY momentum with ROC direction, EMA trend filter, and volume confirmation should capture intermediate-term trends. ATR trailing stop limits drawdown. This is a stress test to verify momentum works on broad market ETF with tight risk constraints.",
+  "new_strategy_code": "\"\"\"\nROC EMA Volume Momentum Strategy for SPY\n\nMomentum entry with trend filter and volume confirmation.\nATR trailing stop for drawdown control.\n\"\"\"\n\nimport pandas as pd\n\nfrom crabquant.indicator_cache import cached_indicator\n\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 21,\n    \"ema_len\": 50,\n    \"volume_len\": 20,\n    \"volume_mult\": 1.1,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.5,\n}\n\n\nDESCRIPTION = (\n    \"ROC momentum with EMA trend filter and volume confirmation. \"\n    \"Enters when ROC turns positive, price above EMA, volume above average. \"\n    \"Exits via ATR trailing stop (high minus ATR * mult). \"\n    \"Designed for SPY with strict drawdown control.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    volume = df[\"volume\"]\n\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    vol_avg = cached_indicator(\"sma\", volume, length=p[\"volume_len\"])\n    atr = cached_indicator(\"atr\", df[\"high\"], df[\"low\"], close, length=p[\"atr_len\"])\n\n    trend_ok = close > ema\n    vol_ok = volume > (vol_avg * p[\"volume_mult\"])\n    roc_positive = roc > 0\n    roc_turning = (roc.shift(1) <= 0) & (roc > 0)\n\n    entries = (trend_ok & vol_ok & (roc_positive | roc_turning)).fillna(False)\n\n    rolling_high = high.rolling(window=p[\"atr_len\"], min_periods=1).max()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    exits = (close < trailing_stop).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "roc_len": 21,
+    "ema_len": 50,
+    "volume_len": 20,
+    "volume_mult": 1.1,
+    "atr_len": 14,
+    "atr_mult": 2.5
+  },
+  "expected_impact": "Moderate trade frequency (8-15 trades over 2y on SPY), Sharpe target 1.5+, drawdown controlled under 20% via ATR trailing stop. Volume filter reduces false breakouts. Should perform well in trending phases, underperform in choppy sideways markets."
+}
+```

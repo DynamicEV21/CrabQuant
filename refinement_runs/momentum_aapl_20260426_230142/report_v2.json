@@ -1,0 +1,75 @@
+{
+  "strategy_id": "momentum_aapl_20260426_230142",
+  "iteration": 2,
+  "sharpe_ratio": 0.23729813830190075,
+  "total_return_pct": 0.03280833608303117,
+  "max_drawdown_pct": -0.14716892118259023,
+  "win_rate": 0.5714285714285714,
+  "total_trades": 7,
+  "profit_factor": 1.1853444488782003,
+  "calmar_ratio": 0.1617005551702021,
+  "sortino_ratio": 0.34217498470780816,
+  "composite_score": 0.11972679907668489,
+  "failure_mode": "low_sharpe",
+  "failure_details": "Sharpe 0.24 < target 1.0. Return 3.3%, MaxDD -14.7%.",
+  "sharpe_by_year": {
+    "2024": 0.3933,
+    "2025": 0.5783,
+    "2026": -1.832
+  },
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    0.6471333583495188
+  ],
+  "previous_actions": [
+    "new_strategy"
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: 0.24 < 1.0",
+    "Return too low: 3.3% < 5%"
+  ],
+  "guardrail_warnings": [
+    "Low trade count: 7 (marginal statistical significance)",
+    "Sharpe near threshold: 0.24 (close to 1.0)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nROC Momentum with ADX Regime Filter and Volume Confirmation\n\nUses ADX to filter for trending regimes, ROC for momentum direction,\nEMA for trend bias, and volume for signal confirmation. Exits on\nATR trailing stop. Designed to be robust across market regimes.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 21,\n    \"ema_len\": 50,\n    \"adx_len\": 14,\n    \"adx_min\": 20,\n    \"vol_len\": 20,\n    \"vol_mult\": 1.0,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.0,\n}\n\nDESCRIPTION = (\n    \"ROC momentum with ADX regime filter and volume confirmation. \"\n    \"Enters when ADX confirms trending market, ROC positive, \"\n    \"price above EMA, and volume above average. Exits on ATR trailing stop. \"\n    \"Designed to avoid choppy markets and be robust across regimes.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n    volume = df[\"volume\"]\n\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    momentum_ok = roc > 0\n\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    adx = cached_indicator(\"adx\", high, low, close, length=p[\"adx_len\"])\n    adx_col = f\"ADX_{p['adx_len']}\"\n    regime_ok = adx[adx_col] > p[\"adx_min\"]\n\n    vol_sma = cached_indicator(\"sma\", volume, length=p[\"vol_len\"])\n    vol_ok = volume > (vol_sma * p[\"vol_mult\"])\n\n    entries = (momentum_ok & trend_ok & regime_ok & vol_ok).fillna(False)\n\n    atr = cached_indicator(\"atr\", high, low, close, length=p[\"atr_len\"])\n    rolling_high = close.rolling(20).max()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    exits = (close < trailing_stop).fillna(False)\n\n    return entries, exits",
+  "current_params": {
+    "roc_len": 21,
+    "ema_len": 50,
+    "adx_len": 14,
+    "adx_min": 20,
+    "vol_len": 20,
+    "vol_mult": 1.0,
+    "atr_len": 14,
+    "atr_mult": 2.0
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": 0.6471333583495188,
+      "failure_mode": "regime_fragility",
+      "action": "new_strategy",
+      "hypothesis": "Combining MACD histogram momentum with RSI regime filtering and ATR trailing stops should capture strong momentum moves on AAPL/NVDA/SPY while limiting drawdowns. The RSI filter prevents entry at overbought levels, and ATR stops dynamically adapt to volatility.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/momentum_aapl_20260426_230142/strategy_v1.py",
+      "params_used": {
+        "macd_fast": 12,
+        "macd_slow": 26,
+        "macd_signal": 9,
+        "rsi_len": 14,
+        "rsi_max": 70,
+        "ema_len": 50,
+        "atr_len": 14,
+        "atr_mult": 2.0
+      },
+      "strategy_hash": "f1394a34f5db",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

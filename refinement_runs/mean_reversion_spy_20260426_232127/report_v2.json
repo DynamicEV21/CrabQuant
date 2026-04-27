@@ -1,0 +1,70 @@
+{
+  "strategy_id": "mean_reversion_spy_20260426_232127",
+  "iteration": 2,
+  "sharpe_ratio": 0.36548286492495735,
+  "total_return_pct": 0.05980572791969724,
+  "max_drawdown_pct": -0.10533476811421898,
+  "win_rate": 0.7142857142857143,
+  "total_trades": 7,
+  "profit_factor": 2.5191749450752203,
+  "calmar_ratio": 0.41036811120375516,
+  "sortino_ratio": 0.5866176313155409,
+  "composite_score": 0.1934468236235773,
+  "failure_mode": "low_sharpe",
+  "failure_details": "Sharpe 0.37 < target 1.5. Return 6.0%, MaxDD -10.5%.",
+  "sharpe_by_year": {
+    "2024": 1.1364,
+    "2025": 0.1989,
+    "2026": -0.0346
+  },
+  "stagnation_score": 0.0,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    0.9828040120113699
+  ],
+  "previous_actions": [
+    "new_strategy"
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: 0.37 < 1.0"
+  ],
+  "guardrail_warnings": [
+    "Low trade count: 7 (marginal statistical significance)",
+    "Sharpe near threshold: 0.37 (close to 1.0)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "\"\"\"\nRelaxed Mean Reversion Strategy for SPY/QQQ/IWM\n\nMultiple entry pathways to increase trade frequency\nwhile maintaining mean reversion edge.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"bb_len\": 20,\n    \"bb_std_narrow\": 1.5,\n    \"bb_std_wide\": 2.0,\n    \"rsi_len\": 14,\n    \"rsi_moderate\": 35,\n    \"rsi_deep\": 25,\n    \"rsi_exit\": 55,\n}\n\nDESCRIPTION = (\n    \"Relaxed mean reversion with multiple entry pathways. \"\n    \"Enters on: (1) price below 1.5std BB with RSI<35, \"\n    \"(2) price below 2std BB with RSI<40, or (3) RSI<25 deep oversold. \"\n    \"Exits on reversion to middle band or RSI>55.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    bb_narrow = cached_indicator(\"bbands\", close, length=p[\"bb_len\"], std=p[\"bb_std_narrow\"])\n    bb_wide = cached_indicator(\"bbands\", close, length=p[\"bb_len\"], std=p[\"bb_std_wide\"])\n\n    bbl_narrow = bb_narrow[[c for c in bb_narrow.columns if c.startswith(\"BBL\")][0]]\n    bbl_wide = bb_wide[[c for c in bb_wide.columns if c.startswith(\"BBL\")][0]]\n    bbm = bb_wide[[c for c in bb_wide.columns if c.startswith(\"BBM\")][0]]\n\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n\n    entry1 = (close < bbl_narrow) & (rsi < p[\"rsi_moderate\"])\n    entry2 = (close < bbl_wide) & (rsi < 40)\n    entry3 = rsi < p[\"rsi_deep\"]\n\n    entries = (entry1 | entry2 | entry3).fillna(False)\n    exits = ((close > bbm) | (rsi > p[\"rsi_exit\"])).fillna(False)\n\n    return entries, exits",
+  "current_params": {
+    "bb_len": 20,
+    "bb_std_narrow": 1.5,
+    "bb_std_wide": 2.0,
+    "rsi_len": 14,
+    "rsi_moderate": 35,
+    "rsi_deep": 25,
+    "rsi_exit": 55
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": 0.9828040120113699,
+      "failure_mode": "too_few_trades",
+      "action": "new_strategy",
+      "hypothesis": "Index ETFs (SPY, QQQ, IWM) exhibit short-term mean reversion after extreme oversold conditions. Combining Bollinger Band lower band penetration with RSI oversold provides high-conviction entry signals, while exiting at the middle band captures the bulk of the reversion move without giving back profits. This should achieve Sharpe 1.5+ with controlled drawdown.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/mean_reversion_spy_20260426_232127/strategy_v1.py",
+      "params_used": {
+        "bb_len": 20,
+        "bb_std": 2.0,
+        "rsi_len": 14,
+        "rsi_oversold": 30,
+        "rsi_exit": 55
+      },
+      "strategy_hash": "156c579f2238",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

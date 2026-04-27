@@ -1,0 +1,17 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "All four momentum-chasing strategies (ROC-based) failed because they buy AFTER momentum is already positive, meaning late entries in trends and whipsaws in choppy markets. The year-by-year data confirms this: momentum works only in 2025's strong trend but loses in 2024/2026. Switching to a fundamentally different approach — RSI regime dip-buying — addresses this: (1) a 50-period RSI regime filter (>48) keeps us out of bear/choppy markets entirely, solving regime fragility, (2) buying 14-period RSI dips (<45) within bullish regimes gives better entry prices than chasing ROC>0, improving win rate from 33% toward 50%+, (3) no volume filter avoids the too-few-trades problem that killed turn 2. ATR trailing stop provides downside protection. This is the rsi_regime_dip pattern that achieved Sharpe 2.18 in QF backtests.",
+  "new_strategy_code": "import pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"regime_rsi_len\": 50,\n    \"regime_rsi_thresh\": 48,\n    \"dip_rsi_len\": 14,\n    \"dip_rsi_level\": 45,\n    \"exit_rsi_level\": 65,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.0,\n}\n\nDESCRIPTION = (\n    \"RSI regime dip strategy for SPY. 50-period RSI defines bullish regime, \"\n    \"14-period RSI times entry on dips below 45. Exits on RSI recovery above 65, \"\n    \"regime reversal, or ATR trailing stop. Avoids bear markets via regime filter.\"\n)\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n\n    regime_rsi = cached_indicator(\"rsi\", close, length=p[\"regime_rsi_len\"])\n    dip_rsi = cached_indicator(\"rsi\", close, length=p[\"dip_rsi_len\"])\n    atr = cached_indicator(\"atr\", high, df[\"low\"], close, length=p[\"atr_len\"])\n\n    bullish = regime_rsi > p[\"regime_rsi_thresh\"]\n    dip = dip_rsi < p[\"dip_rsi_level\"]\n    entries = (bullish & dip).fillna(False)\n\n    rsi_exit = dip_rsi > p[\"exit_rsi_level\"]\n    regime_exit = regime_rsi < (p[\"regime_rsi_thresh\"] - 8)\n    rolling_high = high.rolling(window=p[\"atr_len\"], min_periods=1).max()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    atr_exit = close < trailing_stop\n\n    exits = (rsi_exit | regime_exit | atr_exit).fillna(False)\n    return entries, exits",
+  "params": {
+    "regime_rsi_len": 50,
+    "regime_rsi_thresh": 48,
+    "dip_rsi_len": 14,
+    "dip_rsi_level": 45,
+    "exit_rsi_level": 65,
+    "atr_len": 14,
+    "atr_mult": 2.0
+  },
+  "expected_impact": "Fundamental architecture change from momentum-chasing to dip-buying within regime filter. Expected: Sharpe 1.0-2.0+ (regime filter eliminates 2024/2026 losses), win rate 45-55% (better entry prices), trade count 8-20 (no volume filter, RSI dips are common in uptrends), max drawdown <15%. Key risk: if RSI(50) > 48 during 2024/2026 chop, some losses occur — but regime threshold of 48 (below neutral 50) provides margin."
+}
+```

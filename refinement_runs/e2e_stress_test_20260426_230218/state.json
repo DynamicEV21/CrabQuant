@@ -1,0 +1,131 @@
+{
+  "run_id": "e2e_stress_test_20260426_230218",
+  "mandate_name": "e2e_stress_test",
+  "created_at": "2026-04-27T06:02:18.797274+00:00",
+  "max_turns": 7,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "SPY"
+  ],
+  "period": "2y",
+  "current_turn": 7,
+  "status": "max_turns_exhausted",
+  "best_sharpe": 1.3586074957592462,
+  "best_turn": 6,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_230218/strategy_v6.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": -0.1436482394588942,
+      "failure_mode": "regime_fragility",
+      "action": "new_strategy",
+      "hypothesis": "SPY momentum with ROC direction, EMA trend filter, and volume confirmation should capture intermediate-term trends. ATR trailing stop limits drawdown. This is a stress test to verify momentum works on broad market ETF with tight risk constraints.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_230218/strategy_v1.py",
+      "params_used": {
+        "roc_len": 21,
+        "ema_len": 50,
+        "volume_len": 20,
+        "volume_mult": 1.1,
+        "atr_len": 14,
+        "atr_mult": 2.5
+      },
+      "strategy_hash": "5140161874d1",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "sharpe": 0.0,
+      "failure_mode": "too_few_trades",
+      "action": "new_strategy",
+      "hypothesis": "The ROC momentum strategy failed because it chases momentum (buying high) and is fragile across regimes \u2014 it worked only in 2025's strong trend but cratered in 2024 and 2026. Switching to a pullback-entry approach within an EMA-defined trend regime addresses both problems: (1) buying RSI dips in uptrends gives better entry prices, improving win rate from 23% toward 45%+, (2) the EMA trend filter avoids bear regimes entirely, reducing regime fragility. Removing the volume filter increases trade count from 13 to a healthier range. Dual exits (RSI recovery + ATR trailing stop) provide both profit-taking and downside protection.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_230218/strategy_v2.py",
+      "params_used": {
+        "fast_ema": 20,
+        "slow_ema": 50,
+        "rsi_len": 14,
+        "rsi_dip": 42,
+        "rsi_exit": 65,
+        "atr_len": 14,
+        "atr_mult": 2.0
+      },
+      "strategy_hash": "eedfc3fbbda6",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 3,
+      "sharpe": 0.8133752089745712,
+      "failure_mode": "low_sharpe",
+      "action": "new_strategy",
+      "hypothesis": "The RSI pullback strategy generated 0 trades because requiring RSI < 42 AND RSI turning up within an EMA uptrend is far too restrictive for SPY. The prior ROC strategy only got 13 trades with a 1.1x volume filter. The fix: switch to a pure ROC+EMA momentum approach with (1) shorter lookbacks (ROC-10, EMA-30) for more frequent signals, (2) a very mild volume filter (0.8x) that removes only dead-volume days rather than demanding above-average volume, and (3) a tighter ATR trailing stop (1.5x) to cycle through positions faster and generate more trades. This mirrors the roc_ema_volume pattern that achieved Sharpe 2.21 in QF backtests, but tuned for higher trade frequency.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_230218/strategy_v3.py",
+      "params_used": {
+        "roc_len": 10,
+        "ema_len": 30,
+        "volume_len": 20,
+        "volume_mult": 0.8,
+        "atr_len": 14,
+        "atr_mult": 1.5
+      },
+      "strategy_hash": "09a3c35272dd",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 4,
+      "sharpe": 0.21821351377412396,
+      "failure_mode": "low_sharpe",
+      "action": "new_strategy",
+      "hypothesis": "The current strategy's low Sharpe (0.81) stems from two issues: (1) ROC > 0 alone generates false signals in choppy markets (2026 Sharpe 0.16), and (2) the tight 1.5x ATR trailing stop cuts winners prematurely (36.8% win rate). Adding MACD histogram > 0 as momentum confirmation eliminates entries where ROC is positive but smoothed trend momentum hasn't confirmed \u2014 filtering choppy market noise. Switching EMA-30 to EMA-50 provides stronger trend definition that avoids whipsaws. Widening the trailing stop from 1.5x to 2.5x ATR lets winners develop fully, improving win rate. These three targeted changes address the specific failure modes without over-complicating the strategy.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_230218/strategy_v4.py",
+      "params_used": {
+        "roc_len": 10,
+        "ema_len": 50,
+        "volume_len": 20,
+        "volume_mult": 0.8,
+        "atr_len": 14,
+        "atr_mult": 2.5
+      },
+      "strategy_hash": "efc3f3ddc12a",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 5,
+      "sharpe": -0.6539513325896275,
+      "failure_mode": "too_few_trades",
+      "action": "new_strategy",
+      "hypothesis": "All four momentum-chasing strategies (ROC-based) failed because they buy AFTER momentum is already positive, meaning late entries in trends and whipsaws in choppy markets. The year-by-year data confirms this: momentum works only in 2025's strong trend but loses in 2024/2026. Switching to a fundamentally different approach \u2014 RSI regime dip-buying \u2014 addresses this: (1) a 50-period RSI regime filter (>48) keeps us out of bear/choppy markets entirely, solving regime fragility, (2) buying 14-period RSI dips (<45) within bullish regimes gives better entry prices than chasing ROC>0, improving win rate from 33% toward 50%+, (3) no volume filter avoids the too-few-trades problem that killed turn 2. ATR trailing stop provides downside protection. This is the rsi_regime_dip pattern that achieved Sharpe 2.18 in QF backtests.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_230218/strategy_v5.py",
+      "params_used": {
+        "regime_rsi_len": 50,
+        "regime_rsi_thresh": 48,
+        "dip_rsi_len": 14,
+        "dip_rsi_level": 45,
+        "exit_rsi_level": 65,
+        "atr_len": 14,
+        "atr_mult": 2.0
+      },
+      "strategy_hash": "0066a0e6c498",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 6,
+      "sharpe": 1.3586074957592462,
+      "failure_mode": "low_sharpe",
+      "action": "new_strategy",
+      "hypothesis": "All previous strategies failed due to over-complexity and excessive filtering. The ROC+volume approach (turn 3, Sharpe 0.81) was the best but still underperformed due to volume filter reducing trade count and ATR trailing stop cutting winners. The EMA crossover is the simplest proven strategy (Sharpe 2.10 in QF) and naturally generates more trades because crossovers occur frequently on SPY. No volume filter means no false scarcity of trades. Using 12/26 EMA params (standard MACD periods) provides well-tested crossover frequency for SPY over 2 years \u2014 should yield 8-15 trades, well above the 5 minimum. The clean crossover exit avoids the trailing stop problem that plagued all previous attempts.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_230218/strategy_v6.py",
+      "params_used": {
+        "fast_len": 12,
+        "slow_len": 26
+      },
+      "strategy_hash": "ecbaac4cf8f0",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 7,
+      "status": "code_generation_failed",
+      "errors": []
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}

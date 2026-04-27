@@ -1,0 +1,54 @@
+{
+  "run_id": "e2e_test_momentum_20260426_232049",
+  "mandate_name": "e2e_test_momentum",
+  "created_at": "2026-04-27T06:20:49.424278+00:00",
+  "max_turns": 7,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "AAPL"
+  ],
+  "period": "1y",
+  "current_turn": 1,
+  "status": "success",
+  "best_sharpe": 1.5372682572243186,
+  "best_turn": 1,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_test_momentum_20260426_232049/strategy_v1.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": 1.5372682572243186,
+      "failure_mode": "low_sharpe",
+      "action": "new_strategy",
+      "hypothesis": "Simple ROC momentum with EMA trend filter and volume confirmation should achieve >0.5 Sharpe on AAPL over 1y. ROC captures price momentum, EMA filters for uptrend, volume confirms participation. Exit on ROC turning negative or price below EMA.",
+      "validation": {
+        "passed": true,
+        "walk_forward_robust": true,
+        "cross_ticker_robust": true,
+        "walk_forward": {
+          "test_sharpe": 1.1303074432051101,
+          "train_sharpe": 1.1809273331905514,
+          "degradation": 0.04286452566787479,
+          "robust": true,
+          "notes": "Train: Sharpe 1.18, Return 35.0% | Test: Sharpe 1.13, Return 6.2% | Degradation: 4.3% | Train regime: mean_reversion | Test regime: trending_up | \u26a0\ufe0f Regime shift detected",
+          "regime_shift": true,
+          "test_regime": "trending_up",
+          "train_regime": "mean_reversion"
+        },
+        "cross_ticker": null,
+        "error": null
+      },
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_test_momentum_20260426_232049/strategy_v1.py",
+      "params_used": {
+        "roc_len": 14,
+        "ema_len": 21,
+        "vol_len": 20,
+        "vol_mult": 1.1,
+        "exit_roc": -1.0
+      },
+      "strategy_hash": "bc7b0aa14f6d",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}

@@ -1,0 +1,17 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "The ROC momentum strategy failed because it chases momentum (buying high) and is fragile across regimes — it worked only in 2025's strong trend but cratered in 2024 and 2026. Switching to a pullback-entry approach within an EMA-defined trend regime addresses both problems: (1) buying RSI dips in uptrends gives better entry prices, improving win rate from 23% toward 45%+, (2) the EMA trend filter avoids bear regimes entirely, reducing regime fragility. Removing the volume filter increases trade count from 13 to a healthier range. Dual exits (RSI recovery + ATR trailing stop) provide both profit-taking and downside protection.",
+  "new_strategy_code": "\"\"\"\nEMA Trend RSI Pullback for SPY\n\nBullish regime via EMA crossover, RSI dip timing for entries.\nDual exit: RSI recovery and ATR trailing stop.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"fast_ema\": 20,\n    \"slow_ema\": 50,\n    \"rsi_len\": 14,\n    \"rsi_dip\": 42,\n    \"rsi_exit\": 65,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.0,\n}\n\nDESCRIPTION = (\n    \"EMA trend filter with RSI pullback entry for SPY. \"\n    \"Bullish when fast EMA > slow EMA. \"\n    \"Enters on RSI dip with upward turn in bullish regime. \"\n    \"Exits on RSI recovery or ATR trailing stop.\"\n)\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n\n    ema_fast = cached_indicator(\"ema\", close, length=p[\"fast_ema\"])\n    ema_slow = cached_indicator(\"ema\", close, length=p[\"slow_ema\"])\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n    atr = cached_indicator(\"atr\", df[\"high\"], df[\"low\"], close, length=p[\"atr_len\"])\n\n    bullish = ema_fast > ema_slow\n    rsi_turning_up = (rsi < p[\"rsi_dip\"]) & (rsi > rsi.shift(1))\n\n    entries = (bullish & rsi_turning_up).fillna(False)\n\n    rsi_exit = rsi > p[\"rsi_exit\"]\n    rolling_high = high.rolling(window=p[\"atr_len\"], min_periods=1).max()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    atr_exit = close < trailing_stop\n\n    exits = (rsi_exit | atr_exit).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "fast_ema": 20,
+    "slow_ema": 50,
+    "rsi_len": 14,
+    "rsi_dip": 42,
+    "rsi_exit": 65,
+    "atr_len": 14,
+    "atr_mult": 2.0
+  },
+  "expected_impact": "Win rate should jump from 23% to 40-55% since dip entries provide better prices. Trade count should increase from 13 to 15-25 by removing the volume filter. Regime fragility should decrease significantly because the EMA trend filter keeps the strategy out of bear markets entirely, and dip-buying works across both strong-trend and moderate-trend environments. Sharpe target: 1.0-1.5 on first iteration, with room to tune RSI levels."
+}
+```

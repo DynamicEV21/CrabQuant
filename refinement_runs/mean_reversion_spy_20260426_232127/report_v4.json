@@ -1,0 +1,110 @@
+{
+  "strategy_id": "mean_reversion_spy_20260426_232127",
+  "iteration": 4,
+  "sharpe_ratio": 0.8129940685266441,
+  "total_return_pct": 0.10675887699497995,
+  "max_drawdown_pct": -0.08844653417184618,
+  "win_rate": 0.8181818181818182,
+  "total_trades": 11,
+  "profit_factor": 3.0044156975859644,
+  "calmar_ratio": 0.8671849079116821,
+  "sortino_ratio": 1.1825827844320786,
+  "composite_score": 0.5496052447679034,
+  "failure_mode": "low_sharpe",
+  "failure_details": "Sharpe 0.81 < target 1.5. Return 10.7%, MaxDD -8.8%.",
+  "sharpe_by_year": {
+    "2024": 0.514,
+    "2025": 0.8492,
+    "2026": 0.4666
+  },
+  "stagnation_score": 0.24,
+  "stagnation_trend": "improving",
+  "previous_sharpes": [
+    0.9828040120113699,
+    0.36548286492495735,
+    1.164204704296117
+  ],
+  "previous_actions": [
+    "new_strategy",
+    "new_strategy",
+    "new_strategy"
+  ],
+  "guardrail_violations": [
+    "Sharpe too low: 0.81 < 1.0"
+  ],
+  "guardrail_warnings": [
+    "Sharpe near threshold: 0.81 (close to 1.0)"
+  ],
+  "regime_sharpe": null,
+  "regime_regime_shift": null,
+  "top_drawdowns": null,
+  "portfolio_correlation": null,
+  "benchmark_return_pct": null,
+  "market_regime": null,
+  "current_strategy_code": "import pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"regime_len\": 50,\n    \"regime_bull\": 45,\n    \"rsi_len\": 7,\n    \"rsi_dip\": 42,\n    \"rsi_exit\": 60,\n    \"ema_len\": 50,\n}\n\nDESCRIPTION = (\n    \"Regime-filtered pullback reversion for SPY/QQQ/IWM. \"\n    \"Bullish regime when RSI-50 > 45 and price above EMA-50. \"\n    \"Enters on RSI-7 dip below 42 (no volume filter). \"\n    \"Exits when RSI-7 recovers above 60. \"\n    \"Relaxed entry vs v3 to increase trade frequency.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    rsi_regime = cached_indicator(\"rsi\", close, length=p[\"regime_len\"])\n    rsi_fast = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n\n    bullish = (rsi_regime > p[\"regime_bull\"]) & (close > ema)\n    dip = rsi_fast < p[\"rsi_dip\"]\n\n    entries = (bullish & dip).fillna(False)\n    exits = (rsi_fast > p[\"rsi_exit\"]).fillna(False)\n\n    return entries, exits",
+  "current_params": {
+    "regime_len": 50,
+    "regime_bull": 45,
+    "rsi_len": 7,
+    "rsi_dip": 42,
+    "rsi_exit": 60,
+    "ema_len": 50
+  },
+  "previous_attempts": [
+    {
+      "turn": 1,
+      "sharpe": 0.9828040120113699,
+      "failure_mode": "too_few_trades",
+      "action": "new_strategy",
+      "hypothesis": "Index ETFs (SPY, QQQ, IWM) exhibit short-term mean reversion after extreme oversold conditions. Combining Bollinger Band lower band penetration with RSI oversold provides high-conviction entry signals, while exiting at the middle band captures the bulk of the reversion move without giving back profits. This should achieve Sharpe 1.5+ with controlled drawdown.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/mean_reversion_spy_20260426_232127/strategy_v1.py",
+      "params_used": {
+        "bb_len": 20,
+        "bb_std": 2.0,
+        "rsi_len": 14,
+        "rsi_oversold": 30,
+        "rsi_exit": 55
+      },
+      "strategy_hash": "156c579f2238",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "sharpe": 0.36548286492495735,
+      "failure_mode": "low_sharpe",
+      "action": "new_strategy",
+      "hypothesis": "The current strategy is too selective because it requires BOTH price below 2.0std lower BB AND RSI < 30 simultaneously \u2014 an extreme conjunction that rarely occurs on index ETFs. By creating three graduated entry pathways (moderate BB+RSI, extreme BB+relaxed RSI, deep RSI standalone), we can 5-10x the trade count while each pathway still captures genuine mean reversion conditions. The 1.5std BB band will catch more pullbacks, the standalone RSI<25 catches panic selloffs, and exits remain conservative at middle band reversion.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/mean_reversion_spy_20260426_232127/strategy_v2.py",
+      "params_used": {
+        "bb_len": 20,
+        "bb_std_narrow": 1.5,
+        "bb_std_wide": 2.0,
+        "rsi_len": 14,
+        "rsi_moderate": 35,
+        "rsi_deep": 25,
+        "rsi_exit": 55
+      },
+      "strategy_hash": "e4cd33f1da51",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 3,
+      "sharpe": 1.164204704296117,
+      "failure_mode": "too_few_trades",
+      "action": "new_strategy",
+      "hypothesis": "Pure mean reversion on SPY/QQQ/IWM fails because these indices trend more than they revert. The 2024 performance (Sharpe 1.14) worked because there were pullbacks within a bull trend, but 2025-2026 degraded as the regime changed. The fix is to add a regime filter: only enter mean reversion dips when the broader trend is bullish (RSI-50 > 50 + price above EMA-50). Using RSI-7 for dip timing generates more signals than waiting for deep RSI-14 oversold, and volume confirmation filters out low-conviction dips. This hybrid approach (mean reversion within trends) should 3-5x trade count while maintaining edge direction.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/mean_reversion_spy_20260426_232127/strategy_v3.py",
+      "params_used": {
+        "regime_len": 50,
+        "regime_bull": 50,
+        "rsi_len": 7,
+        "rsi_dip": 35,
+        "rsi_exit": 60,
+        "vol_mult": 1.1,
+        "ema_len": 50
+      },
+      "strategy_hash": "61ffb8f9c024",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ]
+}

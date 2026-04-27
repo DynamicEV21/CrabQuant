@@ -1,0 +1,15 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "Simple ROC momentum with EMA trend filter and volume confirmation should achieve >0.5 Sharpe on AAPL over 1y. ROC captures price momentum, EMA filters for uptrend, volume confirms participation. Exit on ROC turning negative or price below EMA.",
+  "new_strategy_code": "\"\"\"\nROC Momentum with EMA Trend Filter\n\nSimple momentum strategy using Rate of Change, EMA trend filter,\nand volume confirmation. Designed for AAPL E2E integration test.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 14,\n    \"ema_len\": 21,\n    \"vol_len\": 20,\n    \"vol_mult\": 1.1,\n    \"exit_roc\": -1.0,\n}\n\nDESCRIPTION = (\n    \"ROC momentum with EMA trend filter and volume confirmation. \"\n    \"Enters when ROC is positive, price above EMA, and volume above average. \"\n    \"Exits when ROC turns negative or price falls below EMA. \"\n    \"Simple momentum strategy optimized for trending stocks like AAPL.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    volume = df[\"volume\"]\n\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    vol_sma = cached_indicator(\"sma\", volume, length=p[\"vol_len\"])\n\n    trend_ok = close > ema\n    momentum_ok = roc > 0\n    vol_ok = volume > (vol_sma * p[\"vol_mult\"])\n\n    entries = (trend_ok & momentum_ok & vol_ok).fillna(False)\n\n    roc_negative = roc < p[\"exit_roc\"]\n    below_ema = close < ema\n    exits = (roc_negative | below_ema).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "roc_len": 14,
+    "ema_len": 21,
+    "vol_len": 20,
+    "vol_mult": 1.1,
+    "exit_roc": -1.0
+  },
+  "expected_impact": "Should generate 5-15 trades over 1y on AAPL with positive expectancy. Volume filter reduces false signals. Simple exit logic (ROC negative OR below EMA) provides clear risk management. Targeting >0.5 Sharpe with <30% drawdown."
+}
+```

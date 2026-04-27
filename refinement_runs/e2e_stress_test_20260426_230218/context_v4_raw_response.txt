@@ -1,0 +1,16 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "The current strategy's low Sharpe (0.81) stems from two issues: (1) ROC > 0 alone generates false signals in choppy markets (2026 Sharpe 0.16), and (2) the tight 1.5x ATR trailing stop cuts winners prematurely (36.8% win rate). Adding MACD histogram > 0 as momentum confirmation eliminates entries where ROC is positive but smoothed trend momentum hasn't confirmed — filtering choppy market noise. Switching EMA-30 to EMA-50 provides stronger trend definition that avoids whipsaws. Widening the trailing stop from 1.5x to 2.5x ATR lets winners develop fully, improving win rate. These three targeted changes address the specific failure modes without over-complicating the strategy.",
+  "new_strategy_code": "import pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 10,\n    \"ema_len\": 50,\n    \"volume_len\": 20,\n    \"volume_mult\": 0.8,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.5,\n}\n\nDESCRIPTION = (\n    \"ROC momentum with EMA-50 trend filter, MACD histogram confirmation, \"\n    \"mild volume filter, and wide ATR trailing stop for SPY. \"\n    \"MACD filter removes false ROC signals in choppy markets. \"\n    \"Wider stop lets winners run to improve win rate.\"\n)\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    volume = df[\"volume\"]\n\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    atr = cached_indicator(\"atr\", high, df[\"low\"], close, length=p[\"atr_len\"])\n    volume_avg = cached_indicator(\"sma\", volume, length=p[\"volume_len\"])\n    macd = cached_indicator(\"macd\", close, fast=12, slow=26, signal=9)\n\n    hist = macd[\"MACDh_12_26_9\"]\n    momentum_ok = roc > 0\n    trend_ok = close > ema\n    volume_ok = volume > (volume_avg * p[\"volume_mult\"])\n    macd_ok = hist > 0\n\n    entries = (momentum_ok & trend_ok & volume_ok & macd_ok).fillna(False)\n\n    rolling_high = high.rolling(window=p[\"atr_len\"], min_periods=1).max()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n    exits = (close < trailing_stop).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "roc_len": 10,
+    "ema_len": 50,
+    "volume_len": 20,
+    "volume_mult": 0.8,
+    "atr_len": 14,
+    "atr_mult": 2.5
+  },
+  "expected_impact": "Sharpe improvement from 0.81 toward 1.2-1.5. Win rate improvement from 36.8% toward 45-55% as wider trailing stop stops cutting winners. Trade count may decrease from 19 to 10-15 due to MACD filter removing choppy-market false signals, but stays well above min 5. Max drawdown should remain controlled since EMA-50 + MACD provide stronger trend confirmation. Key improvement: 2026 Sharpe should rise from 0.16 as MACD histogram > 0 filters out range-bound whipsaw entries."
+}
+```

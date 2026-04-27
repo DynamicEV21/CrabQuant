@@ -1,0 +1,16 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "The strategy's 100% win rate across 4 trades confirms the edge is real but entry conditions are too restrictive. The volume filter (1.1x avg) is the primary bottleneck — many valid pullbacks occur on normal or below-average volume as selling dries up. Removing volume confirmation and raising the RSI dip threshold from 35 to 42 catches more moderate pullbacks while keeping the regime filter intact. Relaxing regime_bull from 50 to 45 also widens the entry window slightly. This should 4-6x trade count while maintaining high win rate since the regime filter still ensures we only buy dips in established uptrends.",
+  "new_strategy_code": "import pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"regime_len\": 50,\n    \"regime_bull\": 45,\n    \"rsi_len\": 7,\n    \"rsi_dip\": 42,\n    \"rsi_exit\": 60,\n    \"ema_len\": 50,\n}\n\nDESCRIPTION = (\n    \"Regime-filtered pullback reversion for SPY/QQQ/IWM. \"\n    \"Bullish regime when RSI-50 > 45 and price above EMA-50. \"\n    \"Enters on RSI-7 dip below 42 (no volume filter). \"\n    \"Exits when RSI-7 recovers above 60. \"\n    \"Relaxed entry vs v3 to increase trade frequency.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n\n    rsi_regime = cached_indicator(\"rsi\", close, length=p[\"regime_len\"])\n    rsi_fast = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n\n    bullish = (rsi_regime > p[\"regime_bull\"]) & (close > ema)\n    dip = rsi_fast < p[\"rsi_dip\"]\n\n    entries = (bullish & dip).fillna(False)\n    exits = (rsi_fast > p[\"rsi_exit\"]).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "regime_len": 50,
+    "regime_bull": 45,
+    "rsi_len": 7,
+    "rsi_dip": 42,
+    "rsi_exit": 60,
+    "ema_len": 50
+  },
+  "expected_impact": "Trade count should increase from 4 to 15-25 by removing volume filter (biggest bottleneck) and relaxing RSI dip from 35→42 and regime_bull from 50→45. Win rate may drop from 100% to 70-80% but overall Sharpe should improve due to more data points. Risk: some lower-quality entries without volume confirmation could hurt, but regime filter provides primary quality gate."
+}
+```

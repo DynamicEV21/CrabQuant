@@ -1,0 +1,18 @@
+```json
+{
+  "action": "new_strategy",
+  "hypothesis": "SPY momentum moves are best captured by combining ROC for directional momentum, EMA for trend filtering, and volume spikes for confirmation. ATR trailing stops provide dynamic risk management to limit drawdowns while letting winners run. RSI filter avoids entering at overbought levels, reducing whipsaws in SPY's range-bound periods.",
+  "new_strategy_code": "\"\"\"\nMomentum ROC with Volume and ATR Stops\n\nROC momentum + EMA trend + volume confirmation + ATR trailing stop.\nDesigned for SPY stress test with robust risk management.\n\"\"\"\n\nimport pandas as pd\nfrom crabquant.indicator_cache import cached_indicator\n\nDEFAULT_PARAMS = {\n    \"roc_len\": 21,\n    \"ema_len\": 50,\n    \"volume_len\": 20,\n    \"volume_mult\": 1.2,\n    \"atr_len\": 14,\n    \"atr_mult\": 2.5,\n    \"rsi_len\": 14,\n    \"rsi_max\": 75,\n}\n\nDESCRIPTION = (\n    \"Momentum ROC with EMA trend filter, volume confirmation, and ATR trailing stops. \"\n    \"Enters when ROC is positive, price above EMA, volume above average, and RSI not overbought. \"\n    \"Exits via ATR trailing stop or RSI overbought. \"\n    \"Designed for SPY momentum with risk management.\"\n)\n\n\ndef generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:\n    p = {**DEFAULT_PARAMS, **(params or {})}\n    close = df[\"close\"]\n    high = df[\"high\"]\n    low = df[\"low\"]\n    volume = df[\"volume\"]\n\n    roc = cached_indicator(\"roc\", close, length=p[\"roc_len\"])\n    momentum_ok = roc > 0\n\n    ema = cached_indicator(\"ema\", close, length=p[\"ema_len\"])\n    trend_ok = close > ema\n\n    vol_avg = cached_indicator(\"sma\", volume, length=p[\"volume_len\"])\n    volume_ok = volume > (vol_avg * p[\"volume_mult\"])\n\n    rsi = cached_indicator(\"rsi\", close, length=p[\"rsi_len\"])\n    rsi_ok = rsi < p[\"rsi_max\"]\n\n    entries = (momentum_ok & trend_ok & volume_ok & rsi_ok).fillna(False)\n\n    atr = cached_indicator(\"atr\", high, low, close, length=p[\"atr_len\"])\n    rolling_high = close.cummax()\n    trailing_stop = rolling_high - (atr * p[\"atr_mult\"])\n\n    exit_atr = close < trailing_stop\n    rsi_overbought = rsi > p[\"rsi_max\"]\n    exits = (exit_atr | rsi_overbought).fillna(False)\n\n    return entries, exits",
+  "params": {
+    "roc_len": 21,
+    "ema_len": 50,
+    "volume_len": 20,
+    "volume_mult": 1.2,
+    "atr_len": 14,
+    "atr_mult": 2.5,
+    "rsi_len": 14,
+    "rsi_max": 75
+  },
+  "expected_impact": "Expected Sharpe 1.6-2.0 on SPY over 2y. ATR trailing stop should keep drawdown under 20%. Volume filter reduces false entries, RSI filter avoids chasing overbought moves. Should generate 8-15 trades in 2y period, meeting min_trades requirement."
+}
+```

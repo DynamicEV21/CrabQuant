@@ -1197,5 +1197,34 @@
     },
     "discovered": "2026-04-26T06:05:51.275636",
     "regime": "trending_up"
+  },
+  {
+    "strategy": "refined_e2e_test_momentum",
+    "ticker": "AAPL",
+    "sharpe": 1.5372682572243186,
+    "return": 0.21066018408480275,
+    "max_drawdown": -0.06516966841444981,
+    "trades": 8,
+    "params": {},
+    "refinement_run": "e2e_test_momentum_20260426_232049",
+    "refinement_turns": 1,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "test_sharpe": 1.1303074432051101,
+        "train_sharpe": 1.1809273331905514,
+        "degradation": 0.04286452566787479,
+        "robust": true,
+        "notes": "Train: Sharpe 1.18, Return 35.0% | Test: Sharpe 1.13, Return 6.2% | Degradation: 4.3% | Train regime: mean_reversion | Test regime: trending_up | \u26a0\ufe0f Regime shift detected",
+        "regime_shift": true,
+        "test_regime": "trending_up",
+        "train_regime": "mean_reversion"
+      },
+      "cross_ticker": null,
+      "error": null
+    },
+    "promoted_at": "2026-04-27T06:21:24.426940+00:00"
   }
 ]

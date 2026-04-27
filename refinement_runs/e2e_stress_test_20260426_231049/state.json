@@ -1,0 +1,73 @@
+{
+  "run_id": "e2e_stress_test_20260426_231049",
+  "mandate_name": "e2e_stress_test",
+  "created_at": "2026-04-27T06:10:49.348408+00:00",
+  "max_turns": 7,
+  "sharpe_target": 1.5,
+  "tickers": [
+    "SPY"
+  ],
+  "period": "2y",
+  "current_turn": 3,
+  "status": "running",
+  "best_sharpe": 0.9021814176443552,
+  "best_turn": 3,
+  "best_code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_231049/strategy_v3.py",
+  "history": [
+    {
+      "turn": 1,
+      "sharpe": 0.21784687300405733,
+      "failure_mode": "low_sharpe",
+      "action": "new_strategy",
+      "hypothesis": "SPY momentum moves are best captured by combining ROC for directional momentum, EMA for trend filtering, and volume spikes for confirmation. ATR trailing stops provide dynamic risk management to limit drawdowns while letting winners run. RSI filter avoids entering at overbought levels, reducing whipsaws in SPY's range-bound periods.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_231049/strategy_v1.py",
+      "params_used": {
+        "roc_len": 21,
+        "ema_len": 50,
+        "volume_len": 20,
+        "volume_mult": 1.2,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_max": 75
+      },
+      "strategy_hash": "9f5cd773c7c5",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 2,
+      "sharpe": -0.6255792115944326,
+      "failure_mode": "low_sharpe",
+      "action": "new_strategy",
+      "hypothesis": "The current strategy fails because it stacks too many restrictive filters (ROC > 0, price > EMA, volume > 1.2x avg, RSI < 75), resulting in only 14 trades over 2 years with inconsistent year-over-year performance (-1.0, 1.43, -1.0). For SPY, a simpler RSI regime-dip approach works better: use a long-period RSI to define the market regime (bullish when > 50), and a fast RSI to time entries on pullback dips within that regime. This generates more trades by catching frequent SPY pullbacks, while the regime filter avoids entries during bearish periods. Exits on fast RSI recovery or regime shift provide clean exit signals. This approach has proven Sharpe 2.18 in QF backtests and is specifically designed for trending instruments like SPY.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_231049/strategy_v2.py",
+      "params_used": {
+        "rsi_long_len": 21,
+        "rsi_short_len": 7,
+        "regime_threshold": 50,
+        "dip_level": 40,
+        "exit_level": 65
+      },
+      "strategy_hash": "20e983ce91be",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    },
+    {
+      "turn": 3,
+      "sharpe": 0.9021814176443552,
+      "failure_mode": "regime_fragility",
+      "action": "new_strategy",
+      "hypothesis": "The previous strategies failed due to either too many restrictive filters killing trade count (v1: 14 trades, Sharpe 0.22) or too-rare signal conditions (v2: 6 trades, Sharpe -0.63). The core issue is signal scarcity over a 2-year SPY window. EMA crossover is the proven simplest winner (Sharpe 2.10 in QF) and naturally generates 15-25 signals in 2 years. Rather than filtering on single-day volume (which misses crossovers happening on quiet days), I use a rising volume TREND filter \u2014 checking if the 20-day volume SMA is rising over 5 days. This confirms building interest leading INTO the crossover without depending on one day's volume, preserving trade count while adding momentum confirmation as mandated.",
+      "code_path": "/home/Zev/development/CrabQuant/refinement_runs/e2e_stress_test_20260426_231049/strategy_v3.py",
+      "params_used": {
+        "fast_len": 9,
+        "slow_len": 21,
+        "volume_window": 20,
+        "volume_trend_len": 5
+      },
+      "strategy_hash": "9d6fbee53585",
+      "delta_from_prev": "Initial strategy (no prior version)"
+    }
+  ],
+  "lock_pid": null,
+  "lock_timestamp": null
+}
