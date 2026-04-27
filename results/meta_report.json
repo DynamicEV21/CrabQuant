@@ -1,11 +1,11 @@
 {
-  "timestamp": "2026-04-26T14:25:59.466765",
+  "timestamp": "2026-04-26T17:26:10.654617",
   "system": {
-    "total_combos_tested": 435,
-    "dead_combos": 8,
+    "total_combos_tested": 447,
+    "dead_combos": 9,
     "total_winners": 8156,
     "validated_robust": 3,
-    "coverage_pct": 98.2
+    "coverage_pct": 98.0
   },
   "strategy_analysis": {
     "rsi_crossover": {
@@ -58,12 +58,12 @@
       "avg_sharpe": 0.09391049917277784
     },
     "macd_momentum": {
-      "tested": 42925,
+      "tested": 44571,
       "won": 1037,
-      "total_sharpe": 17378.720636617105,
-      "total_return": 6856.531495392415,
-      "win_rate": 0.02415841584158416,
-      "avg_sharpe": 0.4048624493096588
+      "total_sharpe": 18332.179446883478,
+      "total_return": 7206.727522941773,
+      "win_rate": 0.023266249354961747,
+      "avg_sharpe": 0.4113028526818666
     },
     "invented_momentum_rsi_stoch": {
       "tested": 14,
@@ -98,12 +98,12 @@
       "avg_sharpe": 0.7500336390212434
     },
     "bollinger_squeeze": {
-      "tested": 903,
+      "tested": 939,
       "won": 62,
-      "total_sharpe": 947.497358511879,
-      "total_return": 270.9279294530718,
-      "win_rate": 0.06866002214839424,
-      "avg_sharpe": 1.0492772519511395
+      "total_sharpe": 969.6472093132771,
+      "total_return": 276.4684796677319,
+      "win_rate": 0.06602768903088392,
+      "avg_sharpe": 1.0326381355838947
     },
     "invented_momentum_rsi_atr": {
       "tested": 3,
@@ -122,12 +122,12 @@
       "avg_sharpe": 0.29805092483807705
     },
     "ema_ribbon_reversal": {
-      "tested": 33,
+      "tested": 34,
       "won": 0,
-      "total_sharpe": -0.01798748811749329,
-      "total_return": 0.011319382645118616,
+      "total_sharpe": 0.679367847155747,
+      "total_return": 0.1001749633030982,
       "win_rate": 0.0,
-      "avg_sharpe": -0.0005450753974997966
+      "avg_sharpe": 0.01998140726928668
     },
     "ichimoku_trend": {
       "tested": 1,
@@ -254,9 +254,9 @@
       "win_rate": 0.3515682996262418
     },
     "DE": {
-      "tested": 85883,
+      "tested": 85898,
       "won": 4,
-      "win_rate": 4.657499155828278e-05
+      "win_rate": 4.656685836690028e-05
     },
     "SPY": {
       "tested": 131758,
@@ -414,7 +414,7 @@
       "win_rate": 0.03561736770691994
     },
     "F": {
-      "tested": 119,
+      "tested": 1766,
       "won": 0,
       "win_rate": 0.0
     },
@@ -424,9 +424,9 @@
       "win_rate": 0.010757314974182444
     },
     "RBLX": {
-      "tested": 2125,
+      "tested": 2146,
       "won": 129,
-      "win_rate": 0.06070588235294118
+      "win_rate": 0.06011183597390494
     },
     "GM": {
       "tested": 4340,
@@ -496,7 +496,7 @@
     {
       "action": "retire",
       "strategy": "ema_ribbon_reversal",
-      "reason": "0% win rate after 33 tests",
+      "reason": "0% win rate after 34 tests",
       "priority": "low"
     },
     {
@@ -610,7 +610,7 @@
     {
       "action": "deprioritize_ticker",
       "ticker": "F",
-      "reason": "0% win rate after 119 tests",
+      "reason": "0% win rate after 1766 tests",
       "priority": "low"
     },
     {

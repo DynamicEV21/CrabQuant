@@ -443,7 +443,10 @@
     "bollinger_squeeze|XLF",
     "ema_ribbon_reversal|F",
     "bollinger_squeeze|RBLX",
-    "invented_rsi_volume_atr|GOOGL"
+    "invented_rsi_volume_atr|GOOGL",
+    "atr_channel_breakout|SCHW",
+    "volume_breakout|MDB",
+    "multi_rsi_confluence|BA"
   ],
   "validated_winners": [
     "CAT|roc_ema_volume",
@@ -543,10 +546,10 @@
     "GOOGL|roc_ema_volume|4949c7f76cbe",
     "GOOGL|roc_ema_volume|1029ad9551b2"
   ],
-  "total_runs": 436,
+  "total_runs": 439,
   "total_winners": 8156,
   "best_score": 2.442654448731927,
-  "last_run": "2026-04-26T16:11:47.996646",
+  "last_run": "2026-04-26T16:28:12.613915",
   "dead_combos": [
     "bb_stoch_macd|ORCL",
     "ema_ribbon_reversal|JNJ",
