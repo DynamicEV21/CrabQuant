@@ -110,35 +110,32 @@ This runs as a repeating cron job (every 45 min). Each run:
 
 ### Tier 2: Infrastructure That Enables Better Invention
 
-- [ ] 7. **Soft-Promote Tier (5.6.3)**
-  - **Priority: MEDIUM** — keeps near-miss strategies alive for analysis instead of throwing them away
-  - Create `results/candidates/` with `.gitkeep`
-  - In `crabquant/refinement/promotion.py`, after `run_full_validation_check()`:
-    - If `passed == True` → full promote (existing, no change)
-    - If `passed == False` but `avg_test_sharpe >= 0.5` AND `windows_passed >= 2` → soft-promote to candidates
-    - Regime-specific: lower threshold `avg_test_sharpe >= 0.3`
-  - Candidate file: `{name, timestamp, avg_test_sharpe, windows_passed, regime_tags, source_code, backtest_metrics}`
-  - Print: `"📝 Soft-promoted (avg_test_sharpe={:.3f}, {}/{} windows)"`
-  - Wire into `refinement_loop.py` — check soft promote before marking turn failed
-  - Config: `soft_promote: bool = True` already exists — verify wired
-  - **Tests**: 6+ tests in `tests/refinement/test_soft_promote.py` — mock validation result, verify candidate file
-  - **No E2E** — mock only
+- [x] 7. **Soft-Promote Tier (5.6.3)** ✅ DONE
+  - Already implemented — `soft_promote()` in `promotion.py` with threshold enforcement
+  - Wired into refinement loop at line 939 (after validation_failed)
+  - `results/candidates/` with `.gitkeep`
+  - Regime-specific lower threshold (0.3 vs 0.5)
+  - 16 existing tests passing
+  - Commit: verified + `.gitkeep` added
 
-- [ ] 8. **Mode System Integration**
-  - **Priority: MEDIUM** — makes toggles user-accessible via mandate JSON
-  - Verify `apply_mode()` works for all presets (conservative/explorer/fast/balanced)
-  - Wire mandate JSON `mode` field into config in `crabquant_cron.py` → `refinement_loop.py`
-  - Individual toggles override mode presets
-  - **Tests**: 5+ tests in `tests/refinement/test_mode_system.py`
-  - **No E2E** — config only
+- [x] 8. **Mode System Integration** ✅ DONE
+  - Already implemented — `apply_mode()` supports conservative/fast/explorer/balanced/custom
+  - Mandate `mode` field wired in refinement_loop.py line 502-504
+  - Individual toggles override mode presets (lines 506-520)
+  - 16 new tests in `tests/refinement/test_mode_system.py`
+  - Commit: `26bbd7d`
 
-- [ ] 9. **Composite Score for Best-Strategy Tracking**
-  - **Priority: MEDIUM** — prevents "high Sharpe, 3 trades" from being tracked as "best"
-  - Use `sharpe * sqrt(trades/20) * (1 - abs(max_dd))` for `best_strategy` tracking in refinement loop
-  - Log both Sharpe and composite score per turn
-  - Validation still uses raw Sharpe gate (don't change that), but `best_strategy` uses composite
-  - **Tests**: 5+ tests — verify composite score penalizes low trades, rewards high Sharpe
-  - **No E2E**
+- [x] 9. **Composite Score for Best-Strategy Tracking** ✅ DONE
+  - Added `best_composite_score` field to `RunState` in `schemas.py`
+  - Changed all 4 best-strategy tracking points in `refinement_loop.py` to use `compute_composite_score()` instead of raw Sharpe
+  - Formula: `sharpe * sqrt(trades/20) * (1 - abs(max_drawdown))` — penalizes few trades and high drawdown
+  - Validation gate still uses raw Sharpe (unchanged) — only best-strategy tracking uses composite
+  - Added `composite_score` to all history entries (3 branches: too_few_trades, validation success, normal tracking)
+  - Updated context_builder to pass `best_composite_score` to LLM context
+  - Updated max_turns_exhausted log to show both Sharpe and composite
+  - 15 new unit tests in `tests/refinement/test_composite_score.py`
+  - Commit: phase5.6-composite-score
+  - Total tests: 1179 passing
 
 ### Tier 3: Continuous Improvement (do after all tasks done)
 
@@ -166,6 +163,7 @@ If you complete all tasks above, keep going. Here's the priority order:
 - [2026-04-28 10:01] 1033 tests passing, 4 pre-existing errors (ignore)
 - [2026-04-28 10:52] Task 4 (Negative Example Feedback Loop) completed. Key insight: `call_llm_inventor` was dumping previous_attempts as raw JSON — changed to use `format_previous_attempts_section()` for readable, guidance-rich output. Added per-window breakdown for validation_failed, curve-fitting warnings for low_sharpe + few trades, regime dependency warnings for regime_fragility. 25 new tests. Total: 1057 passing.
 - [2026-04-28 11:46] Task 5 (Strategy Archetype Templates) completed. Found critical wiring bug: `build_turn1_prompt()` computed `archetype_text` but never injected it into `TURN1_PROMPT` template. Added `{archetype_section}` placeholder + wired it. 4 archetypes with skeleton code, anti-patterns, regime affinity. 91 new tests. Total: 1148 passing.
+- [2026-04-28 12:39] Task 9 (Composite Score for Best-Strategy Tracking) completed. `compute_composite_score()` was already defined in prompts.py and imported in refinement_loop.py but never used for tracking. Added `best_composite_score` field to RunState, changed all 4 tracking points (too_few_trades, validation success, main tracking, post-loop) to use composite score instead of raw Sharpe. Validation gate unchanged (still raw Sharpe). Key scenario verified: Sharpe 4.0 with 5 trades (composite=1.59) loses to Sharpe 1.8 with 60 trades (composite=3.50). 15 new tests. Total: 1179 passing.
 
 ## Errors / Blockers
 

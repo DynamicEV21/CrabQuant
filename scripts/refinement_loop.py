@@ -830,8 +830,12 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                       f"(need >= {MIN_TRADES_FOR_VALIDATION}) — skipping validation")
                 failure_mode = "too_few_trades_for_validation"
                 # Update state to reflect best Sharpe found but not validated
-                if result.sharpe > state.best_sharpe:
+                composite = compute_composite_score(
+                    result.sharpe, result.num_trades, result.max_drawdown
+                )
+                if composite > state.best_composite_score:
                     state.best_sharpe = result.sharpe
+                    state.best_composite_score = composite
                     state.best_turn = turn
                     state.best_code_path = str(strategy_path)
                 # Record in history so LLM gets feedback about trade count
@@ -842,6 +846,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                     "hypothesis": modification.hypothesis,
                     "code_path": str(strategy_path),
                     "num_trades": result.num_trades,
+                    "composite_score": composite,
                     "params_used": result.params if result.params else strategy_module.DEFAULT_PARAMS.copy(),
                     "strategy_hash": compute_strategy_hash(strategy_code),
                     "delta_from_prev": "Sharpe hit but too few trades for validation",
@@ -890,10 +895,14 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             
             state.status = "success"
             state.best_sharpe = result.sharpe
+            state.best_composite_score = compute_composite_score(
+                result.sharpe, result.num_trades, result.max_drawdown
+            )
             state.best_turn = turn
             state.best_code_path = str(strategy_path)
             state.history.append({
                 "turn": turn, "sharpe": result.sharpe,
+                "composite_score": state.best_composite_score,
                 "failure_mode": failure_mode,
                 "action": modification.action,
                 "hypothesis": modification.hypothesis,
@@ -970,9 +979,13 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             release_lock(run_dir)
             return state
         
-        # Track best attempt
-        if result.sharpe > state.best_sharpe:
+        # Track best attempt (by composite score, not raw Sharpe)
+        composite = compute_composite_score(
+            result.sharpe, result.num_trades, result.max_drawdown
+        )
+        if composite > state.best_composite_score:
             state.best_sharpe = result.sharpe
+            state.best_composite_score = composite
             state.best_turn = turn
             state.best_code_path = str(strategy_path)
         
@@ -991,6 +1004,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         # Append to history
         state.history.append({
             "turn": turn, "sharpe": result.sharpe,
+            "composite_score": composite,
             "failure_mode": failure_mode,
             "action": modification.action,
             "hypothesis": modification.hypothesis,
@@ -1010,7 +1024,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
     # ── Exhausted all turns ─────────────────────────────────────────
     state.status = "max_turns_exhausted"
     save_state(run_dir, state)
-    print(f"  Max turns exhausted. Best Sharpe: {state.best_sharpe:.2f} at turn {state.best_turn}")
+    print(f"  Max turns exhausted. Best Sharpe: {state.best_sharpe:.2f} (composite: {state.best_composite_score:.2f}) at turn {state.best_turn}")
 
     # Post-loop promotion: if best Sharpe meets target, promote regardless
     # of exit reason (max_turns_exhausted, stagnation, etc.).  A high-Sharpe

@@ -27,6 +27,7 @@ class RunState:
     current_turn: int = 0
     status: str = "pending"  # pending|running|success|max_turns|failed|stuck
     best_sharpe: float = -999.0
+    best_composite_score: float = -999.0  # Composite score for best-strategy tracking
     best_turn: int = 0
     best_code_path: str = ""
 

@@ -375,6 +375,7 @@ def build_llm_context(
         
         # Current best
         "best_sharpe_so_far": getattr(state, "best_sharpe", 0.0),
+        "best_composite_score": getattr(state, "best_composite_score", -999.0),
         "best_turn": getattr(state, "best_turn", 0),
         
         # Strategy examples — FULL code for 2 representative strategies
