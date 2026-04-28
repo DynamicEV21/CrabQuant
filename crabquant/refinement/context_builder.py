@@ -423,5 +423,58 @@ def build_llm_context(
         # Include current strategy code so LLM can modify it
         context["current_strategy_code"] = getattr(report, "current_strategy_code", None)
         context["current_params"] = getattr(report, "current_params", None)
-    
+
+    # Phase 5.6: Stagnation recovery — detect trap type and inject recovery guidance
+    stagnation_recovery = _build_stagnation_recovery_section(state)
+    if stagnation_recovery:
+        context["stagnation_recovery"] = stagnation_recovery
+
     return context
+
+
+def _build_stagnation_recovery_section(state) -> str:
+    """Build the stagnation recovery section for LLM context injection.
+
+    Analyzes turn history to detect specific stagnation trap types and
+    generates targeted recovery instructions. Only returns content when
+    a meaningful trap is detected (medium severity or above).
+
+    Args:
+        state: RunState dataclass instance.
+
+    Returns:
+        Formatted recovery string for prompt injection, or empty string.
+    """
+    from crabquant.refinement.stagnation import (
+        detect_stagnation_trap,
+        build_stagnation_recovery,
+    )
+
+    history = getattr(state, "history", [])
+    best_sharpe = getattr(state, "best_sharpe", 0.0)
+    sharpe_target = getattr(state, "sharpe_target", 1.5)
+    current_turn = getattr(state, "current_turn", 0)
+
+    # Need at least 2 turns with Sharpe data to diagnose
+    sharpes = [h.get("sharpe", None) for h in history if "sharpe" in h]
+    if len(sharpes) < 2:
+        return ""
+
+    trap_info = detect_stagnation_trap(history, best_sharpe, sharpe_target)
+
+    # Only inject for medium+ severity (not "low" or "no_trap")
+    if trap_info.get("severity") in ("low",) or trap_info.get("trap") == "no_trap":
+        return ""
+
+    recovery = build_stagnation_recovery(trap_info)
+    if not recovery:
+        return ""
+
+    # Add metadata header
+    header = (
+        f"<!-- Stagnation detected at turn {current_turn}: "
+        f"{trap_info['trap']} (severity: {trap_info['severity']}, "
+        f"{trap_info['turns_in_trap']} turns in trap) -->\n\n"
+    )
+
+    return header + recovery

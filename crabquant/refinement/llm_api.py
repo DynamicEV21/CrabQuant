@@ -352,6 +352,10 @@ def call_llm_inventor(
         if quick_ref:
             user_parts.append(f"## Indicator Quick Reference — USE THESE SIGNATURES EXACTLY\n{quick_ref}\n")
 
+        # Phase 5.6: Inject stagnation recovery guidance if trap detected
+        if context.get("stagnation_recovery"):
+            user_parts.append(f"{context['stagnation_recovery']}\n")
+
     user_content = "\n".join(user_parts)
 
     # Inject parallel variant bias if present in context (Phase 5.6.2)
