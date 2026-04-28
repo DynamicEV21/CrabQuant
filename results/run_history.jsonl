@@ -372,3 +372,13 @@
 {"mandate": "trend_amzn", "turn": 1, "action": "create", "sharpe": -1.6471107635276983, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-04-28T09:59:07.925128+00:00"}
 {"mandate": "trend_amzn", "turn": 2, "action": "iterate", "sharpe": 0.8375053135048341, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-28T10:00:10.852240+00:00"}
 {"mandate": "trend_amzn", "turn": 3, "action": "iterate", "sharpe": 0.7040952468440719, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-28T10:00:47.757131+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-28T10:09:31.473452+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-28T10:09:31.674414+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-28T10:25:20.604134+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-28T10:25:20.713281+00:00"}
+{"mandate": "smoke_test", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-28T10:25:20.725114+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-28T10:25:21.047919+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-28T10:25:21.152698+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-28T10:28:04.686106+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-28T10:28:04.963677+00:00"}
+{"mandate": "smoke_test", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-28T10:28:04.978198+00:00"}
