@@ -17,6 +17,8 @@ def generate_signals(df, params):
     - Take profit: 3.0 * ATR(14) above entry
     - RSI > 70 (overbought)
     """
+    params = params or DEFAULT_PARAMS
+
     df = df.copy()
     
     # Calculate indicators

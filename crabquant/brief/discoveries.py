@@ -218,3 +218,18 @@ def get_cron_status() -> dict:
         "total": total,
         "details": crabquant_lines[:4],
     }
+
+
+def get_promotion_metrics() -> dict:
+    """
+    Get pipeline conversion funnel metrics.
+
+    Returns dict with: total_winners, backtest_only_count,
+    walk_forward_passed_count, confirmed_count, promoted_count,
+    promotion_rate.
+    """
+    from crabquant.production.promoter import get_promotion_metrics as _metrics
+
+    results_dir = _get_results_dir()
+    winners_file = results_dir / "winners" / "winners.json"
+    return _metrics(winners_file)

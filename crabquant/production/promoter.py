@@ -25,6 +25,76 @@ PRODUCTION_DIR = Path(__file__).resolve().parent.parent.parent / "strategies" / 
 REGISTRY_FILE = PRODUCTION_DIR / "registry.json"
 
 
+def get_promotion_metrics(winners_file: str | Path = "results/winners/winners.json") -> dict:
+    """Compute pipeline conversion funnel metrics from winners.json.
+
+    Reads winners.json and counts entries by their ``validation_status``.
+    Also cross-references STRATEGY_REGISTRY to mark entries as ``promoted``
+    if the strategy name is found in the live registry.
+
+    Args:
+        winners_file: Path to winners.json.
+
+    Returns:
+        Dict with keys: total_winners, backtest_only_count,
+        walk_forward_passed_count, confirmed_count, promoted_count,
+        promotion_rate.
+    """
+    winners_path = Path(winners_file)
+    winners: list[dict] = []
+
+    if winners_path.exists():
+        try:
+            winners = json.loads(winners_path.read_text())
+        except (json.JSONDecodeError, OSError):
+            logger.warning("Could not read %s for promotion metrics", winners_path)
+
+    # Collect strategy names currently in STRATEGY_REGISTRY
+    promoted_names: set[str] = set()
+    try:
+        from crabquant.strategies import STRATEGY_REGISTRY
+        promoted_names = set(STRATEGY_REGISTRY.keys())
+    except ImportError:
+        logger.debug("Could not import STRATEGY_REGISTRY for promotion metrics")
+
+    backtest_only = 0
+    walk_forward_passed = 0
+    confirmed = 0
+    promoted = 0
+
+    for w in winners:
+        status = w.get("validation_status", "backtest_only")
+        strategy_name = w.get("strategy", "")
+
+        # Cross-check: if in STRATEGY_REGISTRY, force to promoted
+        if strategy_name in promoted_names:
+            status = "promoted"
+
+        if status == "backtest_only":
+            backtest_only += 1
+        elif status == "walk_forward_passed":
+            walk_forward_passed += 1
+        elif status == "confirmed":
+            confirmed += 1
+        elif status == "promoted":
+            promoted += 1
+        else:
+            # Unknown status — treat as backtest_only
+            backtest_only += 1
+
+    total = len(winners)
+    promotion_rate = (promoted / total) if total > 0 else 0.0
+
+    return {
+        "total_winners": total,
+        "backtest_only_count": backtest_only,
+        "walk_forward_passed_count": walk_forward_passed,
+        "confirmed_count": confirmed,
+        "promoted_count": promoted,
+        "promotion_rate": promotion_rate,
+    }
+
+
 def _params_hash(params: dict) -> str:
     """Deterministic hash of params dict for dedup."""
     serialized = json.dumps(params, sort_keys=True, separators=(",", ":"))
@@ -261,11 +331,8 @@ def _extract_slippage_results(confirm_result) -> list[SlippageResult]:
     # Fallback: if we have a ROBUST verdict, assume all passed
     verdict = getattr(confirm_result, "verdict", confirm_result.get("verdict", ""))
     if verdict == "ROBUST":
-        return [
-            SlippageResult(slippage_pct=0.0, passed=True, sharpe=0, total_return=0, max_drawdown=0, num_trades=0, win_rate=0),
-            SlippageResult(slippage_pct=0.001, passed=True, sharpe=0, total_return=0, max_drawdown=0, num_trades=0, win_rate=0),
-            SlippageResult(slippage_pct=0.002, passed=True, sharpe=0, total_return=0, max_drawdown=0, num_trades=0, win_rate=0),
-        ]
+        logger.warning("ROBUST verdict but no slippage results found in notes – returning empty list")
+        return []
 
     return []
 

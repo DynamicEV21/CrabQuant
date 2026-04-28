@@ -33,6 +33,8 @@ def generate_signals(df, params):
         entries: pd.Series[bool] - True where entry signal occurs
         exits: pd.Series[bool] - True where exit signal occurs
     """
+    params = params or DEFAULT_PARAMS
+
     # Make a copy to avoid modifying the original DataFrame
     df = df.copy()
     

@@ -77,6 +77,8 @@ def generate_signals(df, params):
         entries: pd.Series[bool] - entry signals
         exits: pd.Series[bool] - exit signals  
     """
+    params = params or DEFAULT_PARAMS
+
     # Calculate indicators
     rsi = ta.rsi(df['close'], length=params['rsi_len'])
     volume_ma = ta.sma(df['volume'], length=params['volume_ma_len'])

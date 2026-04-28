@@ -18,7 +18,7 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 # Cache directory
-CACHE_DIR = Path(os.path.expanduser("~/.cache/crabquant"))
+CACHE_DIR = Path(os.environ.get("CRABQUANT_CACHE_DIR", os.path.expanduser("~/.cache/crabquant")))
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 

@@ -9,6 +9,7 @@ import logging
 
 from crabquant.brief.discoveries import (
     get_cron_status,
+    get_promotion_metrics,
     get_recent_promotions,
     get_recent_winners,
     get_retirements,
@@ -71,6 +72,12 @@ def generate_brief() -> str:
         brief.cron_total = cron["total"]
     except Exception as e:
         logger.warning(f"Failed to get cron status: {e}")
+
+    # ── Promotion funnel ──
+    try:
+        brief.promotion_metrics = get_promotion_metrics()
+    except Exception as e:
+        logger.warning(f"Failed to get promotion metrics: {e}")
 
     # ── Format ──
     formatted = format_brief(brief)

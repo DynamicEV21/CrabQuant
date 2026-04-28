@@ -163,6 +163,11 @@ def promote_to_winner(
     strategy_name = f"refined_{state.mandate_name}"
     winners_path = _get_winners_path()
 
+    # Determine validation_status based on validation result
+    validation_status = "backtest_only"
+    if validation.get("passed", False):
+        validation_status = "walk_forward_passed"
+
     entry = {
         "strategy": strategy_name,
         "ticker": result.ticker,
@@ -175,6 +180,7 @@ def promote_to_winner(
         "refinement_turns": state.current_turn,
         "validation": validation,
         "promoted_at": datetime.now(timezone.utc).isoformat(),
+        "validation_status": validation_status,
     }
 
     winners_path.parent.mkdir(parents=True, exist_ok=True)
@@ -301,9 +307,38 @@ def auto_promote(
     # Promote to winners
     try:
         promote_to_winner(strategy_code, result, validation, state, strategy_module)
+        # Update validation_status to "promoted" in winners.json
+        _update_winner_status(strategy_name, "promoted")
     except Exception as e:
         logger.warning("Failed to write to winners file: %s", e)
 
     response["registered"] = True
     logger.info("Auto-promoted %s (Sharpe %.2f)", strategy_name, result.sharpe)
     return response
+
+
+def _update_winner_status(strategy_name: str, status: str) -> None:
+    """Update the validation_status of a winner entry in winners.json.
+
+    Finds the most recent entry matching ``strategy_name`` and sets its
+    ``validation_status`` to the given value.
+    """
+    winners_path = _get_winners_path()
+    if not winners_path.exists():
+        return
+
+    try:
+        winners = json.loads(winners_path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return
+
+    updated = False
+    # Walk in reverse to update the most recent match
+    for entry in reversed(winners):
+        if entry.get("strategy") == strategy_name:
+            entry["validation_status"] = status
+            updated = True
+            break
+
+    if updated:
+        winners_path.write_text(json.dumps(winners, indent=2))

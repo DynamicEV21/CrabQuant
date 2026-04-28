@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 
 from crabquant.strategies import STRATEGY_REGISTRY
+from crabquant.refinement.prompts import load_indicator_reference, extract_quick_reference
 
 
 def get_strategy_catalog() -> list[dict]:
@@ -224,6 +225,10 @@ def build_llm_context(
         
         # Strategy catalog — one-liner descriptions of all strategies
         "strategy_catalog": get_strategy_catalog(),
+
+        # Indicator API reference — loaded once and passed to LLM prompts
+        "indicator_reference": load_indicator_reference(),
+        "indicator_quick_ref": extract_quick_reference(load_indicator_reference()),
     }
     
     if report is not None:

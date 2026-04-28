@@ -247,6 +247,18 @@ def call_llm_inventor(
         Path(context_path).write_text(json.dumps(context, indent=2))
     
     # Build messages
+    # Prefer the indicator reference from context if available
+    indicator_ref = context.get("indicator_reference", "")
+    indicator_mistakes = (
+        "\n\nTOP 3 INDICATOR MISTAKES — YOUR CODE WILL CRASH IF YOU DO THESE:\n"
+        "1. atr(close, length=14) → WRONG. ATR requires: atr(high, low, close, length=14)\n"
+        "2. stoch(close, k=14, d=3) → WRONG. Stochastic requires: stoch(high, low, close, k=14, d=3)\n"
+        "3. adx(close, length=14) → WRONG. ADX requires: adx(high, low, close, length=14)\n"
+        "Multi-output indicators (macd, bbands, stoch, adx) return DataFrames — "
+        "use .iloc[:, N] for column access, NOT named strings."
+    )
+    indicator_section = f"\n\n## Indicator API Reference\n{indicator_ref}" if indicator_ref else ""
+
     system_msg = {
         "role": "system",
         "content": (
@@ -262,6 +274,8 @@ def call_llm_inventor(
             "3. Use from crabquant.indicator_cache import cached_indicator for indicators.\n"
             "4. generate_signals MUST return (entries: pd.Series[bool], exits: pd.Series[bool]).\n"
             "5. Ensure the JSON is COMPLETE — never truncate your response."
+            + indicator_mistakes
+            + indicator_section
         ),
     }
     
@@ -292,7 +306,12 @@ def call_llm_inventor(
         
         if context.get("mandate"):
             user_parts.append(f"## Mandate\n{json.dumps(context['mandate'], indent=2)}\n")
-    
+
+        # Inject indicator quick reference if available
+        quick_ref = context.get("indicator_quick_ref", "")
+        if quick_ref:
+            user_parts.append(f"## Indicator Quick Reference — USE THESE SIGNATURES EXACTLY\n{quick_ref}\n")
+
     user_msg = {"role": "user", "content": "\n".join(user_parts)}
     
     try:

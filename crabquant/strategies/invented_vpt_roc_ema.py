@@ -18,6 +18,7 @@ def generate_signals(df, params):
     - roc_threshold: ROC threshold for confirmation (default: 1.0)
     """
     df = df.copy()
+    params = params or DEFAULT_PARAMS
     
     # Calculate indicators
     vpt = (df['volume'] * ((df['close'] - df['close'].shift(1)) / df['close'].shift(1))).cumsum()

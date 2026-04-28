@@ -39,7 +39,6 @@ from crabquant.refinement.diagnostics import (
 from crabquant.refinement.classifier import classify_failure
 from crabquant.refinement.context_builder import build_llm_context
 from crabquant.refinement.llm_api import call_zai_llm, call_llm_inventor, load_api_config
-from crabquant.refinement.config import RefinementConfig
 from crabquant.guardrails import check_guardrails, GuardrailReport, GuardrailConfig
 
 # Phase 3 module imports — replace all inline implementations

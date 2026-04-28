@@ -30,6 +30,7 @@ def generate_signals(df, params):
     - atr_len: ATR period for stop loss
     - atr_mult: ATR multiplier for stop loss
     """
+    params = params or DEFAULT_PARAMS
     # Calculate indicators
     volume_sma = df['volume'].rolling(window=params['volume_sma_len']).mean()
     volume_breakout = df['volume'] > volume_sma * params['volume_mult']

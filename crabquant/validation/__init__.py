@@ -6,7 +6,7 @@ This is what separates real strategies from curve-fitted ones.
 """
 
 import logging
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -89,6 +89,11 @@ def walk_forward_test(
     train_months: int = 18,
     test_months: int = 6,
     engine: Optional[BacktestEngine] = None,
+    *,
+    min_train_bars: int = 252,
+    min_test_sharpe: float = 0.3,
+    min_test_trades: int = 10,
+    max_degradation: float = 0.7,
 ) -> WalkForwardResult:
     """
     Walk-forward test: train on one period, validate on the next.
@@ -97,9 +102,15 @@ def walk_forward_test(
         strategy_fn: Strategy function (df, params) -> (entries, exits)
         ticker: Ticker to test
         params: Strategy parameters
-        train_months: Months of training data
-        test_months: Months of out-of-sample data
+        train_months: Months of training data (default 18 → 75% of 3y)
+        test_months: Months of out-of-sample data (default 6 → 25% of 3y)
         engine: BacktestEngine instance
+        min_train_bars: Minimum bars required in train split (default 252 ≈ 1 year)
+        min_test_sharpe: Minimum OOS Sharpe to be considered robust (default 0.3)
+        min_test_trades: Minimum trades in test period to be considered robust (default 10)
+        max_degradation: Max allowed degradation ratio.  Test Sharpe must be
+            >= train_sharpe * (1 - max_degradation).  E.g. 0.7 means if train
+            Sharpe is 2.0, test must be >= 0.6.  Default 0.7.
 
     Returns:
         WalkForwardResult with train vs test comparison, including regime context
@@ -125,14 +136,14 @@ def walk_forward_test(
     train_df = full_df.iloc[:split_idx]
     test_df = full_df.iloc[split_idx:]
 
-    if len(train_df) < 100 or len(test_df) < 50:
+    if len(train_df) < min_train_bars or len(test_df) < 50:
         return WalkForwardResult(
             strategy_name=strategy_fn.__name__,
             ticker=ticker,
             train_sharpe=0, train_return=0,
             test_sharpe=0, test_return=0, test_max_dd=0,
             degradation=1.0, robust=False,
-            notes="Insufficient data for split",
+            notes=f"Insufficient data for split (train={len(train_df)}, need>={min_train_bars})",
         )
 
     # Train period backtest
@@ -163,13 +174,16 @@ def walk_forward_test(
     except Exception:
         pass
 
-    # Robust if test Sharpe > 0.5 and degradation < 50%
-    # BUT: be more lenient if regime shifted — a 60% degradation with regime change
-    # is more understandable than 60% degradation in the same regime
-    if regime_shift:
-        robust = test_result.sharpe > 0.3 and degradation < 0.7
-    else:
-        robust = test_result.sharpe > 0.5 and degradation < 0.5
+    # Robustness check using configurable thresholds:
+    #   1. test_sharpe >= min_test_sharpe
+    #   2. test_sharpe >= train_sharpe * (1 - max_degradation)  (degradation gate)
+    #   3. Enough trades: num_test_trades >= min_test_trades
+    # Regime shifts get extra leniency on the Sharpe floor (halved).
+    sharpe_floor = min_test_sharpe * 0.5 if regime_shift else min_test_sharpe
+    degradation_ok = degradation <= max_degradation
+    sharpe_ok = test_result.sharpe >= sharpe_floor
+    trades_ok = test_result.num_trades >= min_test_trades
+    robust = sharpe_ok and degradation_ok and trades_ok
 
     notes_parts = [
         f"Train: Sharpe {train_result.sharpe:.2f}, Return {train_result.total_return:.1%}",
@@ -182,8 +196,10 @@ def walk_forward_test(
         notes_parts.append(f"Test regime: {test_regime}")
     if regime_shift:
         notes_parts.append("⚠️ Regime shift detected")
-    if test_result.num_trades < 3:
-        notes_parts.append(f"⚠️ Only {test_result.num_trades} OOS trades")
+    if test_result.num_trades < min_test_trades:
+        notes_parts.append(f"⚠️ Only {test_result.num_trades} OOS trades (need >= {min_test_trades})")
+    if not degradation_ok:
+        notes_parts.append(f"⚠️ Degradation {degradation:.1%} exceeds max {max_degradation:.0%}")
 
     return WalkForwardResult(
         strategy_name=strategy_fn.__name__,
@@ -284,6 +300,186 @@ def cross_ticker_validation(
         win_rate_across_tickers=profitable / len(results) if results else 0,
         robust=robust,
         notes=" | ".join(notes_parts),
+    )
+
+
+def _parse_duration(s: str) -> int:
+    """Parse a duration string like '18mo' or '6mo' into trading-day bars.
+
+    Assumes ~21 trading days per month.
+    """
+    s = s.strip().lower()
+    if s.endswith("mo"):
+        return int(s[:-2]) * 21
+    if s.endswith("d"):
+        return int(s[:-1])
+    if s.endswith("y"):
+        return int(s[:-1]) * 252
+    return int(s)
+
+
+@dataclass
+class RollingWalkForwardResult:
+    """Results from rolling walk-forward validation."""
+    strategy_name: str
+    ticker: str
+    num_windows: int
+    windows_passed: int
+    avg_test_sharpe: float
+    min_test_sharpe: float
+    avg_degradation: float
+    robust: bool
+    notes: str
+    window_results: list = field(default_factory=list)
+
+
+def rolling_walk_forward(
+    strategy_fn,
+    ticker: str,
+    params: dict,
+    *,
+    train_window: str = "18mo",
+    test_window: str = "6mo",
+    step: str = "6mo",
+    min_avg_test_sharpe: float = 0.5,
+    min_windows_passed: int = 2,
+    engine: Optional[BacktestEngine] = None,
+) -> RollingWalkForwardResult:
+    """Validate across multiple rolling walk-forward windows.
+
+    Instead of a single train/test split, this slides overlapping windows
+    across the data and runs a backtest on each.  A strategy is robust if
+    it meets the Sharpe floor on enough windows.
+
+    Args:
+        strategy_fn: Strategy function (df, params) -> (entries, exits)
+        ticker: Ticker to test
+        params: Strategy parameters
+        train_window: Training duration (e.g. "18mo", "252d", "1y")
+        test_window: Test duration (e.g. "6mo")
+        step: Step between window starts (e.g. "6mo")
+        min_avg_test_sharpe: Minimum average test Sharpe across windows
+        min_windows_passed: Minimum windows that must individually pass
+        engine: BacktestEngine instance
+
+    Returns:
+        RollingWalkForwardResult compatible with the WalkForwardResult interface
+        (has ``robust``, ``notes``, and key metrics).
+    """
+    if engine is None:
+        engine = BacktestEngine()
+
+    try:
+        full_df = load_data(ticker, period="5y")
+    except Exception as e:
+        return RollingWalkForwardResult(
+            strategy_name=strategy_fn.__name__,
+            ticker=ticker,
+            num_windows=0, windows_passed=0,
+            avg_test_sharpe=0, min_test_sharpe=0, avg_degradation=1.0,
+            robust=False,
+            notes=f"Data error: {e}",
+        )
+
+    train_bars = _parse_duration(train_window)
+    test_bars = _parse_duration(test_window)
+    step_bars = _parse_duration(step)
+    window_size = train_bars + test_bars
+
+    if len(full_df) < window_size:
+        return RollingWalkForwardResult(
+            strategy_name=strategy_fn.__name__,
+            ticker=ticker,
+            num_windows=0, windows_passed=0,
+            avg_test_sharpe=0, min_test_sharpe=0, avg_degradation=1.0,
+            robust=False,
+            notes=f"Data too short ({len(full_df)} bars, need {window_size})",
+        )
+
+    # Generate window start indices
+    starts = list(range(0, len(full_df) - window_size + 1, step_bars))
+    if not starts:
+        starts = [0]
+
+    window_results: list[dict] = []
+    for i, start in enumerate(starts):
+        end = start + window_size
+        train_df = full_df.iloc[start:start + train_bars]
+        test_df = full_df.iloc[start + train_bars:end]
+
+        try:
+            train_entries, train_exits = strategy_fn(train_df, params)
+            train_result = engine.run(train_df, train_entries, train_exits,
+                                      strategy_fn.__name__, ticker, params=params)
+            test_entries, test_exits = strategy_fn(test_df, params)
+            test_result = engine.run(test_df, test_entries, test_exits,
+                                     strategy_fn.__name__, ticker, params=params)
+
+            if train_result.sharpe > 0:
+                degradation = (train_result.sharpe - test_result.sharpe) / train_result.sharpe
+            else:
+                degradation = 1.0
+
+            window_passed = test_result.sharpe >= 0.3 and degradation <= 0.7
+            window_results.append({
+                "window": i + 1,
+                "train_sharpe": train_result.sharpe,
+                "test_sharpe": test_result.sharpe,
+                "degradation": degradation,
+                "passed": window_passed,
+            })
+        except Exception as exc:
+            logger.warning(f"Rolling window {i+1} failed: {exc}")
+            window_results.append({
+                "window": i + 1, "train_sharpe": 0, "test_sharpe": 0,
+                "degradation": 1.0, "passed": False, "error": str(exc),
+            })
+
+    if not window_results:
+        return RollingWalkForwardResult(
+            strategy_name=strategy_fn.__name__,
+            ticker=ticker,
+            num_windows=0, windows_passed=0,
+            avg_test_sharpe=0, min_test_sharpe=0, avg_degradation=1.0,
+            robust=False,
+            notes="No valid windows produced",
+        )
+
+    test_sharpes = [w["test_sharpe"] for w in window_results]
+    degradations = [w["degradation"] for w in window_results]
+    windows_passed = sum(1 for w in window_results if w["passed"])
+
+    avg_test_sharpe = sum(test_sharpes) / len(test_sharpes)
+    min_test_sharpe = min(test_sharpes)
+    avg_degradation = sum(degradations) / len(degradations)
+
+    robust = (
+        avg_test_sharpe >= min_avg_test_sharpe
+        and windows_passed >= min_windows_passed
+    )
+
+    notes_parts = [
+        f"Windows: {len(window_results)}, passed: {windows_passed}",
+        f"Avg test Sharpe: {avg_test_sharpe:.2f} (min: {min_test_sharpe:.2f})",
+        f"Avg degradation: {avg_degradation:.1%}",
+    ]
+    if not robust:
+        if avg_test_sharpe < min_avg_test_sharpe:
+            notes_parts.append(f"⚠️ Avg test Sharpe {avg_test_sharpe:.2f} < {min_avg_test_sharpe}")
+        if windows_passed < min_windows_passed:
+            notes_parts.append(f"⚠️ Only {windows_passed}/{len(window_results)} windows passed (need >= {min_windows_passed})")
+
+    return RollingWalkForwardResult(
+        strategy_name=strategy_fn.__name__,
+        ticker=ticker,
+        num_windows=len(window_results),
+        windows_passed=windows_passed,
+        avg_test_sharpe=avg_test_sharpe,
+        min_test_sharpe=min_test_sharpe,
+        avg_degradation=avg_degradation,
+        robust=robust,
+        notes=" | ".join(notes_parts),
+        window_results=window_results,
     )
 
 

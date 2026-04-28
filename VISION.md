@@ -1,7 +1,7 @@
 # CrabQuant — Vision & Roadmap
 
-**Last Updated:** 2026-04-27  
-**Status:** Phase 4 ✅ · Phase 5A ✅ · Phase 4.5 (Convergence Tuning) in progress
+**Last Updated:** 2026-04-28  
+**Status:** Phase 4 ✅ · Phase 4.5 ✅ · Phase 5A ✅ · Phase 5B PLANNED (see PHASE5B_PRD.md)
 
 ---
 
@@ -208,17 +208,18 @@ The refinement pipeline is fully wired and running:
 - [x] Persistent daemon with state persistence and graceful shutdown
 - [x] Supervisor cron for continuous autonomous operation
 - [x] Health check endpoint
+- [x] Daemon running: PID 3759494, wave 7, 13 mandates run, 0 promoted
+- [x] 688 unit tests passing across 27 refinement modules
 - [ ] Wave dashboard wired to actual running mandates (not yet connected)
+- [ ] Phase 5B: API budget tracker, resource limiter, auto-mandate, status reporting (planned — see PHASE5B_PRD.md)
 
 ### What Needs to Be Built (Remaining Gaps)
 
 - [ ] **Convergence tuning**: Debug abandoned mandates, tune Sharpe targets per archetype, get first real promotion
-- [ ] **API budget tracker**: Track z.ai prompt count, throttle when approaching limit
+- [ ] **Phase 5B — Intelligence & Reliability**: API budget tracker, resource limiter, auto-mandate with market data, status reporting (see PHASE5B_PRD.md)
+- [ ] **Phase 6 — Intelligence Layer**: Action analytics feedback, adaptive prompts, strategy decay detection, portfolio correlation, mandate prioritization (see PHASE6_PRD.md)
+- [ ] **Phase 7 — Deployment Readiness**: Slippage integration, walk-forward in loop, regime validation, multi-timeframe, paper trading, Telegram dashboard (see PHASE7_PRD.md)
 - [ ] **Portfolio-level optimization**: Currently optimizes individual strategies. Needs portfolio construction (risk parity, correlation-aware allocation).
-- [ ] **Strategy decay detection**: Monitor live-ish performance of promoted strategies. Retire strategies whose edge fades.
-- [ ] **Paper trading interface**: Feed validated strategies into a simulated portfolio to track real-time performance.
-- [ ] **Multi-timeframe analysis**: Strategies that combine signals across daily, weekly, hourly timeframes.
-- [ ] **Slippage + commission modeling**: The confirm module exists but isn't integrated into the refinement loop.
 - [ ] **Broker integration** (far future): Interactive Brokers or Alpaca for live trading.
 
 ### What's Been Learned

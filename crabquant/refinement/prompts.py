@@ -17,6 +17,7 @@ Two prompt modes:
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 # ── Action Types ─────────────────────────────────────────────────────────────
@@ -70,7 +71,17 @@ reduce false signals by 30-50%."
 5. Generate COMPLETE file content, not diffs or patches.
 6. Look at the EXAMPLE STRATEGIES below to understand the exact API patterns. \
 Your code MUST follow the same structure.
+
+TOP 3 INDICATOR MISTAKES — YOUR CODE WILL CRASH IF YOU DO THESE:
+1. atr(close, length=14) → WRONG. ATR requires: atr(high, low, close, length=14)
+2. stoch(close, k=14, d=3) → WRONG. Stochastic requires: stoch(high, low, close, k=14, d=3)
+3. adx(close, length=14) → WRONG. ADX requires: adx(high, low, close, length=14)
+Multi-output indicators (macd, bbands, stoch, adx) return DataFrames — \
+use .iloc[:, N] for column access, NOT named strings.
 {stagnation_suffix}
+
+## Indicator API Reference
+{indicator_reference}
 """
 
 # ── Turn 1 Prompt (Pure Invention) ──────────────────────────────────────────
@@ -95,6 +106,9 @@ TURN1_PROMPT = """\
 Invent a complete trading strategy matching the mandate.
 Use the example strategies as a TEMPLATE for code structure, function signatures, \
 and indicator usage patterns. Your code MUST follow the same conventions.
+
+### Indicator Quick Reference — USE THESE SIGNATURES EXACTLY
+{indicator_quick_ref}
 
 Output ONLY the JSON object with the required fields.
 For turn 1, use:
@@ -152,11 +166,77 @@ Current params: {current_params}
 4. Propose a targeted modification with a causal hypothesis
 5. Output the COMPLETE modified strategy file
 
+### Indicator Quick Reference — USE THESE SIGNATURES EXACTLY
+{indicator_quick_ref}
+
 Output ONLY the JSON object with the required fields.
 """
 
 
 # ── Helper Functions ─────────────────────────────────────────────────────────
+
+
+def _find_project_root(start: Path | None = None) -> Path:
+    """Find the project root by walking up from *start* until VISION.md or pyproject.toml.
+
+    Args:
+        start: Directory to start searching from. Defaults to this file's directory.
+
+    Returns:
+        Path to the project root.
+
+    Raises:
+        FileNotFoundError: If no root marker is found.
+    """
+    current = start or Path(__file__).resolve().parent
+    for _ in range(20):  # safety bound
+        if (current / "VISION.md").is_file() or (current / "pyproject.toml").is_file():
+            return current
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
+    raise FileNotFoundError(
+        "Cannot find project root (no VISION.md or pyproject.toml found)"
+    )
+
+
+def load_indicator_reference() -> str:
+    """Load the full indicator API reference from docs/INDICATOR_API.md.
+
+    Returns:
+        Full text of the indicator reference, or a fallback string if the
+        file is missing.
+    """
+    try:
+        root = _find_project_root()
+        ref_path = root / "docs" / "INDICATOR_API.md"
+        return ref_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        return (
+            "# Indicator API Reference\n"
+            "(docs/INDICATOR_API.md not found — indicator reference unavailable)\n"
+        )
+
+
+def extract_quick_reference(full_reference: str) -> str:
+    """Extract the Quick Reference Card (section 7) from the full reference.
+
+    Falls back to the full reference if section 7 cannot be found.
+
+    Args:
+        full_reference: Full text of INDICATOR_API.md.
+
+    Returns:
+        Just the Quick Reference Card section as a string.
+    """
+    # Try to find section 7 by its heading
+    marker = "## 7. Quick Reference Card"
+    idx = full_reference.find(marker)
+    if idx >= 0:
+        return full_reference[idx:].strip()
+    # Fallback: return the whole thing (better than nothing)
+    return full_reference
 
 
 def format_stagnation_suffix(
@@ -256,6 +336,8 @@ def build_turn1_prompt(
     seed_params: dict | None = None,
     strategy_examples: list[dict] | None = None,
     strategy_catalog: list[dict] | None = None,
+    indicator_reference: str = "",
+    indicator_quick_ref: str = "",
 ) -> str:
     """Build the complete Turn 1 (invention) prompt.
 
@@ -268,6 +350,8 @@ def build_turn1_prompt(
         seed_params: Optional seed strategy default params.
         strategy_examples: Optional list of example strategy dicts.
         strategy_catalog: Optional list of catalog entries.
+        indicator_reference: Full indicator API reference text.
+        indicator_quick_ref: Quick reference card (section 7) for user message.
 
     Returns:
         Complete prompt string for the LLM.
@@ -311,6 +395,7 @@ def build_turn1_prompt(
         seed_section=seed_section,
         strategy_catalog=catalog_text,
         strategy_examples=examples_text,
+        indicator_quick_ref=indicator_quick_ref,
     )
 
 
@@ -324,6 +409,8 @@ def build_refinement_prompt(
     best_turn: int,
     stagnation_suffix: str = "",
     strategy_examples: list[dict] | None = None,
+    indicator_reference: str = "",
+    indicator_quick_ref: str = "",
 ) -> str:
     """Build the complete refinement prompt for turns 2+.
 
@@ -336,6 +423,8 @@ def build_refinement_prompt(
         best_turn: Turn number of the best Sharpe.
         stagnation_suffix: Formatted stagnation response string.
         strategy_examples: Optional list of example strategy dicts.
+        indicator_reference: Full indicator API reference text.
+        indicator_quick_ref: Quick reference card (section 7) for user message.
 
     Returns:
         Complete prompt string for the LLM.
@@ -391,4 +480,5 @@ def build_refinement_prompt(
         best_turn=best_turn,
         stagnation_suffix=stagnation_suffix,
         strategy_examples=examples_text,
+        indicator_quick_ref=indicator_quick_ref,
     )

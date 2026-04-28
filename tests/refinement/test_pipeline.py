@@ -208,11 +208,30 @@ class TestSignalHandler:
 # ── Daemon max-waves ──────────────────────────────────────────────────────
 
 
+def _make_fake_popen(returncode=0, stdout="", stderr="", trigger_shutdown=False):
+    """Create a mock Popen that finishes immediately on poll()."""
+    mock_proc = MagicMock()
+    mock_proc.returncode = returncode
+    # Use a plain function for poll to avoid mock recursion
+    if trigger_shutdown:
+        def poll_shutdown(*args, **kwargs):
+            rp.shutdown_requested = True
+            return returncode
+        mock_proc.poll = poll_shutdown
+    else:
+        mock_proc.poll = MagicMock(return_value=returncode)
+    mock_proc.stdout = MagicMock()
+    mock_proc.stdout.read.return_value = stdout
+    mock_proc.stderr = MagicMock()
+    mock_proc.stderr.read.return_value = stderr
+    return mock_proc
+
+
 class TestDaemonMaxWaves:
-    @patch("scripts.run_pipeline.run_single_mandate")
+    @patch("scripts.run_pipeline.subprocess.Popen")
     @patch("scripts.run_pipeline.time.sleep")
     def test_daemon_max_waves_0(
-        self, mock_sleep: MagicMock, mock_run: MagicMock, tmp_path: Path
+        self, mock_sleep: MagicMock, mock_popen: MagicMock, tmp_path: Path
     ) -> None:
         """Daemon with max_waves=0 and no pending mandates just sleeps."""
         _use_tmp_pid(tmp_path)
@@ -220,7 +239,6 @@ class TestDaemonMaxWaves:
         mandates_dir = tmp_path / "mandates"
         mandates_dir.mkdir()
 
-        mock_run.return_value = {"returncode": 0, "stdout": "", "stderr": ""}
         # Make sleep set shutdown_requested after 1 call to avoid infinite loop
         def sleep_then_stop(*args, **kwargs):
             rp.shutdown_requested = True
@@ -233,10 +251,10 @@ class TestDaemonMaxWaves:
         # Should have slept at least once (no mandates found)
         assert mock_sleep.called
 
-    @patch("scripts.run_pipeline.run_single_mandate")
+    @patch("scripts.run_pipeline.subprocess.Popen")
     @patch("scripts.run_pipeline.time.sleep")
     def test_daemon_max_waves_1(
-        self, mock_sleep: MagicMock, mock_run: MagicMock, tmp_path: Path
+        self, mock_sleep: MagicMock, mock_popen: MagicMock, tmp_path: Path
     ) -> None:
         """Daemon with max_waves=1 runs 1 wave and exits."""
         _use_tmp_pid(tmp_path)
@@ -245,23 +263,28 @@ class TestDaemonMaxWaves:
         mandates_dir.mkdir()
         (mandates_dir / "test.json").write_text('{"name": "test"}')
 
-        mock_run.return_value = {"returncode": 0, "stdout": "", "stderr": ""}
+        mock_popen.return_value = _make_fake_popen(returncode=0)
 
         with patch("scripts.run_pipeline.acquire_pid", return_value=True), \
              patch("scripts.run_pipeline.release_pid"):
             rp.run_daemon(max_waves=1, parallel=1, sleep_seconds=1, mandates_dir=mandates_dir)
 
-        # Should have run the single mandate exactly once
-        mock_run.assert_called_once()
-        call_args = mock_run.call_args
-        assert "test.json" in call_args[0][0]
+        # Should have launched exactly one subprocess
+        assert mock_popen.call_count == 1
+        cmd_list = mock_popen.call_args[0][0]
+        assert any("test.json" in str(x) for x in cmd_list)
 
-    @patch("scripts.run_pipeline.run_single_mandate")
+    @patch("scripts.run_pipeline.subprocess.Popen")
     @patch("scripts.run_pipeline.time.sleep")
     def test_daemon_graceful_shutdown(
-        self, mock_sleep: MagicMock, mock_run: MagicMock, tmp_path: Path
+        self, mock_sleep: MagicMock, mock_popen: MagicMock, tmp_path: Path
     ) -> None:
-        """Daemon exits cleanly when shutdown_requested is set mid-wave."""
+        """Daemon exits cleanly when shutdown_requested is set mid-wave.
+
+        With parallel=2, both mandates in the batch are launched before the
+        first poll sees shutdown_requested.  The key assertion is that the
+        daemon stops after the current wave instead of starting a new one.
+        """
         _use_tmp_pid(tmp_path)
         rp.shutdown_requested = False  # Reset global flag
         mandates_dir = tmp_path / "mandates"
@@ -269,21 +292,73 @@ class TestDaemonMaxWaves:
         (mandates_dir / "a.json").write_text('{"name": "a"}')
         (mandates_dir / "b.json").write_text('{"name": "b"}')
 
-        call_count = 0
-
-        def fake_run(mandate_path, **kwargs):
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                # After first mandate, signal shutdown
-                rp.shutdown_requested = True
-            return {"returncode": 0, "stdout": "", "stderr": ""}
-
-        mock_run.side_effect = fake_run
+        # All processes complete immediately; poll triggers shutdown
+        mock_popen.return_value = _make_fake_popen(returncode=0, trigger_shutdown=True)
 
         with patch("scripts.run_pipeline.acquire_pid", return_value=True), \
              patch("scripts.run_pipeline.release_pid"):
             rp.run_daemon(max_waves=0, parallel=2, sleep_seconds=60, mandates_dir=mandates_dir)
 
-        # Only first mandate should have run
-        assert call_count == 1
+        # Both mandates were launched in the same parallel batch
+        assert mock_popen.call_count == 2
+        # Verify state recorded both completions
+        state = rp.DaemonState.load(str(rp.STATE_FILE))
+        assert len(state.completed_mandates) == 2
+
+    @patch("scripts.run_pipeline.subprocess.Popen")
+    @patch("scripts.run_pipeline.time.sleep")
+    def test_daemon_parallel_launches(
+        self, mock_sleep: MagicMock, mock_popen: MagicMock, tmp_path: Path
+    ) -> None:
+        """Daemon with parallel=2 launches up to 2 mandates concurrently."""
+        _use_tmp_pid(tmp_path)
+        rp.shutdown_requested = False  # Reset global flag
+        mandates_dir = tmp_path / "mandates"
+        mandates_dir.mkdir()
+        (mandates_dir / "x.json").write_text('{"name": "x"}')
+        (mandates_dir / "y.json").write_text('{"name": "y"}')
+        (mandates_dir / "z.json").write_text('{"name": "z"}')
+
+        # All processes complete immediately
+        mock_popen.return_value = _make_fake_popen(returncode=0)
+
+        with patch("scripts.run_pipeline.acquire_pid", return_value=True), \
+             patch("scripts.run_pipeline.release_pid"):
+            rp.run_daemon(max_waves=1, parallel=2, sleep_seconds=1, mandates_dir=mandates_dir)
+
+        # parallel=2 with 3 mandates: first wave launches 2, then max_waves hit
+        assert mock_popen.call_count == 2
+
+    @patch("scripts.run_pipeline.subprocess.Popen")
+    @patch("scripts.run_pipeline.time.sleep")
+    def test_daemon_one_failure_doesnt_kill_others(
+        self, mock_sleep: MagicMock, mock_popen: MagicMock, tmp_path: Path
+    ) -> None:
+        """One mandate failing doesn't prevent others from completing."""
+        _use_tmp_pid(tmp_path)
+        rp.shutdown_requested = False  # Reset global flag
+        mandates_dir = tmp_path / "mandates"
+        mandates_dir.mkdir()
+        (mandates_dir / "fail.json").write_text('{"name": "fail"}')
+        (mandates_dir / "ok.json").write_text('{"name": "ok"}')
+
+        popen_count = 0
+        def fake_popen(*args, **kwargs):
+            nonlocal popen_count
+            popen_count += 1
+            # First process fails, second succeeds
+            rc = 1 if popen_count == 1 else 0
+            return _make_fake_popen(returncode=rc, stderr="boom" if rc else "")
+
+        mock_popen.side_effect = fake_popen
+
+        with patch("scripts.run_pipeline.acquire_pid", return_value=True), \
+             patch("scripts.run_pipeline.release_pid"):
+            rp.run_daemon(max_waves=1, parallel=2, sleep_seconds=1, mandates_dir=mandates_dir)
+
+        # Both should have been launched
+        assert mock_popen.call_count == 2
+        # Check state: 1 success, 1 failure
+        state = rp.DaemonState.load(str(rp.STATE_FILE))
+        assert len(state.completed_mandates) == 1
+        assert len(state.failed_mandates) == 1

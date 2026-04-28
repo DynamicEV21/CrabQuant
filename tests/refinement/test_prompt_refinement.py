@@ -13,6 +13,8 @@ from crabquant.refinement.prompts import (
     format_stagnation_suffix,
     format_tier2_section,
     format_previous_attempts_section,
+    load_indicator_reference,
+    extract_quick_reference,
 )
 
 
@@ -40,12 +42,18 @@ class TestConstants:
         assert "{mandate_name}" in TURN1_PROMPT
         assert "{sharpe_target}" in TURN1_PROMPT
         assert "{tickers}" in TURN1_PROMPT
+        assert "{indicator_quick_ref}" in TURN1_PROMPT
 
     def test_refinement_prompt_has_placeholders(self):
         assert "{sharpe_ratio" in REFINEMENT_PROMPT
         assert "{failure_mode}" in REFINEMENT_PROMPT
         assert "{current_strategy_code}" in REFINEMENT_PROMPT
         assert "{sharpe_by_year}" in REFINEMENT_PROMPT
+        assert "{indicator_quick_ref}" in REFINEMENT_PROMPT
+
+    def test_system_prompt_has_indicator_placeholder(self):
+        assert "{indicator_reference}" in SYSTEM_PROMPT
+        assert "TOP 3 INDICATOR MISTAKES" in SYSTEM_PROMPT
 
 
 class TestFormatStagnationSuffix:
@@ -320,3 +328,66 @@ class TestBuildRefinementPrompt:
         )
         assert "2023" in prompt
         assert "2024" in prompt
+
+
+class TestIndicatorReference:
+    def test_load_indicator_reference_returns_content(self):
+        """load_indicator_reference should return non-empty string from docs/INDICATOR_API.md."""
+        ref = load_indicator_reference()
+        assert isinstance(ref, str)
+        assert len(ref) > 100
+        assert "ATR" in ref or "atr" in ref
+        assert "cached_indicator" in ref
+
+    def test_load_indicator_reference_fallback(self):
+        """If the file is missing, should return a fallback string (not crash)."""
+        # This is implicitly tested when running from a different cwd,
+        # but the function always finds the root via __file__, so it should
+        # always succeed in the project tree. Verify it's not empty.
+        ref = load_indicator_reference()
+        assert "Indicator API Reference" in ref or "unavailable" in ref
+
+    def test_extract_quick_reference(self):
+        """extract_quick_reference should return section 7 content."""
+        ref = load_indicator_reference()
+        quick = extract_quick_reference(ref)
+        assert "Quick Reference Card" in quick
+        # Section 7 is the last section — should NOT contain earlier sections' headings
+        # (it starts at the section 7 heading)
+        assert quick.strip().startswith("## 7.")
+
+    def test_extract_quick_reference_fallback(self):
+        """If section 7 heading is not found, returns full reference."""
+        quick = extract_quick_reference("Some text without section 7")
+        assert quick == "Some text without section 7"
+
+    def test_build_turn1_prompt_includes_quick_ref(self):
+        """When indicator_quick_ref is provided, it appears in the prompt."""
+        mandate = {"name": "test", "tickers": ["AAPL"], "period": "1y"}
+        prompt = build_turn1_prompt(
+            mandate=mandate, current_turn=1, max_turns=7,
+            indicator_quick_ref="## Quick Ref\n| rsi | close |",
+        )
+        assert "Quick Ref" in prompt
+        assert "Indicator Quick Reference" in prompt
+
+    def test_build_refinement_prompt_includes_quick_ref(self):
+        """When indicator_quick_ref is provided, it appears in the prompt."""
+        report = {
+            "sharpe_ratio": 1.0, "total_return_pct": 0.1, "max_drawdown_pct": -0.05,
+            "win_rate": 0.5, "total_trades": 20, "profit_factor": 1.3,
+            "calmar_ratio": 1.0, "sortino_ratio": 1.5, "composite_score": 1.0,
+            "failure_mode": "low_sharpe", "failure_details": "test",
+            "sharpe_by_year": {}, "stagnation_score": 0.0, "stagnation_trend": "improving",
+            "previous_sharpes": [], "previous_actions": [],
+            "guardrail_violations": [], "guardrail_warnings": [],
+            "current_strategy_code": "pass", "current_params": {},
+            "previous_attempts": [], "consecutive_modify_params": 0,
+        }
+        prompt = build_refinement_prompt(
+            tier1_report=report, current_turn=2, max_turns=7,
+            sharpe_target=1.5, best_sharpe=0.5, best_turn=1,
+            indicator_quick_ref="## Quick Ref\n| atr | h,l,c |",
+        )
+        assert "Quick Ref" in prompt
+        assert "Indicator Quick Reference" in prompt

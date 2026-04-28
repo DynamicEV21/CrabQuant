@@ -4,6 +4,8 @@
 **Auditor:** CodeCrab 🦀 (automated code review)  
 **Scope:** Full codebase — 185 Python files, ~55K lines (library + scripts + tests)
 
+**Note:** 4 legacy cron agents (crabquant-wave, crabquant-improve, crabquant-validate, crabquant-meta) have been deleted and replaced by a single `crabquant-supervisor` cron. Refinement module count updated from 28 to 27 (some modules consolidated). Current test count: 688 unit tests passing.
+
 ---
 
 ## 1. Project Structure Overview
@@ -36,7 +38,7 @@
 │   │   ├── __init__.py, promoter.py, scanner.py, report.py
 │   ├── brief/                      # Daily brief (581 LOC)
 │   │   ├── __init__.py, models.py, formatter.py, market.py, discoveries.py
-│   └── refinement/                 # LLM refinement (~5,200 LOC, 28 files)
+│   └── refinement/                 # LLM refinement (~5,200 LOC, 27 files)
 │       ├── prompts.py, context_builder.py, diagnostics.py, llm_api.py
 │       ├── wave_manager.py, schemas.py, mandate_generator.py, validation_gates.py
 │       ├── promotion.py, classifier.py, config.py, module_loader.py
@@ -128,7 +130,7 @@
 - Single split, not rolling/expanding window
 - Cross-ticker assumes equal applicability across tickers
 
-### 2.6 Refinement (`crabquant/refinement/`) — 28 files, ~5,200 LOC
+### 2.6 Refinement (`crabquant/refinement/`) — 27 files, ~5,200 LOC
 
 **What:** LLM-driven strategy improvement. Includes prompt engineering, validation gates, circuit breakers, stagnation detection, cosmetic guards, action analytics, wave-based parallel execution.
 
@@ -570,8 +572,9 @@
 | Strategies defined | 22 |
 | Strategies with converters | 17 (5 missing) |
 | Completed combos | ~55 |
-| Cron agents | 4 (wave, validate, confirm, promote) |
-| Refinement modules | 28 files |
+| Cron agents | 1 (crabquant-supervisor, replaces 4 legacy agents) |
+| Refinement modules | 27 files |
+| Unit tests | 688 passing |
 | Critical bugs | 2 open, 1 fixed (parallel.py import) |
 | Integration gaps | 7 |
 | Hardcoded data | 110 affinity scores + invention mock data |

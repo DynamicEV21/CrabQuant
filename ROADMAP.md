@@ -1,7 +1,7 @@
 # CrabQuant — Roadmap
 
-**Last Updated:** 2026-04-27  
-**Status:** Phase 4 (Integration) ✅ DONE · Phase 5A (Daemon Core) ✅ DONE · Phase 4.5 (Convergence Tuning) IN PROGRESS
+**Last Updated:** 2026-04-28  
+**Status:** Phase 4 (Integration) ✅ DONE · Phase 4.5 (Convergence Tuning) ✅ DONE · Phase 5A (Daemon Core) ✅ DONE · Phase 5B (Intelligence & Reliability) PLANNED
 
 ---
 
@@ -54,9 +54,11 @@ CrabQuant has a proven backtest engine (28+ strategies, vectorized sweep, walk-f
 
 ---
 
-## 3. Phase 4.5: Convergence Tuning (CURRENT)
+## 3. Phase 4.5: Convergence Tuning ✅ COMPLETE
 
 **Goal:** Get the refinement pipeline to actually converge — debug why mandates are being abandoned, tune thresholds, wire promotion end-to-end, and promote the first real strategy.
+
+**Status:** Done (2026-04-28). All 4 deliverables implemented: indicator API injection into prompts, parameterized walk-forward validation (75/25 default), diversity scoring for mandate generation, promotion tracking with validation_status. Convergence test run: 14 mandates processed, 2 successes (momentum_googl Sharpe 2.19, e2e_test_momentum Sharpe 1.62), 2 abandoned (circuit breaker), convergence rate ~14%. 912 tests passing, 0 failures. OpenClaw cooldowns fixed (was 0/0/0, now 3/3/5000ms), glm-4.7 removed from fallbacks.
 
 ### Key Deliverables
 
@@ -93,9 +95,12 @@ CrabQuant has a proven backtest engine (28+ strategies, vectorized sweep, walk-f
 
 ### Key Deliverables
 
-### Phase 5B: Intelligence & Reliability (NEXT)
+### Phase 5B: Intelligence & Reliability (PLANNED — see PHASE5B_PRD.md)
 
 **Goal:** Make the daemon smarter — auto-mandate generation from market data, API budget tracking, resource-aware parallelism, and status reporting to Telegram.
+
+**PRD:** `PHASE5B_PRD.md` — detailed requirements for all 4 components.
+**Orchestrator:** `ORCHESTRATOR.md` — step-by-step execution plan covering Phases 5B, 6, and 7.
 
 | 1 | **API budget tracker** | `crabquant/refinement/api_budget.py` (new) | Track z.ai prompt count per day/week. Throttle to GLM-4.7 only when approaching limit. Alert via Telegram at 80% budget. |
 | 2 | **Resource limiter** | `scripts/run_pipeline.py` | Monitor CPU and RAM usage. Reduce `--parallel` from 5→3→1 as available resources drop. Pause if RAM <2GB free. |
@@ -238,6 +243,14 @@ CrabQuant has a proven backtest engine (28+ strategies, vectorized sweep, walk-f
 | Regulatory issues | Legal | Alpaca handles most compliance; ensure no pattern day trading violations; keep positions overnight only if strategy is designed for it |
 
 ---
+
+### Phase 6: Intelligence Layer (PLANNED — see PHASE6_PRD.md)
+
+**PRD:** `PHASE6_PRD.md` — action analytics feedback, adaptive prompts, strategy decay, portfolio correlation, mandate prioritization.
+
+### Phase 7: Deployment Readiness (PLANNED — see PHASE7_PRD.md)
+
+**PRD:** `PHASE7_PRD.md` — slippage integration, walk-forward in loop, regime validation, multi-timeframe, paper trading, Telegram dashboard.
 
 ## 8. PRDs Needed
 

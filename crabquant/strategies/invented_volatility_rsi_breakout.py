@@ -53,6 +53,8 @@ def generate_signals(df, params):
         entries: pd.Series[bool] - True when entry signal occurs
         exits: pd.Series[bool] - True when exit signal occurs
     """
+    params = params or DEFAULT_PARAMS
+
     # Calculate indicators
     bb = ta.bbands(df['close'], length=params['bb_length'], std=params['bb_std'])
     rsi = ta.rsi(df['close'], length=params['rsi_length'])

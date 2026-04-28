@@ -31,6 +31,8 @@ def generate_signals(df, params):
     1. ATR-based trailing stop
     2. RSI reversal levels
     """
+    params = params or DEFAULT_PARAMS
+
     # Normalize column names
     df = _normalize_columns(df)
     

@@ -577,6 +577,7 @@ def save_winner(result):
             "params": result.params,
             "discovered": datetime.now().isoformat(),
             "regime": regime,
+            "validation_status": "backtest_only",
         })
 
     winners.sort(key=lambda w: w.get("score", 0), reverse=True)

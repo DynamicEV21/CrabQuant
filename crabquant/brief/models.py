@@ -21,3 +21,5 @@ class BriefData:
     cron_active: int = 0
     cron_total: int = 0
     regime_strategy_suggestions: list[tuple[str, float]] = field(default_factory=list)
+    # Pipeline conversion funnel
+    promotion_metrics: dict = field(default_factory=dict)

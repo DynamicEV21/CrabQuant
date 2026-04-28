@@ -101,6 +101,18 @@ def format_brief(brief: BriefData) -> str:
     lines.append("")
     lines.append(f"🤖 Crons: {cron_str}")
 
+    # ── Pipeline Conversion Funnel ──
+    metrics = brief.promotion_metrics
+    if metrics and metrics.get("total_winners", 0) > 0:
+        lines.append("")
+        lines.append("🔬 Pipeline Conversion:")
+        lines.append(f"• Backtest Winners: {metrics['total_winners']}")
+        lines.append(f"• Walk-Forward Passed: {metrics.get('walk_forward_passed_count', 0)}")
+        lines.append(f"• Confirmed: {metrics.get('confirmed_count', 0)}")
+        lines.append(f"• Promoted to Registry: {metrics.get('promoted_count', 0)}")
+        rate = metrics.get("promotion_rate", 0)
+        lines.append(f"• Conversion Rate: {rate:.1%}")
+
     result = "\n".join(lines)
 
     # Hard cap at 800 chars — trim from bottom if needed

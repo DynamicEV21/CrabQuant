@@ -125,7 +125,7 @@ def run_discovery(
             logger.warning(f"Unknown strategy: {strat_name}")
             continue
 
-        strategy_fn, defaults, param_grid, desc = STRATEGY_REGISTRY[strat_name]
+        strategy_fn, defaults, param_grid, desc, _matrix_fn = STRATEGY_REGISTRY[strat_name]
 
         print(f"\n{'#'*60}")
         print(f"# {strat_name}: {desc[:80]}...")
@@ -192,7 +192,7 @@ def run_validation(winning_results: list | None = None):
         if strat_name not in STRATEGY_REGISTRY:
             continue
 
-        strategy_fn, _, _, _ = STRATEGY_REGISTRY[strat_name]
+        strategy_fn, _, _, _, _ = STRATEGY_REGISTRY[strat_name]
 
         print(f"\n{'='*60}")
         print(f"Validating: {result.ticker}/{strat_name} (Sharpe {result.sharpe:.2f})")

@@ -21,6 +21,8 @@ def generate_signals(df, params):
     - rsi_overbought: RSI overbought threshold (default: 70)
     - ema_len: EMA lookback period (default: 20)
     """
+    params = params or DEFAULT_PARAMS
+
     df = df.copy()
     
     # Reset index to flatten MultiIndex columns

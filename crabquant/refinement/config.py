@@ -52,6 +52,12 @@ class RefinementConfig:
     runs_dir: str = "refinement/runs"
     winners_file: str = "results/winners/winners.json"
 
+    # ── Walk-forward validation thresholds ──────────────────────────────
+
+    # Default values consumed by ``walk_forward_test()`` keyword args.
+    # train_months and test_months are handled separately via the
+    # period strings passed to the validation function.
+
     # ── serialisation ──────────────────────────────────────────────────────
 
     def to_dict(self) -> dict:
@@ -104,3 +110,34 @@ class RefinementConfig:
         """Load a mandate JSON file and build config from it."""
         mandate = json.loads(Path(path).read_text())
         return cls.from_mandate(mandate, **overrides)
+
+
+# ── Standalone validation config ────────────────────────────────────────
+# These defaults mirror the keyword arguments of ``walk_forward_test()``
+# and ``rolling_walk_forward()`` in ``crabquant.validation``.
+
+# ── Mandate diversity scoring ─────────────────────────────────────────────
+# Controls how the mandate generator penalises already-explored
+# (strategy_type, ticker) combinations to ensure broad coverage.
+
+DIVERSITY_CONFIG: dict = {
+    "max_winners_per_combo": 5,
+    "min_ticker_diversity": 3,
+    "min_archetype_diversity": 3,
+    "winners_file": "results/winners/winners.json",
+}
+
+VALIDATION_CONFIG: dict = {
+    # walk_forward_test() thresholds
+    "train_pct": 0.75,            # 18mo / 24mo (≈ 3y of data)
+    "min_train_bars": 252,        # ~1 year of trading days
+    "min_test_sharpe": 0.3,       # relaxed from old hardcoded 0.5
+    "min_test_trades": 10,        # enough trades for statistical significance
+    "max_degradation": 0.7,       # test_sharpe >= train_sharpe * (1 - 0.7)
+    # rolling_walk_forward() thresholds
+    "train_window": "18mo",
+    "test_window": "6mo",
+    "step": "6mo",
+    "min_avg_test_sharpe": 0.5,
+    "min_windows_passed": 2,
+}

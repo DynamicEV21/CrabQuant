@@ -234,26 +234,92 @@ def run_daemon(
             print(f"\n{'=' * 60}")
             print(f"Wave {wave} — running {len(wave_mandates)} mandates")
 
-            # ── Run mandates sequentially (subprocess isolation) ───────
-            for mandate_name in wave_mandates:
+            # ── Run mandates in parallel (subprocess isolation) ───────
+            active_procs: list[dict] = []  # {proc, name, stdout, stderr}
+            wave_results: list[dict] = []
+            started: set[str] = set()
+            idx = 0
+
+            while idx < len(wave_mandates) or active_procs:
                 if shutdown_requested:
                     break
 
-                mandate_path = str(mandates_dir / mandate_name)
-                print(f"  Running: {mandate_name}...", flush=True)
+                # Fill slots up to --parallel concurrency
+                while (idx < len(wave_mandates)
+                       and len(active_procs) < parallel):
+                    mandate_name = wave_mandates[idx]
+                    idx += 1
+                    mandate_path = str(mandates_dir / mandate_name)
+                    print(f"  ▶ Starting: {mandate_name}", flush=True)
+                    try:
+                        proc = subprocess.Popen(
+                            [
+                                sys.executable,
+                                "scripts/refinement_loop.py",
+                                "--mandate",
+                                mandate_path,
+                                "--max-turns",
+                                str(7),
+                                "--sharpe-target",
+                                str(1.5),
+                            ],
+                            stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE,
+                            text=True,
+                            cwd=str(project_root),
+                        )
+                        active_procs.append({
+                            "proc": proc,
+                            "name": mandate_name,
+                            "stdout": "",
+                            "stderr": "",
+                        })
+                        started.add(mandate_name)
+                    except Exception as exc:
+                        print(f"  ❌ Launch failed: {mandate_name} — {exc}")
+                        wave_results.append({
+                            "name": mandate_name,
+                            "returncode": -2,
+                            "stdout": "",
+                            "stderr": str(exc),
+                        })
 
-                result = run_single_mandate(mandate_path)
+                # Poll finished processes (non-blocking)
+                still_running = []
+                for entry in active_procs:
+                    ret = entry["proc"].poll()
+                    if ret is None:
+                        still_running.append(entry)
+                    else:
+                        # Process finished — collect output
+                        stdout_data = entry["proc"].stdout.read() or ""
+                        stderr_data = entry["proc"].stderr.read() or ""
+                        wave_results.append({
+                            "name": entry["name"],
+                            "returncode": ret,
+                            "stdout": stdout_data[-2000:],
+                            "stderr": stderr_data[-1000:],
+                        })
+                        entry["proc"].stdout.close()
+                        entry["proc"].stderr.close()
+                active_procs = still_running
 
-                if result["returncode"] == 0:
+                # Brief sleep to avoid busy-looping when processes are running
+                if active_procs:
+                    time.sleep(0.5)
+
+            # ── Record results for completed mandates ───────────────
+            for wr in wave_results:
+                if wr["returncode"] == 0:
                     state.record_wave_completion(
-                        mandate_name, "success", 0.0, str(STATE_FILE)
+                        wr["name"], "success", 0.0, str(STATE_FILE)
                     )
-                    print(f"  ✅ Completed: {mandate_name}")
+                    print(f"  ✅ Completed: {wr['name']}")
                 else:
                     state.record_wave_completion(
-                        mandate_name, "failed", 0.0, str(STATE_FILE)
+                        wr["name"], "failed", 0.0, str(STATE_FILE)
                     )
-                    print(f"  ❌ Failed: {mandate_name} — {result['stderr'][:200]}")
+                    print(f"  ❌ Failed: {wr['name']} — {wr['stderr'][:200]}")
 
             # ── Post-wave: heartbeat + heartbeat file ─────────────────
             state.last_wave_completed = datetime.now(timezone.utc).isoformat()

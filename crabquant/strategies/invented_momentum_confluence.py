@@ -22,6 +22,8 @@ def generate_signals(df, params):
         entries: pd.Series[bool] - entry signals
         exits: pd.Series[bool] - exit signals  
     """
+    params = params or DEFAULT_PARAMS
+
     p = {**DEFAULT_PARAMS, **(params or {})}
     
     # Calculate indicators using cached_indicator
