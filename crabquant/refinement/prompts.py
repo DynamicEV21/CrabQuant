@@ -107,6 +107,7 @@ TURN1_PROMPT = """\
 - Tickers: {tickers}
 - Period: {period}
 {seed_section}
+{archetype_section}
 ### Strategy Catalog (all available strategies for inspiration)
 {strategy_catalog}
 
@@ -696,6 +697,7 @@ def build_turn1_prompt(
     winner_examples: list[dict] | None = None,
     indicator_reference: str = "",
     indicator_quick_ref: str = "",
+    archetype_section: str | None = None,
 ) -> str:
     """Build the complete Turn 1 (invention) prompt.
 
@@ -711,6 +713,7 @@ def build_turn1_prompt(
         winner_examples: Optional list of proven winner strategy dicts (cross-run learning).
         indicator_reference: Full indicator API reference text.
         indicator_quick_ref: Quick reference card (section 7) for user message.
+        archetype_section: Optional pre-formatted archetype template section.
 
     Returns:
         Complete prompt string for the LLM.
@@ -760,6 +763,22 @@ def build_turn1_prompt(
             )
         winner_section = "\n\n".join(winner_parts) + "\n\n"
 
+    # Format archetype template section
+    if archetype_section is None:
+        archetype_name = mandate.get("strategy_archetype", "any")
+        if archetype_name != "any":
+            from crabquant.refinement.archetypes import get_archetype, format_archetype_for_prompt
+            archetype = get_archetype(archetype_name)
+            if archetype:
+                archetype_section = (
+                    "## Strategy Archetype Template\n"
+                    "Use this as your STARTING POINT. Customize the parameters and logic,\n"
+                    "but keep the core structure. This template is proven to work.\n\n"
+                    + format_archetype_for_prompt(archetype)
+                )
+    
+    archetype_text = archetype_section or ""
+
     return TURN1_PROMPT.format(
         mandate_name=mandate.get("name", "unnamed"),
         strategy_archetype=mandate.get("strategy_archetype", "any"),
@@ -767,6 +786,7 @@ def build_turn1_prompt(
         tickers=mandate.get("tickers", ["AAPL", "SPY"]),
         period=mandate.get("period", "2y"),
         seed_section=seed_section,
+        archetype_section=archetype_text,
         strategy_catalog=catalog_text,
         strategy_examples=examples_text,
         winner_examples_section=winner_section,

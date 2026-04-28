@@ -402,6 +402,14 @@ def build_llm_context(
         "indicator_quick_ref": extract_quick_reference(load_indicator_reference()),
     }
     
+    # Inject archetype template if mandate specifies one
+    archetype_name = mandate.get("strategy_archetype", "any")
+    if archetype_name != "any":
+        from crabquant.refinement.archetypes import get_archetype, format_archetype_for_prompt
+        archetype = get_archetype(archetype_name)
+        if archetype:
+            context["archetype_section"] = format_archetype_for_prompt(archetype)
+    
     if report is not None:
         # Convert report to dict if it's a dataclass
         if hasattr(report, "to_dict"):

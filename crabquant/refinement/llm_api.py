@@ -337,6 +337,15 @@ def call_llm_inventor(
         
         if context.get("mandate"):
             user_parts.append(f"## Mandate\n{json.dumps(context['mandate'], indent=2)}\n")
+        
+        # Inject archetype template if available
+        if context.get("archetype_section"):
+            user_parts.append(
+                f"## Strategy Archetype Template\n"
+                f"Use this as your STARTING POINT. Customize the parameters and logic,\n"
+                f"but keep the core structure. This template is proven to work.\n\n"
+                f"{context['archetype_section']}\n"
+            )
 
         # Inject indicator quick reference if available
         quick_ref = context.get("indicator_quick_ref", "")
