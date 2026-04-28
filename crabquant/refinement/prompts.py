@@ -469,8 +469,62 @@ def format_tier2_section(tier1_report: dict) -> str:
     return "\n\n".join(sections) if sections else ""
 
 
+def _format_window_breakdown(validation: dict) -> str:
+    """Format per-window rolling walk-forward results as a compact table.
+
+    Shows train/test Sharpe, degradation, and pass/fail for each window.
+    This tells the LLM WHICH specific windows failed and by how much.
+
+    Args:
+        validation: Validation dict with 'window_results' list.
+
+    Returns:
+        Formatted string with per-window breakdown, or empty string if no data.
+    """
+    window_results = validation.get("window_results", [])
+    if not window_results:
+        return ""
+
+    lines = ["  Rolling Walk-Forward Window Breakdown:"]
+    lines.append("  Window | Train Sharpe | Test Sharpe | Degradation | Result")
+    lines.append("  -------|-------------|-------------|-------------|-------")
+    for w in window_results:
+        w_num = w.get("window", "?")
+        train_s = w.get("train_sharpe", 0)
+        test_s = w.get("test_sharpe", 0)
+        deg = w.get("degradation", 0)
+        passed = w.get("passed", False)
+        result = "✅ PASS" if passed else "❌ FAIL"
+        if w.get("error"):
+            result = f"💥 ERROR: {w['error'][:40]}"
+        lines.append(
+            f"  {w_num:>6} | {train_s:>11.2f} | {test_s:>11.2f} | {deg:>10.0%} | {result}"
+        )
+
+    # Add actionable summary based on failure pattern
+    passed_count = sum(1 for w in window_results if w.get("passed", False))
+    total = len(window_results)
+    if passed_count == 0:
+        lines.append("\n  ❌ ALL windows failed. Strategy is completely overfit — SIMPLIFY drastically or start over.")
+    elif passed_count <= 1:
+        lines.append(f"\n  ❌ Only {passed_count}/{total} windows passed. Strategy is heavily overfit to one period.")
+    elif passed_count < total:
+        lines.append(f"\n  ⚠️ {passed_count}/{total} windows passed. Close but not robust enough — reduce parameters.")
+    else:
+        lines.append(f"\n  ✅ {passed_count}/{total} windows passed.")
+
+    return "\n".join(lines)
+
+
 def format_previous_attempts_section(previous_attempts: list[dict]) -> str:
-    """Format previous attempt history for the refinement prompt."""
+    """Format previous attempt history for the refinement prompt.
+
+    For each failed turn, adds specific inline guidance based on the failure mode:
+    - too_few_trades_for_validation: warns about restrictive conditions
+    - validation_failed: shows per-window breakdown with train/test Sharpe
+    - low_sharpe with < 10 trades: warns about curve-fitting risk
+    - regime_fragility: explains regime dependency
+    """
     if not previous_attempts:
         return "  (no previous attempts — this is your first refinement)"
 
@@ -484,32 +538,80 @@ def format_previous_attempts_section(previous_attempts: list[dict]) -> str:
         params = entry.get("params_used", {})
         delta = entry.get("delta_from_prev", "N/A")
 
+        note = ""
+        if failure == "too_few_trades_for_validation":
+            note = (
+                f"\n  ⚠️ NOTE: Only {entry.get('num_trades', '?')} trades — "
+                "OPEN UP conditions, remove filters, widen thresholds"
+            )
+        elif failure == "validation_failed":
+            validation = entry.get("validation", {})
+            note = "\n  ⚠️ NOTE: Passed in-sample but FAILED out-of-sample validation — REDUCE complexity, simplify conditions"
+            if validation:
+                avg_ts = validation.get("avg_test_sharpe", "?")
+                wp = validation.get("windows_passed", "?")
+                nw = validation.get("num_windows", "?")
+                note += f"\n  📊 Validation: avg test Sharpe={avg_ts}, {wp}/{nw} windows passed"
+                # Add per-window breakdown
+                window_detail = _format_window_breakdown(validation)
+                if window_detail:
+                    note += "\n" + window_detail
+        elif failure == "low_sharpe":
+            num_trades = entry.get("num_trades", 0)
+            if num_trades < 10:
+                note = (
+                    f"\n  ⚠️ CURVE-FITTING RISK: Only {num_trades} trades with low Sharpe. "
+                    "This strategy is likely fitting noise, not a real pattern. "
+                    "Start with a SIMPLER, well-known signal (single indicator crossover) "
+                    "that fires 30+ times per year."
+                )
+        elif failure == "regime_fragility":
+            note = (
+                "\n  ⚠️ REGIME WARNING: This strategy only works in specific market conditions "
+                "(e.g., trending or ranging markets). It fails when the regime changes. "
+                "Either add regime detection (only trade when conditions match) or switch "
+                "to a more robust indicator that works across regimes."
+            )
+
         lines.append(
             f"Turn {turn}: Sharpe {sharpe:.2f}\n"
             f"  Failure: {failure} | Action: {action}\n"
             f"  Hypothesis: \"{hypothesis}\"\n"
             f"  Params: {params}\n"
             f"  Delta: {delta}"
-            + (f"\n  ⚠️ NOTE: Only {entry.get('num_trades', '?')} trades — "
-                "OPEN UP conditions, remove filters, widen thresholds"
-                if failure == "too_few_trades_for_validation" else "")
-            + (f"\n  ⚠️ NOTE: Passed in-sample but FAILED out-of-sample validation — "
-                "REDUCE complexity, simplify conditions"
-                if failure == "validation_failed" else "")
-            + (f"\n  📊 Validation: avg test Sharpe={entry.get('validation',{}).get('avg_test_sharpe','?')}, "
-                f"{entry.get('validation',{}).get('windows_passed','?')}/{entry.get('validation',{}).get('num_windows','?')} windows passed"
-                if failure == "validation_failed" and entry.get("validation") else "")
+            f"{note}"
         )
 
     return "\n".join(lines)
 
 
-def build_failure_guidance(failure_mode: str, total_trades: int = 0) -> str:
+def build_failure_guidance(
+    failure_mode: str,
+    total_trades: int = 0,
+    validation: dict | None = None,
+) -> str:
     """Generate actionable guidance based on failure mode.
 
     This is the KEY feedback mechanism -- instead of just showing the failure
     label, we tell the LLM exactly WHAT to do about it.
+
+    Args:
+        failure_mode: The failure mode string from the backtest report.
+        total_trades: Number of trades in the backtest.
+        validation: Optional validation results dict with 'window_results',
+            'avg_test_sharpe', 'windows_passed', 'num_windows'. Used for
+            validation_failed to include per-window breakdown.
+
+    Returns:
+        Formatted guidance string for prompt injection.
     """
+    # For validation_failed, include window breakdown if available
+    window_breakdown = ""
+    if failure_mode == "validation_failed" and validation:
+        window_breakdown = _format_window_breakdown(validation)
+        if window_breakdown:
+            window_breakdown = "\n\n" + window_breakdown
+
     guidance_map = {
         "too_few_trades_for_validation": (
             "### ⚠️ ACTION REQUIRED: Increase Trade Frequency\n"
@@ -533,6 +635,7 @@ def build_failure_guidance(failure_mode: str, total_trades: int = 0) -> str:
             "- Add a TIME STOP — exit after N bars regardless of signal (reduces curve-fitting)\n"
             "- Make sure your signal isn't just capturing one specific market regime\n"
             "- Simple strategies generalize better: prefer 2 conditions over 5"
+            "{window_breakdown}"
         ),
         "regime_fragility": (
             "### ⚠️ Strategy is Regime-Dependent\n"
@@ -546,10 +649,8 @@ def build_failure_guidance(failure_mode: str, total_trades: int = 0) -> str:
         ),
         "low_sharpe": (
             "### Guidance: Improve Sharpe Ratio\n"
-            f"Your strategy only achieved the reported Sharpe with {total_trades} trades. "
-            + ("⚠️ Very few trades — your Sharpe may be unreliable. Focus on increasing trade frequency FIRST.\n\n"
-               if total_trades < 15 else "\n")
-            + "**What to do:**\n"
+            "{curve_fit_warning}"
+            "**What to do:**\n"
             "- Check your entry/exit logic — are you entering at good prices?\n"
             "- Try different indicator parameters or a different indicator family entirely\n"
             "- Consider adding a trend filter — only take signals in the direction of the trend"
@@ -557,9 +658,29 @@ def build_failure_guidance(failure_mode: str, total_trades: int = 0) -> str:
     }
 
     template = guidance_map.get(failure_mode, "")
-    if template:
-        return template.format(trades=total_trades)
-    return ""
+    if not template:
+        return ""
+
+    # Build curve-fitting warning for low_sharpe with very few trades
+    curve_fit_warning = ""
+    if failure_mode == "low_sharpe":
+        if total_trades < 10:
+            curve_fit_warning = (
+                f"⚠️ CRITICAL: Only {total_trades} trades — this strategy is almost certainly "
+                "curve-fit to random noise. DO NOT try to optimize parameters further. "
+                "Instead, REPLACE the entire strategy with a simpler one that fires 30+ times.\n\n"
+            )
+        elif total_trades < 15:
+            curve_fit_warning = (
+                f"⚠️ Very few trades ({total_trades}) — your Sharpe may be unreliable. "
+                "Focus on increasing trade frequency FIRST.\n\n"
+            )
+
+    return template.format(
+        trades=total_trades,
+        window_breakdown=window_breakdown,
+        curve_fit_warning=curve_fit_warning,
+    )
 
 
 def build_turn1_prompt(
@@ -664,6 +785,7 @@ def build_refinement_prompt(
     stagnation_suffix: str = "",
     strategy_examples: list[dict] | None = None,
     winner_examples: list[dict] | None = None,
+    archetype_section: str | None = None,
     indicator_reference: str = "",
     indicator_quick_ref: str = "",
 ) -> str:
@@ -722,7 +844,14 @@ def build_refinement_prompt(
     # Format failure guidance (specific actionable advice based on failure mode)
     failure_mode = tier1_report.get("failure_mode", "")
     total_trades = tier1_report.get("total_trades", 0)
-    failure_guidance = build_failure_guidance(failure_mode, total_trades)
+    # Extract validation results from previous attempts if available
+    validation_data = None
+    prev_attempts = tier1_report.get("previous_attempts", [])
+    for pa in prev_attempts:
+        if pa.get("failure_mode") == "validation_failed" and pa.get("validation"):
+            validation_data = pa["validation"]
+            break
+    failure_guidance = build_failure_guidance(failure_mode, total_trades, validation_data)
 
     # Format sharpe_by_year
     sby = tier1_report.get("sharpe_by_year", {})

@@ -72,16 +72,19 @@ This runs as a repeating cron job (every 45 min). Each run:
   - **Also partially completed Task 4**: `build_failure_guidance()` function provides per-failure-mode actionable advice, and `format_previous_attempts_section()` adds inline ⚠️ notes for `too_few_trades_for_validation` and `validation_failed` failures
   - Remaining for Task 4: rolling WF window breakdown showing which windows passed/failed
 
-- [ ] 4. **Negative Example Feedback Loop**
-  - **Priority: CRITICAL** — the LLM never sees WHY it failed, only the Sharpe number
-  - **File**: `crabquant/refinement/context_builder.py`, `crabquant/refinement/prompts.py`
-  - In `build_refinement_prompt`, when adding previous turn history entries:
-    - If `failure_mode == "too_few_trades_for_validation"`: add specific guidance about opening conditions
-    - If `failure_mode == "validation_failed"`: add the rolling WF window breakdown — show WHICH windows passed and which failed, with train/test Sharpe per window
-    - If `failure_mode == "low_sharpe"` and `num_trades < 10`: warn about curve-fitting
-    - If `failure_mode == "regime_fragility"`: explain that the strategy only works in specific market conditions
-  - Load the actual validation results from `state.json` or pass them through the history dict
-  - **Tests**: Unit tests — mock a history entry with each failure_mode, verify the correct guidance text appears in the prompt
+- [x] 4. **Negative Example Feedback Loop** ✅ DONE
+  - Added `_format_window_breakdown()` in `prompts.py` — per-window rolling WF table with train/test Sharpe, degradation, pass/fail, and actionable summary
+  - Enhanced `format_previous_attempts_section()` with per-failure-mode inline guidance:
+    - `too_few_trades_for_validation`: warns about restrictive conditions
+    - `validation_failed`: shows per-window breakdown with train/test Sharpe
+    - `low_sharpe` with < 10 trades: CURVE-FITTING RISK warning
+    - `regime_fragility`: explains regime dependency, suggests detection or more robust indicators
+  - Enhanced `build_failure_guidance()` to accept `validation` dict and include window breakdown for `validation_failed`
+  - Added curve-fitting warning tiers: < 10 trades = CRITICAL, < 15 trades = unreliable
+  - **Critical wiring**: Changed `llm_api.py` to use `format_previous_attempts_section()` instead of raw JSON dump for previous attempts
+  - Wired `build_refinement_prompt()` to pass validation data to `build_failure_guidance()`
+  - 25 unit tests in `tests/refinement/test_negative_feedback.py`
+  - Commit: phase5.6-negative-feedback
 
 - [ ] 5. **Strategy Archetype Templates**
   - **Priority: HIGH** — gives the LLM proven starting points instead of blank-slate invention
@@ -165,6 +168,7 @@ If you complete all tasks above, keep going. Here's the priority order:
 - [2026-04-28 09:47] Phase 5.6.2 committed to main by overnight agent (parallel spawning, 8 variant foci)
 - [2026-04-28 10:01] Restructured task list: removed low-priority infrastructure (API budget, resource limiter), added prompt engineering + archetype system + negative feedback loop. Focus on invention speed.
 - [2026-04-28 10:01] 1033 tests passing, 4 pre-existing errors (ignore)
+- [2026-04-28 10:52] Task 4 (Negative Example Feedback Loop) completed. Key insight: `call_llm_inventor` was dumping previous_attempts as raw JSON — changed to use `format_previous_attempts_section()` for readable, guidance-rich output. Added per-window breakdown for validation_failed, curve-fitting warnings for low_sharpe + few trades, regime dependency warnings for regime_fragility. 25 new tests. Total: 1057 passing.
 
 ## Errors / Blockers
 

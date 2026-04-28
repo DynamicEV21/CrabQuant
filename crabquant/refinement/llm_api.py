@@ -296,7 +296,10 @@ def call_llm_inventor(
             user_parts.append(f"## Failure Reasoning: {context.get('failure_reasoning', 'N/A')}\n")
         
         if context.get("previous_attempts"):
-            user_parts.append(f"## Previous Attempts\n{json.dumps(context['previous_attempts'], indent=2)}\n")
+            # Use formatted previous attempts with per-failure-mode guidance
+            from crabquant.refinement.prompts import format_previous_attempts_section
+            formatted_attempts = format_previous_attempts_section(context["previous_attempts"])
+            user_parts.append(f"## Previous Attempts\n{formatted_attempts}\n")
         
         if context.get("strategy_examples"):
             # Format strategy examples as readable code blocks, not raw JSON
