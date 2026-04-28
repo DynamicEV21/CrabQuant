@@ -74,6 +74,14 @@ Your code MUST follow the same structure.
 7. TRADE FREQUENCY: Aim for 20-80 trades over the backtest period. Too few trades \
 (< 10) means your conditions are too restrictive — simplify. Too many trades (> 200) \
 means your signal is noise — add filters. Start SIMPLE on turn 1.
+8. ANTI-OVERFITTING: A strategy with 3 trades at 100% win rate is WORSE than useless — \
+it is curve-fit garbage that will fail out-of-sample. Prefer 40+ trades at 50-65% win rate. \
+NEVER stack 4+ conditions — each additional condition narrows your signal and increases \
+overfitting risk. If your entry fires fewer than once per month on average, OPEN IT UP.
+9. REGULAR SIGNALS: Your entry conditions should fire REGULARLY (at least 2x per month). \
+Avoid strategies that only trigger in rare market conditions (e.g., \"RSI < 15 AND price > SMA200 \
+AND volume > 3x average AND MACD histogram > 0\" — this might fire once per year). Simpler \
+conditions that fire often are more robust out-of-sample.
 
 TOP 3 INDICATOR MISTAKES — YOUR CODE WILL CRASH IF YOU DO THESE:
 1. atr(close, length=14) → WRONG. ATR requires: atr(high, low, close, length=14)
@@ -117,6 +125,33 @@ RSI oversold, MACD histogram flip) with 1-2 basic filters. Do NOT combine \
 Simple strategies with 30-80 trades per year are far more likely to succeed \
 than complex multi-condition systems with 5 trades per year.
 
+### Anti-Overfitting Examples
+
+**BAD (overfit — will fail out-of-sample):**
+```python
+# Too many conditions — rarely fires, curve-fit to handful of data points
+entries = (
+    (rsi < 20)
+    & (close > sma_200)
+    & (volume > 2 * volume_sma)
+    & (macd_hist > 0)
+    & (atr < atr_sma)  # 5 conditions! Maybe 3 trades per year
+)
+```
+
+**GOOD (robust — fires regularly, likely to generalize):**
+```python
+# Simple, clear signal — fires often, catches a real pattern
+entries = (rsi < 30) & (rsi > rsi.shift(1))  # RSI oversold + turning up
+exits = (rsi > 70) | (hold_periods > 10)     # Overbought or time stop
+```
+
+**GOOD (momentum):**
+```python
+entries = (ema_fast > ema_slow) & (ema_fast.shift(1) <= ema_slow.shift(1))  # Crossover
+exits = (ema_fast < ema_slow) | (hold_periods > 20)
+```
+
 ### Indicator Quick Reference — USE THESE SIGNATURES EXACTLY
 {indicator_quick_ref}
 
@@ -155,6 +190,8 @@ Current params: {current_params}
 ### Failure Diagnosis (deterministic — Python computed this, not a guess)
 - Mode: {failure_mode}
 - Details: {failure_details}
+
+{failure_guidance}
 
 ### Sharpe by Year
 {sharpe_by_year}
@@ -433,16 +470,9 @@ def format_tier2_section(tier1_report: dict) -> str:
 
 
 def format_previous_attempts_section(previous_attempts: list[dict]) -> str:
-    """Format previous attempts for the refinement prompt.
-
-    Args:
-        previous_attempts: List of history dicts with turn, sharpe, action, etc.
-
-    Returns:
-        Formatted string, or empty string if no attempts.
-    """
+    """Format previous attempt history for the refinement prompt."""
     if not previous_attempts:
-        return "  (none — this is the first refinement)"
+        return "  (no previous attempts — this is your first refinement)"
 
     lines = []
     for entry in previous_attempts:
@@ -460,9 +490,73 @@ def format_previous_attempts_section(previous_attempts: list[dict]) -> str:
             f"  Hypothesis: \"{hypothesis}\"\n"
             f"  Params: {params}\n"
             f"  Delta: {delta}"
+            + (f"\n  ⚠️ NOTE: Only {entry.get('num_trades', '?')} trades — "
+                "OPEN UP conditions, remove filters, widen thresholds"
+                if failure == "too_few_trades_for_validation" else "")
+            + (f"\n  ⚠️ NOTE: Passed in-sample but FAILED out-of-sample validation — "
+                "REDUCE complexity, simplify conditions"
+                if failure == "validation_failed" else "")
         )
 
     return "\n".join(lines)
+
+
+def build_failure_guidance(failure_mode: str, total_trades: int = 0) -> str:
+    """Generate actionable guidance based on failure mode.
+
+    This is the KEY feedback mechanism -- instead of just showing the failure
+    label, we tell the LLM exactly WHAT to do about it.
+    """
+    guidance_map = {
+        "too_few_trades_for_validation": (
+            "### ⚠️ ACTION REQUIRED: Increase Trade Frequency\n"
+            "Your strategy only produced {trades} trades — FAR below the 20-trade minimum "
+            "for validation. This means your entry conditions are too restrictive or "
+            "curve-fit to a handful of data points.\n\n"
+            "**What to do:**\n"
+            "- REMOVE conditions — every additional filter reduces trade frequency\n"
+            "- WIDEN thresholds — change RSI < 20 to RSI < 35, or SMA length from 200 to 50\n"
+            "- Use a SIMPLER signal — single indicator crossover > multi-condition stack\n"
+            "- Your goal: 30+ trades over the backtest period\n"
+            "- A strategy with 40 trades and Sharpe 0.5 is far better than 3 trades and Sharpe 2.0"
+        ),
+        "validation_failed": (
+            "### ⚠️ ACTION REQUIRED: Fix Out-of-Sample Failure\n"
+            "Your strategy passed in-sample (Sharpe hit target) but FAILED out-of-sample "
+            "in the rolling walk-forward validation. This is classic overfitting.\n\n"
+            "**What to do:**\n"
+            "- REDUCE complexity — fewer indicators, fewer conditions, fewer parameters\n"
+            "- WIDEN your thresholds — tight thresholds overfit to specific price levels\n"
+            "- Add a TIME STOP — exit after N bars regardless of signal (reduces curve-fitting)\n"
+            "- Make sure your signal isn't just capturing one specific market regime\n"
+            "- Simple strategies generalize better: prefer 2 conditions over 5"
+        ),
+        "regime_fragility": (
+            "### ⚠️ Strategy is Regime-Dependent\n"
+            "Your strategy performs well in one market regime but fails in others. "
+            "It may only work during trends, or only during ranges.\n\n"
+            "**What to do:**\n"
+            "- Add regime detection — check if the market is trending or ranging before trading\n"
+            "- Use adaptive parameters — different thresholds for different volatility levels\n"
+            "- OR lean into it — make the strategy explicitly regime-specific (only trade when "
+            "conditions match), but accept fewer trades"
+        ),
+        "low_sharpe": (
+            "### Guidance: Improve Sharpe Ratio\n"
+            f"Your strategy only achieved the reported Sharpe with {total_trades} trades. "
+            + ("⚠️ Very few trades — your Sharpe may be unreliable. Focus on increasing trade frequency FIRST.\n\n"
+               if total_trades < 15 else "\n")
+            + "**What to do:**\n"
+            "- Check your entry/exit logic — are you entering at good prices?\n"
+            "- Try different indicator parameters or a different indicator family entirely\n"
+            "- Consider adding a trend filter — only take signals in the direction of the trend"
+        ),
+    }
+
+    template = guidance_map.get(failure_mode, "")
+    if template:
+        return template.format(trades=total_trades)
+    return ""
 
 
 def build_turn1_prompt(
@@ -622,6 +716,11 @@ def build_refinement_prompt(
             )
         winner_section = "\n\n".join(winner_parts) + "\n\n"
 
+    # Format failure guidance (specific actionable advice based on failure mode)
+    failure_mode = tier1_report.get("failure_mode", "")
+    total_trades = tier1_report.get("total_trades", 0)
+    failure_guidance = build_failure_guidance(failure_mode, total_trades)
+
     # Format sharpe_by_year
     sby = tier1_report.get("sharpe_by_year", {})
     if sby:
@@ -645,6 +744,7 @@ def build_refinement_prompt(
         sortino_ratio=tier1_report.get("sortino_ratio", 0.0),
         failure_mode=tier1_report.get("failure_mode", "unknown"),
         failure_details=tier1_report.get("failure_details", "N/A"),
+        failure_guidance=failure_guidance,
         sharpe_by_year=sby_text,
         tier2_section=tier2_formatted,
         previous_attempts_section=prev_section,
