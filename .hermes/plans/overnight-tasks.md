@@ -86,19 +86,15 @@ This runs as a repeating cron job (every 45 min). Each run:
   - 25 unit tests in `tests/refinement/test_negative_feedback.py`
   - Commit: phase5.6-negative-feedback
 
-- [ ] 5. **Strategy Archetype Templates**
-  - **Priority: HIGH** — gives the LLM proven starting points instead of blank-slate invention
-  - **File**: `crabquant/refinement/archetypes.py` (NEW)
-  - Define 4 archetypes with skeleton code:
-    - `mean_reversion`: RSI/Bollinger/z-score based, buys oversold, sells overbought
-    - `momentum`: ROC/MACD/ADX based, buys on trend acceleration, sells on deceleration
-    - `breakout`: ATR/Keltner/Donchian based, buys on range expansion, sells on contraction
-    - `volatility`: VIX ratio/ATR percentile based, buys on low vol expansion, sells on high vol contraction
-  - Each archetype is a dict: `{name, description, skeleton_code, default_params, typical_indicators, trade_frequency_expectation}`
-  - `get_archetype(name)` returns the skeleton
-  - Wire into `build_turn1_prompt`: if mandate has `strategy_archetype`, inject the matching skeleton as a starting template
-  - **Tests**: Unit tests — verify each archetype returns valid skeleton with required attributes
-  - **No E2E needed** — templates only affect prompt, no pipeline change
+- [x] 5. **Strategy Archetype Templates** ✅ DONE
+  - **File**: `crabquant/refinement/archetypes.py` — 4 archetypes with skeleton code, default params, anti-patterns, regime affinity
+  - **Critical fix**: `build_turn1_prompt()` computed `archetype_text` but never injected it into the `TURN1_PROMPT` template. Added `{archetype_section}` placeholder and wired it.
+  - `get_archetype(name)` — case-insensitive lookup, returns `None` for unknown
+  - `format_archetype_for_prompt()` — formats skeleton code, description, anti-patterns for LLM consumption
+  - `list_archetypes()` — returns all archetype names
+  - Archetypes: mean_reversion (RSI/BB, ranging), momentum (EMA/ROC, trending), breakout (ATR/range expansion, volatile), volatility (ATR ratio/BB bandwidth, volatile)
+  - **91 unit tests** in `tests/refinement/test_archetypes.py`
+  - Commit: `b556511`
 
 - [ ] 6. **Run 3+ Full Mandates and Analyze**
   - **Priority: HIGH** — we need real data on what the LLM does with the new features
@@ -169,6 +165,7 @@ If you complete all tasks above, keep going. Here's the priority order:
 - [2026-04-28 10:01] Restructured task list: removed low-priority infrastructure (API budget, resource limiter), added prompt engineering + archetype system + negative feedback loop. Focus on invention speed.
 - [2026-04-28 10:01] 1033 tests passing, 4 pre-existing errors (ignore)
 - [2026-04-28 10:52] Task 4 (Negative Example Feedback Loop) completed. Key insight: `call_llm_inventor` was dumping previous_attempts as raw JSON — changed to use `format_previous_attempts_section()` for readable, guidance-rich output. Added per-window breakdown for validation_failed, curve-fitting warnings for low_sharpe + few trades, regime dependency warnings for regime_fragility. 25 new tests. Total: 1057 passing.
+- [2026-04-28 11:46] Task 5 (Strategy Archetype Templates) completed. Found critical wiring bug: `build_turn1_prompt()` computed `archetype_text` but never injected it into `TURN1_PROMPT` template. Added `{archetype_section}` placeholder + wired it. 4 archetypes with skeleton code, anti-patterns, regime affinity. 91 new tests. Total: 1148 passing.
 
 ## Errors / Blockers
 
