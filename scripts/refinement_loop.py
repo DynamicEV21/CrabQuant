@@ -923,6 +923,18 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 except Exception as e:
                     print(f"  ⚠️ Auto-promote error: {e}")
             else:
+                # Validation did not pass — update history failure_mode
+                # so the LLM gets actionable feedback on the next turn.
+                wf_result = (validation.get("walk_forward") or {})
+                state.history[-1]["failure_mode"] = "validation_failed"
+                state.history[-1]["num_trades"] = result.num_trades
+                state.history[-1]["validation"] = {
+                    "avg_test_sharpe": wf_result.get("avg_test_sharpe"),
+                    "windows_passed": wf_result.get("windows_passed"),
+                    "num_windows": wf_result.get("num_windows"),
+                    "window_results": wf_result.get("window_results", []),
+                }
+
                 # Phase 5.6.3: Soft-promote near-miss strategies to candidates pool
                 if config.soft_promote:
                     try:

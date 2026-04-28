@@ -496,6 +496,9 @@ def format_previous_attempts_section(previous_attempts: list[dict]) -> str:
             + (f"\n  ⚠️ NOTE: Passed in-sample but FAILED out-of-sample validation — "
                 "REDUCE complexity, simplify conditions"
                 if failure == "validation_failed" else "")
+            + (f"\n  📊 Validation: avg test Sharpe={entry.get('validation',{}).get('avg_test_sharpe','?')}, "
+                f"{entry.get('validation',{}).get('windows_passed','?')}/{entry.get('validation',{}).get('num_windows','?')} windows passed"
+                if failure == "validation_failed" and entry.get("validation") else "")
         )
 
     return "\n".join(lines)

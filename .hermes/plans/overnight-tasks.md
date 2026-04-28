@@ -66,20 +66,11 @@ This runs as a repeating cron job (every 45 min). Each run:
 - [x] 2. **Parallel Strategy Spawning (5.6.2)** ✅ DONE
   - 8 variant foci, composite ranking, wired into turn 1. On main.
 
-- [ ] 3. **Prompt Engineering: Anti-Overfitting**
-  - **Priority: CRITICAL** — the #1 problem. LLM keeps producing curve-fit strategies (3 trades, 100% win rate).
-  - **File**: `crabquant/refinement/prompts.py`
-  - Add to CRITICAL RULES section:
-    - "A strategy with 3 trades at 100% win rate is WORSE than useless — it's overfit. Aim for 30+ trades with 45-65% win rate."
-    - "Avoid strategies that only trigger in rare conditions. Your entry signals should fire regularly (at least 2x per month on average)."
-  - Add to refinement prompt failure feedback:
-    - When `failure_mode == "too_few_trades_for_validation"`: "Your strategy only traded {n} times. This means your entry conditions are too restrictive or your signals are curve-fit to a handful of data points. OPEN UP your conditions — wider thresholds, fewer filters, more common signal patterns."
-    - When `failure_mode == "validation_failed"`: "Your strategy passed in-sample but failed out-of-sample. This is overfitting. Reduce complexity — fewer parameters, simpler conditions, wider thresholds."
-  - Add anti-overfitting examples to the turn 1 prompt showing BAD vs GOOD strategy patterns:
-    - BAD: `if rsi < 20 and close > sma200 and volume > 2*sma_volume and macd_hist > 0` (too many conditions, rarely triggers)
-    - GOOD: `if rsi < 30 and rsi > prev_rsi` (simple, fires often, catches bounces)
-  - **Tests**: Unit tests only — verify the new prompt sections exist and contain the right keywords
-  - **No E2E needed** — this is prompt text changes only
+- [x] 3. **Prompt Engineering: Anti-Overfitting** ✅ DONE
+  - Added BAD vs GOOD examples to turn 1 prompt, failure_guidance per mode, inline notes in history
+  - Commit: `cb4b48d`
+  - **Also partially completed Task 4**: `build_failure_guidance()` function provides per-failure-mode actionable advice, and `format_previous_attempts_section()` adds inline ⚠️ notes for `too_few_trades_for_validation` and `validation_failed` failures
+  - Remaining for Task 4: rolling WF window breakdown showing which windows passed/failed
 
 - [ ] 4. **Negative Example Feedback Loop**
   - **Priority: CRITICAL** — the LLM never sees WHY it failed, only the Sharpe number
