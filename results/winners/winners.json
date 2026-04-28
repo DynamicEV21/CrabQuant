@@ -1617,5 +1617,85 @@
     },
     "promoted_at": "2026-04-28T14:51:19.137863+00:00",
     "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_Explorer SPY Momentum",
+    "ticker": "SPY",
+    "sharpe": 1.4256379927588883,
+    "return": 0.1794436549631375,
+    "max_drawdown": -0.05490150693732504,
+    "trades": 5,
+    "params": {
+      "ema_fast": 9,
+      "ema_slow": 21,
+      "st_len": 10,
+      "st_mult": 3.0
+    },
+    "refinement_run": "explorer_spy_momentum_20260428_124357",
+    "refinement_turns": 7,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": false,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": -0.21736469534780709,
+        "min_test_sharpe": -2.533139330192035,
+        "avg_degradation": 16.26424052620042,
+        "num_windows": 6,
+        "windows_passed": 1,
+        "robust": false,
+        "notes": "Windows: 6, passed: 1 | Avg test Sharpe: -0.22 (min: -2.53) | Avg degradation: 1626.4% | \u26a0\ufe0f Avg test Sharpe -0.22 < 0.5 | \u26a0\ufe0f Only 1/6 windows passed (need >= 2)",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.9826537872559519,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 2,
+            "train_sharpe": 0.027419203198663367,
+            "test_sharpe": -2.533139330192035,
+            "degradation": 93.3855923834986,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": -1.260641418866283,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": 1.5941062706860607,
+            "test_sharpe": 1.696169883609047,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 2.33783796201882,
+            "test_sharpe": -0.4672187255038546,
+            "degradation": 1.199850773703919,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": 0.8138942484988022,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": false
+          }
+        ]
+      },
+      "cross_ticker": null,
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false
+    },
+    "promoted_at": "2026-04-28T19:50:41.742221+00:00",
+    "validation_status": "backtest_only"
   }
 ]

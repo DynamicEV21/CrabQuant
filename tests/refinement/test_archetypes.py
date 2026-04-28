@@ -20,16 +20,23 @@ class TestArchetypeRegistry:
     """Verify the archetype registry contains all expected archetypes."""
 
     def test_all_four_archetypes_exist(self) -> None:
-        """Registry must have mean_reversion, momentum, breakout, volatility."""
+        """Registry must have the original 4 archetypes."""
         expected = {"mean_reversion", "momentum", "breakout", "volatility"}
         actual = set(ARCHETYPE_REGISTRY.keys())
         assert expected <= actual, f"Missing archetypes: {expected - actual}"
 
+    def test_extended_archetypes_exist(self) -> None:
+        """Registry should also have the extended archetypes."""
+        extended = {"statistical_arb", "multi_signal_ensemble", "volatility_breakout"}
+        actual = set(ARCHETYPE_REGISTRY.keys())
+        assert extended <= actual, f"Missing extended archetypes: {extended - actual}"
+
     def test_list_archetypes_returns_all(self) -> None:
-        """list_archetypes() should return at least the 4 core archetypes."""
+        """list_archetypes() should return at least the 7 archetypes."""
         names = list_archetypes()
-        assert len(names) >= 4
-        for name in ["mean_reversion", "momentum", "breakout", "volatility"]:
+        assert len(names) >= 7
+        for name in ["mean_reversion", "momentum", "breakout", "volatility",
+                      "statistical_arb", "multi_signal_ensemble", "volatility_breakout"]:
             assert name in names
 
 
@@ -39,7 +46,10 @@ class TestArchetypeRegistry:
 class TestArchetypeStructure:
     """Every archetype must have all required fields with valid content."""
 
-    @pytest.fixture(params=["mean_reversion", "momentum", "breakout", "volatility"])
+    @pytest.fixture(params=[
+        "mean_reversion", "momentum", "breakout", "volatility",
+        "statistical_arb", "multi_signal_ensemble", "volatility_breakout",
+    ])
     def archetype(self, request: pytest.FixtureRequest) -> Archetype:
         return ARCHETYPE_REGISTRY[request.param]
 

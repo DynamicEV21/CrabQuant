@@ -96,17 +96,21 @@ This runs as a repeating cron job (every 45 min). Each run:
   - **91 unit tests** in `tests/refinement/test_archetypes.py`
   - Commit: `b556511`
 
-- [ ] 6. **Run 3+ Full Mandates and Analyze**
-  - **Priority: HIGH** — we need real data on what the LLM does with the new features
-  - Run 3 mandates: `python scripts/refinement_loop.py --mandate <mandate> --timeout 480`
-  - Use the default SPY mandate but with `mode: "explorer"` to enable all accelerators
-  - After each run, read `results/refinement_runs/<run_dir>/state.json` and extract:
-    - Turns used, best Sharpe, best trade count, failure modes per turn
-    - Did cross-run learning fire? Did parallel spawning fire?
-    - What indicators did the LLM pick?
-  - Summarize patterns in Decision Log: what works, what doesn't, specific prompt improvements needed
-  - **Time budget**: 8 min per mandate max, 25 min total for this task
-  - **This is the ONLY task that should run real LLM calls**
+- [x] 6. **Run 3+ Full Mandates and Analyze** ✅ DONE
+  - Ran 3 mandates with `explorer_spy_momentum.json` (mode: explorer, sharpe_target: 1.0)
+  - Run 1: 7/7 turns, best Sharpe=1.426, best composite=0.674 (EMA+Supertrend, 5 trades)
+  - Run 2: 7/10 turns (timeout), best Sharpe=1.375, best composite=0.727 (ROC+EMA+Vol, regime fragility)
+  - Run 3: 5/10 turns (timeout), best Sharpe=1.158, best composite=0.638 (ROC+EMA variant)
+  - **All 3 runs had parallel spawning fire** (2-3 variants on turn 1), but variant quality was mixed (best variant avg Sharpe ~0.2)
+  - **All 3 runs had cross-run learning fire** (2 winner examples injected from previous runs)
+  - **Key findings**:
+    1. `regime_fragility` (42%) and `low_sharpe` (42%) dominate — SPY momentum is hard
+    2. `too_few_trades_for_validation` kills 11% — best strategies (Sharpe 1.4+) only have 5 trades
+    3. LLM is stuck in EMA-centric pattern (EMA used in 100% of strategies across all turns)
+    4. Winner examples are injected but LLM doesn't leverage them effectively
+    5. Parallel spawning works mechanically but doesn't improve best outcome significantly
+    6. Best strategy hit Sharpe 1.43 but couldn't get 20+ trades for validation
+  - **Top 3 improvements identified**: (1) Stagnation recovery for trade count vs Sharpe tradeoff, (2) Indicator diversity nudges, (3) Better winner example utilization
 
 ### Tier 2: Infrastructure That Enables Better Invention
 
@@ -164,6 +168,7 @@ If you complete all tasks above, keep going. Here's the priority order:
 - [2026-04-28 10:52] Task 4 (Negative Example Feedback Loop) completed. Key insight: `call_llm_inventor` was dumping previous_attempts as raw JSON — changed to use `format_previous_attempts_section()` for readable, guidance-rich output. Added per-window breakdown for validation_failed, curve-fitting warnings for low_sharpe + few trades, regime dependency warnings for regime_fragility. 25 new tests. Total: 1057 passing.
 - [2026-04-28 11:46] Task 5 (Strategy Archetype Templates) completed. Found critical wiring bug: `build_turn1_prompt()` computed `archetype_text` but never injected it into `TURN1_PROMPT` template. Added `{archetype_section}` placeholder + wired it. 4 archetypes with skeleton code, anti-patterns, regime affinity. 91 new tests. Total: 1148 passing.
 - [2026-04-28 12:39] Task 9 (Composite Score for Best-Strategy Tracking) completed. `compute_composite_score()` was already defined in prompts.py and imported in refinement_loop.py but never used for tracking. Added `best_composite_score` field to RunState, changed all 4 tracking points (too_few_trades, validation success, main tracking, post-loop) to use composite score instead of raw Sharpe. Validation gate unchanged (still raw Sharpe). Key scenario verified: Sharpe 4.0 with 5 trades (composite=1.59) loses to Sharpe 1.8 with 60 trades (composite=3.50). 15 new tests. Total: 1179 passing.
+- [2026-04-28 13:40] Task 6 (Run 3 Mandates) completed. 3 explorer mandates on SPY momentum. Best Sharpe 1.426 (EMA+Supertrend, 5 trades — killed by too_few_trades). Key bottleneck: LLM finds high-Sharpe strategies but can't get 20+ trades. regime_fragility and low_sharpe are the dominant failure modes (42% each). LLM is EMA-centric (100% of strategies use EMA). Parallel spawning fires on all runs but doesn't significantly improve outcomes. Cross-run learning injects 2 winner examples but LLM doesn't leverage them. Next priority: stagnation recovery (CI item 3) to help LLM break out of indicator ruts.
 
 ## Errors / Blockers
 
