@@ -71,6 +71,9 @@ reduce false signals by 30-50%."
 5. Generate COMPLETE file content, not diffs or patches.
 6. Look at the EXAMPLE STRATEGIES below to understand the exact API patterns. \
 Your code MUST follow the same structure.
+7. TRADE FREQUENCY: Aim for 20-80 trades over the backtest period. Too few trades \
+(< 10) means your conditions are too restrictive — simplify. Too many trades (> 200) \
+means your signal is noise — add filters. Start SIMPLE on turn 1.
 
 TOP 3 INDICATOR MISTAKES — YOUR CODE WILL CRASH IF YOU DO THESE:
 1. atr(close, length=14) → WRONG. ATR requires: atr(high, low, close, length=14)
@@ -102,10 +105,17 @@ TURN1_PROMPT = """\
 ### Example Strategies (follow this exact pattern)
 {strategy_examples}
 
+{winner_examples_section}
 ### Your Task
 Invent a complete trading strategy matching the mandate.
 Use the example strategies as a TEMPLATE for code structure, function signatures, \
 and indicator usage patterns. Your code MUST follow the same conventions.
+
+START SIMPLE. For turn 1, prefer a single clear signal (e.g., EMA crossover, \
+RSI oversold, MACD histogram flip) with 1-2 basic filters. Do NOT combine \
+5+ indicators on turn 1 — you can add complexity in later turns if needed. \
+Simple strategies with 30-80 trades per year are far more likely to succeed \
+than complex multi-condition systems with 5 trades per year.
 
 ### Indicator Quick Reference — USE THESE SIGNATURES EXACTLY
 {indicator_quick_ref}
@@ -158,6 +168,7 @@ Current params: {current_params}
 {stagnation_suffix}
 ### Example Strategies (for reference — use if you need to change indicator patterns)
 {strategy_examples}
+{winner_examples_section}
 
 ## Your Task
 1. Read the CURRENT STRATEGY CODE above — understand what it's doing
@@ -171,6 +182,134 @@ Current params: {current_params}
 
 Output ONLY the JSON object with the required fields.
 """
+
+
+# ── Parallel Prompt Variants (Phase 5.6.2) ────────────────────────────────────
+
+# Different focus areas for parallel prompt variants.
+# Each variant biases the LLM toward a different indicator family / entry style.
+PARALLEL_VARIANT_FOCI = [
+    {
+        "name": "momentum",
+        "bias": (
+            "## Parallel Variant Focus: MOMENTUM\n"
+            "For this variant, prioritize MOMENTUM-based indicators: MACD, ROC, EMA crossovers, "
+            "and rate-of-change signals. Entry logic should detect accelerating price trends.\n"
+            "Prefer: macd, roc, ema, wma. Avoid: rsi, stoch, bbands."
+        ),
+    },
+    {
+        "name": "mean_reversion",
+        "bias": (
+            "## Parallel Variant Focus: MEAN REVERSION\n"
+            "For this variant, prioritize MEAN-REVERSION indicators: RSI, Bollinger Bands, "
+            "Stochastic, and CCI. Entry logic should detect overbought/oversold conditions.\n"
+            "Prefer: rsi, bbands, stoch, cci. Avoid: macd, roc, ema crossovers."
+        ),
+    },
+    {
+        "name": "volatility_breakout",
+        "bias": (
+            "## Parallel Variant Focus: VOLATILITY / BREAKOUT\n"
+            "For this variant, prioritize VOLATILITY and BREAKOUT indicators: ATR, ADX, "
+            "Supertrend, and Bollinger Band squeezes. Entry logic should detect expanding volatility.\n"
+            "Prefer: atr, adx, supertrend, bbands (squeeze). Avoid: rsi, roc."
+        ),
+    },
+    {
+        "name": "volume_confirmation",
+        "bias": (
+            "## Parallel Variant Focus: VOLUME CONFIRMATION\n"
+            "For this variant, prioritize VOLUME-BASED signals: OBV, VWAP, volume SMAs, "
+            "and volume breakouts. Entry logic should require volume confirmation.\n"
+            "Prefer: obv, vwap, sma(volume). Use volume > vol_avg as a filter."
+        ),
+    },
+    {
+        "name": "multi_signal",
+        "bias": (
+            "## Parallel Variant Focus: MULTI-SIGNAL CONFLUENCE\n"
+            "For this variant, combine 2-3 DIFFERENT indicator families for confluence. "
+            "E.g., MACD + RSI, or EMA crossover + volume confirmation + ATR filter. "
+            "Each signal component should be simple; the combination provides edge."
+        ),
+    },
+]
+
+
+def get_parallel_prompt_variants(base_prompt: str, count: int) -> list[str]:
+    """Generate N prompt variants for parallel strategy invention.
+
+    Each variant appends a different indicator focus bias to the base prompt,
+    encouraging the LLM to explore different regions of strategy space.
+
+    Args:
+        base_prompt: The base Turn 1 prompt (before variant injection).
+        count: Number of variants to generate (1-5). If count > available foci,
+            foci cycle with a slight rewording.
+
+    Returns:
+        List of prompt strings, one per variant. If count == 1, returns
+        [base_prompt] unchanged (sequential fallback).
+    """
+    if count <= 1:
+        return [base_prompt]
+
+    count = min(count, len(PARALLEL_VARIANT_FOCI))
+    variants = []
+    for i in range(count):
+        focus = PARALLEL_VARIANT_FOCI[i]
+        # Inject variant bias at the end of the prompt, before any closing instruction
+        variant_prompt = base_prompt.rstrip() + "\n\n" + focus["bias"] + "\n"
+        variants.append(variant_prompt)
+
+    return variants
+
+
+def get_variant_bias_text(variant_index: int, variant_count: int) -> str:
+    """Return the bias instruction text for a specific parallel variant.
+
+    This is a convenience wrapper for use inside call_llm_inventor,
+    where we already know which variant we're generating.
+
+    Args:
+        variant_index: 0-based index of the variant.
+        variant_count: Total number of variants being generated.
+
+    Returns:
+        Bias instruction string, or empty string if out of range.
+    """
+    if variant_count <= 1 or variant_index < 0:
+        return ""
+    safe_index = variant_index % len(PARALLEL_VARIANT_FOCI)
+    return PARALLEL_VARIANT_FOCI[safe_index]["bias"]
+
+
+def compute_composite_score(
+    sharpe: float,
+    trades: int,
+    max_drawdown: float,
+) -> float:
+    """Compute composite score for ranking parallel strategies.
+
+    Formula: sharpe * sqrt(trades / 20) * (1 - abs(max_drawdown))
+
+    This penalizes overfit (few trades) and excessive drawdown.
+
+    Args:
+        sharpe: Sharpe ratio of the strategy.
+        trades: Total number of trades.
+        max_drawdown: Maximum drawdown as a fraction (e.g., 0.15 for 15%).
+
+    Returns:
+        Composite score (higher is better). Returns 0.0 on invalid inputs.
+    """
+    if sharpe <= 0 or trades < 1:
+        return 0.0
+
+    trade_factor = (trades / 20) ** 0.5
+    dd_penalty = 1.0 - min(abs(max_drawdown), 1.0)
+    return sharpe * trade_factor * dd_penalty
 
 
 # ── Helper Functions ─────────────────────────────────────────────────────────
@@ -336,6 +475,7 @@ def build_turn1_prompt(
     seed_params: dict | None = None,
     strategy_examples: list[dict] | None = None,
     strategy_catalog: list[dict] | None = None,
+    winner_examples: list[dict] | None = None,
     indicator_reference: str = "",
     indicator_quick_ref: str = "",
 ) -> str:
@@ -350,6 +490,7 @@ def build_turn1_prompt(
         seed_params: Optional seed strategy default params.
         strategy_examples: Optional list of example strategy dicts.
         strategy_catalog: Optional list of catalog entries.
+        winner_examples: Optional list of proven winner strategy dicts (cross-run learning).
         indicator_reference: Full indicator API reference text.
         indicator_quick_ref: Quick reference card (section 7) for user message.
 
@@ -386,6 +527,21 @@ def build_turn1_prompt(
             for entry in strategy_catalog
         )
 
+    # Format winner examples (cross-run learning)
+    winner_section = ""
+    if winner_examples:
+        winner_parts = [
+            "### Proven Strategies (from previous runs — these achieved high Sharpe with real trades)"
+        ]
+        for wex in winner_examples:
+            ticker_str = f" ({wex['ticker']})" if wex.get("ticker") else ""
+            winner_parts.append(
+                f"#### ⭐ {wex['name']} — Sharpe {wex['sharpe']:.2f}, "
+                f"{wex['trades']} trades{ticker_str}\n"
+                f"```python\n{wex['source_code']}\n```"
+            )
+        winner_section = "\n\n".join(winner_parts) + "\n\n"
+
     return TURN1_PROMPT.format(
         mandate_name=mandate.get("name", "unnamed"),
         strategy_archetype=mandate.get("strategy_archetype", "any"),
@@ -395,6 +551,7 @@ def build_turn1_prompt(
         seed_section=seed_section,
         strategy_catalog=catalog_text,
         strategy_examples=examples_text,
+        winner_examples_section=winner_section,
         indicator_quick_ref=indicator_quick_ref,
     )
 
@@ -409,6 +566,7 @@ def build_refinement_prompt(
     best_turn: int,
     stagnation_suffix: str = "",
     strategy_examples: list[dict] | None = None,
+    winner_examples: list[dict] | None = None,
     indicator_reference: str = "",
     indicator_quick_ref: str = "",
 ) -> str:
@@ -423,6 +581,7 @@ def build_refinement_prompt(
         best_turn: Turn number of the best Sharpe.
         stagnation_suffix: Formatted stagnation response string.
         strategy_examples: Optional list of example strategy dicts.
+        winner_examples: Optional list of proven winner strategy dicts (cross-run learning).
         indicator_reference: Full indicator API reference text.
         indicator_quick_ref: Quick reference card (section 7) for user message.
 
@@ -447,6 +606,21 @@ def build_refinement_prompt(
                 f"```python\n{ex.get('source_code', '# code unavailable')}\n```"
             )
         examples_text = "\n\n".join(parts)
+
+    # Format winner examples (cross-run learning)
+    winner_section = ""
+    if winner_examples:
+        winner_parts = [
+            "### Proven Strategies (from previous runs — these achieved high Sharpe with real trades)"
+        ]
+        for wex in winner_examples:
+            ticker_str = f" ({wex['ticker']})" if wex.get("ticker") else ""
+            winner_parts.append(
+                f"#### ⭐ {wex['name']} — Sharpe {wex['sharpe']:.2f}, "
+                f"{wex['trades']} trades{ticker_str}\n"
+                f"```python\n{wex['source_code']}\n```"
+            )
+        winner_section = "\n\n".join(winner_parts) + "\n\n"
 
     # Format sharpe_by_year
     sby = tier1_report.get("sharpe_by_year", {})
@@ -480,5 +654,6 @@ def build_refinement_prompt(
         best_turn=best_turn,
         stagnation_suffix=stagnation_suffix,
         strategy_examples=examples_text,
+        winner_examples_section=winner_section,
         indicator_quick_ref=indicator_quick_ref,
     )

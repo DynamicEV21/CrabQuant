@@ -233,24 +233,18 @@ class TestRegimeSharpe:
 class TestPromotionWithMocks:
 
     def test_full_validation_check_passes(self, mock_backtest_result):
-        """Walk-forward + cross-ticker validation with mocks."""
-        from crabquant.validation import WalkForwardResult, CrossTickerResult
+        """Rolling walk-forward + cross-ticker validation with mocks."""
+        from crabquant.validation import CrossTickerResult
 
-        mock_wf = WalkForwardResult(
-            strategy_name="test_momentum",
-            ticker="SPY",
-            train_sharpe=1.8,
-            train_return=0.20,
-            test_sharpe=1.2,
-            test_return=0.15,
-            test_max_dd=-0.06,
-            degradation=0.33,
-            robust=True,
-            notes="Good",
-            regime_shift=False,
-            test_regime="neutral",
-            train_regime="bull",
-        )
+        mock_wf = MagicMock()
+        mock_wf.avg_test_sharpe = 1.2
+        mock_wf.avg_train_sharpe = 1.8
+        mock_wf.windows_passed = 3
+        mock_wf.windows_total = 4
+        mock_wf.robust = True
+        mock_wf.notes = "Good"
+        mock_wf.regime_shifts = []
+
         mock_ct = CrossTickerResult(
             strategy_name="test_momentum",
             params={"fast": 10},
@@ -267,7 +261,7 @@ class TestPromotionWithMocks:
             notes="Good",
         )
 
-        with patch("crabquant.validation.walk_forward_test", return_value=mock_wf), \
+        with patch("crabquant.validation.rolling_walk_forward", return_value=mock_wf), \
              patch("crabquant.validation.cross_ticker_validation", return_value=mock_ct):
 
             from crabquant.refinement.promotion import run_full_validation_check
@@ -284,40 +278,21 @@ class TestPromotionWithMocks:
         assert result["walk_forward_robust"] is True
 
     def test_full_validation_check_fails_low_sharpe(self):
-        from crabquant.validation import WalkForwardResult, CrossTickerResult
+        mock_wf = MagicMock()
+        mock_wf.avg_test_sharpe = 0.1
+        mock_wf.avg_train_sharpe = 1.8
+        mock_wf.windows_passed = 0
+        mock_wf.windows_total = 4
+        mock_wf.robust = False
+        mock_wf.notes = "Bad"
+        mock_wf.regime_shifts = ["window_1", "window_2"]
 
-        mock_wf = WalkForwardResult(
-            strategy_name="test_momentum",
-            ticker="SPY",
-            train_sharpe=1.8,
-            train_return=0.20,
-            test_sharpe=0.1,
-            test_return=0.01,
-            test_max_dd=-0.20,
-            degradation=0.94,
-            robust=False,
-            notes="Bad",
-            regime_shift=True,
-            test_regime="bear",
-            train_regime="bull",
-        )
-        mock_ct = CrossTickerResult(
-            strategy_name="test_momentum",
-            params={"fast": 10},
-            tickers_tested=2,
-            tickers_profitable=0,
-            tickers_passed=0,
-            avg_sharpe=0.2,
-            median_sharpe=0.3,
-            sharpe_std=0.2,
-            avg_return=0.02,
-            avg_max_dd=-0.15,
-            win_rate_across_tickers=0.0,
-            robust=False,
-            notes="Bad",
-        )
+        mock_ct = MagicMock()
+        mock_ct.avg_sharpe = 0.2
+        mock_ct.robust = False
+        mock_ct.notes = "Bad"
 
-        with patch("crabquant.validation.walk_forward_test", return_value=mock_wf), \
+        with patch("crabquant.validation.rolling_walk_forward", return_value=mock_wf), \
              patch("crabquant.validation.cross_ticker_validation", return_value=mock_ct):
 
             from crabquant.refinement.promotion import run_full_validation_check

@@ -159,8 +159,11 @@ def walk_forward_test(
     # Calculate degradation
     if train_result.sharpe > 0:
         degradation = (train_result.sharpe - test_result.sharpe) / train_result.sharpe
+        degradation = max(0.0, degradation)  # Clamp: negative degradation = improvement
+    elif test_result.sharpe > 0:
+        degradation = 0.0  # Negative train but positive test = improvement
     else:
-        degradation = 1.0
+        degradation = 1.0  # Both negative
 
     # Detect regimes for train and test periods
     train_regime = ""
@@ -417,7 +420,12 @@ def rolling_walk_forward(
 
             if train_result.sharpe > 0:
                 degradation = (train_result.sharpe - test_result.sharpe) / train_result.sharpe
+                degradation = max(0.0, degradation)  # Clamp: negative degradation = improvement
+            elif test_result.sharpe > 0:
+                # Negative train but positive test = strategy works out-of-sample despite bad train
+                degradation = 0.0
             else:
+                # Both negative — can't meaningfully measure degradation
                 degradation = 1.0
 
             window_passed = test_result.sharpe >= 0.3 and degradation <= 0.7

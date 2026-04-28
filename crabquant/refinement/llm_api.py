@@ -299,7 +299,35 @@ def call_llm_inventor(
             user_parts.append(f"## Previous Attempts\n{json.dumps(context['previous_attempts'], indent=2)}\n")
         
         if context.get("strategy_examples"):
-            user_parts.append(f"## Strategy Examples\n{context['strategy_examples']}\n")
+            # Format strategy examples as readable code blocks, not raw JSON
+            ex_parts = []
+            for ex in context["strategy_examples"]:
+                if isinstance(ex, dict):
+                    ex_parts.append(
+                        f"### {ex.get('name', 'unknown')}\n"
+                        f"Description: {ex.get('description', 'N/A')}\n"
+                        f"Default params: {ex.get('default_params', {})}\n"
+                        f"```python\n{ex.get('source_code', '# code unavailable')}\n```"
+                    )
+                else:
+                    ex_parts.append(str(ex))
+            user_parts.append(f"## Strategy Examples (follow this exact pattern)\n" + "\n\n".join(ex_parts) + "\n")
+
+        if context.get("winner_examples"):
+            # Format proven winner strategies from past runs
+            wex_parts = [
+                "These strategies achieved high Sharpe ratios with real trade counts in previous runs. "
+                "Study their patterns and signal logic."
+            ]
+            for wex in context["winner_examples"]:
+                if isinstance(wex, dict):
+                    ticker_str = f" ({wex['ticker']})" if wex.get("ticker") else ""
+                    wex_parts.append(
+                        f"### ⭐ {wex['name']} — Sharpe {wex['sharpe']:.2f}, "
+                        f"{wex['trades']} trades{ticker_str}\n"
+                        f"```python\n{wex['source_code']}\n```"
+                    )
+            user_parts.append(f"## Proven Strategies (from previous runs)\n" + "\n\n".join(wex_parts) + "\n")
         
         if context.get("strategy_catalog"):
             user_parts.append(f"## Available Strategies\n{json.dumps(context['strategy_catalog'], indent=2)}\n")
@@ -312,7 +340,21 @@ def call_llm_inventor(
         if quick_ref:
             user_parts.append(f"## Indicator Quick Reference — USE THESE SIGNATURES EXACTLY\n{quick_ref}\n")
 
-    user_msg = {"role": "user", "content": "\n".join(user_parts)}
+    user_content = "\n".join(user_parts)
+
+    # Inject parallel variant bias if present in context (Phase 5.6.2)
+    variant_index = context.get("parallel_variant_index")
+    variant_count = context.get("parallel_variant_count")
+    if variant_index is not None and variant_count is not None and variant_count > 1:
+        try:
+            from crabquant.refinement.prompts import get_variant_bias_text
+            bias_text = get_variant_bias_text(variant_index, variant_count)
+            if bias_text:
+                user_content += f"\n\n{bias_text}"
+        except ImportError:
+            pass
+
+    user_msg = {"role": "user", "content": user_content}
     
     try:
         raw_response = call_zai_llm(
