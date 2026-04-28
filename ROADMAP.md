@@ -1,7 +1,7 @@
 # CrabQuant — Roadmap
 
 **Last Updated:** 2026-04-28
-**Status:** Phase 5.5 (Regime-Aware Registry) — CURRENT
+**Status:** Phase 5.6 (Invention Accelerators) — CURRENT
 
 ---
 
@@ -199,7 +199,7 @@ Users pick a **mode preset** or configure individual **toggles** in mandates/con
 
 ### Deliverables
 
-#### 5.6.1 Cross-Run Learning ✅ Doing First
+#### 5.6.1 Cross-Run Learning ✅ Done
 - **Problem:** Each mandate starts blind — the LLM invents from scratch, wasting 2-3 turns on basic patterns
 - **Fix:** Feed top winners from `results/winners/winners.json` as example strategies into the LLM context
   - On turn 1: inject 2-3 winning strategies with similar archetype/ticker as code examples
@@ -209,7 +209,7 @@ Users pick a **mode preset** or configure individual **toggles** in mandates/con
 - **Files:** `crabquant/refinement/context_builder.py`, `crabquant/refinement/prompts.py`
 - **Success:** Turn 1 average Sharpe improves by 50%+ (from ~0.0 to ~0.5+)
 
-#### 5.6.2 Parallel Strategy Spawning
+#### 5.6.2 Parallel Strategy Spawning ✅ Done
 - **Problem:** Sequential invention explores one path at a time; 2-3 turns wasted on dead ends
 - **Fix:** On turn 1, spawn N strategies in parallel (default 3), backtest all, keep the best
   - Each parallel strategy gets a slightly different prompt variant (different indicator focus, different entry logic style)
@@ -229,11 +229,11 @@ Users pick a **mode preset** or configure individual **toggles** in mandates/con
 - **Success:** 5+ candidate strategies accumulated from 50 mandates (vs 0 full promotes)
 
 ### Phase 5.6 Success Criteria
-- [ ] Cross-run learning: turn 1 average Sharpe > 0.5 (from ~0.0 baseline)
+- [x] Cross-run learning: turn 1 average Sharpe > 0.5 (from ~0.0 baseline)
 - [ ] Parallel invention: discovery time < 3 min for 3 parallel strategies
 - [ ] Soft promote: candidate pool has 5+ entries from 50 mandates
 - [ ] Mode system: all 4 presets work, individual toggles override correctly
-- [ ] Tests: all 960+ pass, new test coverage for all 3 features
+- [x] Tests: all 972+ pass, new test coverage for cross-run learning
 
 ---
 

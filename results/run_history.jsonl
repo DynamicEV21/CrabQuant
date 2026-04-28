@@ -470,3 +470,5 @@
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-28T16:43:47.478782+00:00"}
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-28T16:45:11.327054+00:00"}
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-28T16:45:11.572224+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-28T16:45:44.128935+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-28T16:45:44.387750+00:00"}

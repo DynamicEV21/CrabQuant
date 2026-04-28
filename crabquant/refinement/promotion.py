@@ -493,3 +493,148 @@ def _update_winner_regime_tags(strategy_name: str, regime_tags: dict) -> None:
 
     if updated:
         winners_path.write_text(json.dumps(winners, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# Soft-Promote Tier (Phase 5.6.3)
+# ---------------------------------------------------------------------------
+
+def _get_candidates_dir() -> Path:
+    """Return the directory where soft-promoted candidate files live."""
+    return Path("results/candidates")
+
+
+def soft_promote(
+    strategy_code: str,
+    strategy_module: Any,
+    result: Any,  # BacktestResult
+    validation: dict[str, Any],
+    state: Any,  # RunState
+    *,
+    min_sharpe: float = 0.5,
+    min_windows: int = 2,
+    is_regime_specific: bool = False,
+) -> dict[str, Any]:
+    """Soft-promote a near-miss strategy to the candidates pool.
+
+    When full validation fails but the strategy shows promise (decent avg
+    test Sharpe and some passing windows), save it to ``results/candidates/``
+    with ``needs_ongoing_validation: true`` so it can be revisited later.
+
+    Regime-specific strategies get a lower Sharpe threshold (0.3 by default).
+
+    Args:
+        strategy_code: Full Python source of the strategy.
+        strategy_module: Loaded strategy module.
+        result: BacktestResult from the engine.
+        validation: Dict from ``run_full_validation_check``.
+        state: RunState for the refinement run.
+        min_sharpe: Minimum avg test Sharpe for soft promotion.
+        min_windows: Minimum windows passed for soft promotion.
+        is_regime_specific: If True, use lower Sharpe threshold.
+
+    Returns:
+        Dict with keys: promoted, candidate_file, avg_test_sharpe,
+        windows_passed, reason, error.
+    """
+    from crabquant.refinement.config import VALIDATION_CONFIG
+
+    strategy_name = f"refined_{state.mandate_name}"
+    response: dict[str, Any] = {
+        "promoted": False,
+        "candidate_file": None,
+        "avg_test_sharpe": None,
+        "windows_passed": None,
+        "reason": None,
+        "error": None,
+    }
+
+    # Skip if validation passed (should use auto_promote instead)
+    if validation.get("passed", False):
+        response["reason"] = "Full validation passed — use auto_promote instead."
+        return response
+
+    # Extract walk-forward metrics
+    wf = validation.get("walk_forward")
+    if not wf:
+        response["reason"] = "No walk-forward data in validation result."
+        return response
+
+    avg_test_sharpe = wf.get("avg_test_sharpe", 0.0)
+    windows_passed = wf.get("windows_passed", 0)
+
+    # Apply regime-specific lower threshold
+    regime_sharpe_floor = VALIDATION_CONFIG.get("soft_promote_test_sharpe", 0.3)
+    effective_min_sharpe = regime_sharpe_floor if is_regime_specific else min_sharpe
+
+    # Check soft-promote criteria
+    if avg_test_sharpe < effective_min_sharpe:
+        response["reason"] = (
+            f"Avg test Sharpe {avg_test_sharpe:.3f} below threshold {effective_min_sharpe:.3f}."
+        )
+        return response
+
+    if windows_passed < min_windows:
+        response["reason"] = (
+            f"Windows passed {windows_passed} below minimum {min_windows}."
+        )
+        return response
+
+    # Build candidate file
+    candidates_dir = _get_candidates_dir()
+    candidates_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    candidate_filename = f"{strategy_name}_{timestamp}.json"
+    candidate_path = candidates_dir / candidate_filename
+
+    # Compute regime tags if possible
+    regime_tags = None
+    try:
+        from crabquant.refinement.regime_tagger import compute_strategy_regime_tags
+        regime_tags = compute_strategy_regime_tags(
+            strategy_module.generate_signals,
+            result.params if result.params else {},
+            ticker=result.ticker,
+        )
+    except Exception:
+        pass
+
+    candidate = {
+        "name": strategy_name,
+        "timestamp": timestamp,
+        "needs_ongoing_validation": True,
+        "avg_test_sharpe": avg_test_sharpe,
+        "windows_passed": windows_passed,
+        "total_windows": wf.get("num_windows", 0),
+        "is_regime_specific": is_regime_specific,
+        "regime_tags": regime_tags,
+        "discovery_ticker": result.ticker,
+        "backtest_sharpe": result.sharpe,
+        "backtest_trades": result.num_trades,
+        "backtest_max_drawdown": result.max_drawdown,
+        "strategy_code": strategy_code,
+        "refinement_run": state.run_id,
+        "refinement_turns": state.current_turn,
+        "validation_summary": {
+            "walk_forward_robust": validation.get("walk_forward_robust", False),
+            "cross_ticker_robust": validation.get("cross_ticker_robust", False),
+            "avg_degradation": wf.get("avg_degradation", 0.0),
+        },
+    }
+
+    try:
+        candidate_path.write_text(json.dumps(candidate, indent=2))
+        response["promoted"] = True
+        response["candidate_file"] = str(candidate_path)
+        response["avg_test_sharpe"] = avg_test_sharpe
+        response["windows_passed"] = windows_passed
+        logger.info(
+            "Soft-promoted %s to candidates (Sharpe %.3f, %d windows passed)",
+            strategy_name, avg_test_sharpe, windows_passed,
+        )
+    except Exception as e:
+        response["error"] = f"Failed to write candidate file: {e}"
+        logger.error("Soft-promote write failed for %s: %s", strategy_name, e)
+
+    return response

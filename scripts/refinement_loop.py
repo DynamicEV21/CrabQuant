@@ -48,7 +48,7 @@ from crabquant.refinement.action_analytics import (
     track_action_result, generate_llm_context as generate_analytics_context,
     load_run_history,
 )
-from crabquant.refinement.promotion import auto_promote, run_full_validation_check
+from crabquant.refinement.promotion import auto_promote, run_full_validation_check, soft_promote
 from crabquant.refinement.stagnation import compute_stagnation, get_stagnation_response
 from crabquant.refinement.wave_dashboard import generate_dashboard, snapshot_to_json
 from crabquant.refinement.prompts import (
@@ -922,6 +922,28 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 except Exception as e:
                     print(f"  ⚠️ Auto-promote error: {e}")
             else:
+                # Phase 5.6.3: Soft-promote near-miss strategies to candidates pool
+                if config.soft_promote:
+                    try:
+                        sp_result = soft_promote(
+                            strategy_code=strategy_code,
+                            strategy_module=strategy_module,
+                            result=result,
+                            validation=validation,
+                            state=state,
+                            min_sharpe=config.soft_promote_sharpe,
+                            min_windows=config.soft_promote_min_windows,
+                            is_regime_specific=_is_regime_specific,
+                        )
+                        if sp_result.get("promoted"):
+                            print(f"  📋 Soft-promoted to candidates: {sp_result['candidate_file']}")
+                            print(f"     Avg test Sharpe: {sp_result['avg_test_sharpe']:.3f}, "
+                                  f"Windows passed: {sp_result['windows_passed']}")
+                        else:
+                            print(f"  📋 Soft-promote skipped: {sp_result.get('reason', 'unknown')}")
+                    except Exception as e:
+                        print(f"  ⚠️ Soft-promote error: {e}")
+
                 # Fall back to legacy promote_to_winner
                 print(f"  📋 Validation not passed — using legacy promotion...")
                 try:
