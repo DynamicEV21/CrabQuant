@@ -1,0 +1,60 @@
+Starting refinement loop for: /home/Zev/development/CrabQuant-agents/worker-1/refinement/mandates/explorer_spy_momentum.json
+
+============================================================
+Turn 1/5 | Best Sharpe: -999.00
+  🔄 Parallel invention: spawning 3 strategy variants...
+    Variant 1/3...
+  Calling LLM...
+  LLM responded in 24.8s
+      Variant 1: Sharpe=-0.00, Trades=3, Composite=0.00
+    Variant 2/3...
+  Calling LLM...
+  LLM responded in 51.7s
+      Variant 2: Sharpe=-0.21, Trades=3, Composite=0.00
+    Variant 3/3...
+  Calling LLM...
+  LLM responded in 63.6s
+      Variant 3: Sharpe=0.01, Trades=3, Composite=0.00
+  ✅ Best variant: #3 (Sharpe=0.01, Composite=0.00)
+  🔄 Parallel invention succeeded — using best variant
+  Running backtest...
+  Backtest completed in 0.1s
+  Feature importance (0.0s): 4 indicators, driver=atr, weakest=sma
+  Turn 1 completed in 145.8s
+
+============================================================
+Turn 2/5 | Best Sharpe: 0.01
+  Calling LLM...
+  LLM responded in 40.7s
+  Running backtest...
+  Backtest completed in 0.1s
+  Feature importance (0.0s): 4 indicators, driver=atr, weakest=sma
+  Turn 2 completed in 40.8s
+
+============================================================
+Turn 3/5 | Best Sharpe: 0.09
+  Calling LLM...
+  LLM responded in 94.7s
+  Gate failed (attempt 1): ['Zero entry signals generated on test data']
+  Calling LLM...
+  LLM responded in 88.0s
+/tmp/vgate_im3tea3v.py:26: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  Running backtest...
+/home/Zev/development/CrabQuant/refinement_runs/explorer_spy_momentum_20260429_040518/strategy_v3.py:26: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  entries = (atr_expanding & ~atr_expanding.shift(1).fillna(False)).fillna(False)
+  Backtest completed in 0.1s
+  Feature importance (0.0s): 2 indicators, driver=atr, weakest=sma
+  Turn 3 completed in 182.8s
+
+============================================================
+Turn 4/5 | Best Sharpe: 0.92
+  Calling LLM...
+  LLM responded in 44.0s
+  Running backtest...
+  Backtest completed in 0.1s
+  Feature importance (0.0s): 2 indicators, driver=atr, weakest=ema
+  Turn 4 completed in 44.1s
+
+============================================================
+Turn 5/5 | Best Sharpe: 0.92
+  Calling LLM...
