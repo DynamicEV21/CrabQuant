@@ -92,19 +92,20 @@ def mock_run_state():
 # ---------------------------------------------------------------------------
 
 class TestFullValidation:
-    """Test full validation — walk-forward + cross-ticker before promotion."""
+    """Test full validation — rolling walk-forward + cross-ticker before promotion."""
 
     def test_run_full_validation_passes_both(self, mock_strategy_fn):
-        """Strategy passes both walk-forward and cross-ticker validation."""
+        """Strategy passes both rolling walk-forward and cross-ticker validation."""
         from crabquant.refinement.promotion import run_full_validation_check
 
         mock_wf_result = MagicMock()
-        mock_wf_result.test_sharpe = 1.5
-        mock_wf_result.train_sharpe = 2.0
-        mock_wf_result.degradation = 0.25
+        mock_wf_result.avg_test_sharpe = 1.5
+        mock_wf_result.avg_train_sharpe = 2.0
+        mock_wf_result.windows_passed = 4
+        mock_wf_result.windows_total = 4
         mock_wf_result.robust = True
-        mock_wf_result.notes = "Good performance"
-        mock_wf_result.regime_shift = False
+        mock_wf_result.notes = "All windows profitable"
+        mock_wf_result.regime_shifts = []
 
         mock_ct_result = MagicMock()
         mock_ct_result.avg_sharpe = 1.2
@@ -113,7 +114,7 @@ class TestFullValidation:
         mock_ct_result.robust = True
         mock_ct_result.notes = "All tickers profitable"
 
-        with patch("crabquant.validation.walk_forward_test", return_value=mock_wf_result), \
+        with patch("crabquant.validation.rolling_walk_forward", return_value=mock_wf_result), \
              patch("crabquant.validation.cross_ticker_validation", return_value=mock_ct_result):
             result = run_full_validation_check(
                 strategy_fn=mock_strategy_fn,
@@ -129,23 +130,24 @@ class TestFullValidation:
         assert result["cross_ticker_robust"] is True
 
     def test_full_validation_fails_walk_forward(self, mock_strategy_fn):
-        """Strategy fails walk-forward — should not promote."""
+        """Strategy fails rolling walk-forward — should not promote."""
         from crabquant.refinement.promotion import run_full_validation_check
 
         mock_wf_result = MagicMock()
-        mock_wf_result.test_sharpe = 0.1
-        mock_wf_result.train_sharpe = 2.0
-        mock_wf_result.degradation = 0.95
+        mock_wf_result.avg_test_sharpe = 0.1
+        mock_wf_result.avg_train_sharpe = 2.0
+        mock_wf_result.windows_passed = 1
+        mock_wf_result.windows_total = 4
         mock_wf_result.robust = False
-        mock_wf_result.notes = "Huge degradation"
-        mock_wf_result.regime_shift = False
+        mock_wf_result.notes = "Only 1/4 windows profitable"
+        mock_wf_result.regime_shifts = ["window_2"]
 
         mock_ct_result = MagicMock()
         mock_ct_result.avg_sharpe = 1.5
         mock_ct_result.robust = True
         mock_ct_result.notes = "Good cross-ticker"
 
-        with patch("crabquant.validation.walk_forward_test", return_value=mock_wf_result), \
+        with patch("crabquant.validation.rolling_walk_forward", return_value=mock_wf_result), \
              patch("crabquant.validation.cross_ticker_validation", return_value=mock_ct_result):
             result = run_full_validation_check(
                 strategy_fn=mock_strategy_fn,
@@ -163,19 +165,20 @@ class TestFullValidation:
         from crabquant.refinement.promotion import run_full_validation_check
 
         mock_wf_result = MagicMock()
-        mock_wf_result.test_sharpe = 1.5
-        mock_wf_result.train_sharpe = 2.0
-        mock_wf_result.degradation = 0.25
+        mock_wf_result.avg_test_sharpe = 1.5
+        mock_wf_result.avg_train_sharpe = 2.0
+        mock_wf_result.windows_passed = 3
+        mock_wf_result.windows_total = 4
         mock_wf_result.robust = True
         mock_wf_result.notes = "Good"
-        mock_wf_result.regime_shift = False
+        mock_wf_result.regime_shifts = []
 
         mock_ct_result = MagicMock()
         mock_ct_result.avg_sharpe = -0.5
         mock_ct_result.robust = False
         mock_ct_result.notes = "Loses money on other tickers"
 
-        with patch("crabquant.validation.walk_forward_test", return_value=mock_wf_result), \
+        with patch("crabquant.validation.rolling_walk_forward", return_value=mock_wf_result), \
              patch("crabquant.validation.cross_ticker_validation", return_value=mock_ct_result):
             result = run_full_validation_check(
                 strategy_fn=mock_strategy_fn,
@@ -189,18 +192,23 @@ class TestFullValidation:
         assert result["cross_ticker_robust"] is False
 
     def test_full_validation_returns_detailed_results(self, mock_strategy_fn):
-        """Result includes detailed walk-forward and cross-ticker data."""
+        """Result includes detailed rolling walk-forward and cross-ticker data."""
         from crabquant.refinement.promotion import run_full_validation_check
 
         mock_wf_result = MagicMock()
-        mock_wf_result.test_sharpe = 1.5
-        mock_wf_result.train_sharpe = 2.0
-        mock_wf_result.degradation = 0.25
+        mock_wf_result.avg_test_sharpe = 1.5
+        mock_wf_result.avg_train_sharpe = 2.0
+        mock_wf_result.windows_passed = 3
+        mock_wf_result.windows_total = 4
         mock_wf_result.robust = True
-        mock_wf_result.notes = "Train: 2.0, Test: 1.5"
-        mock_wf_result.regime_shift = False
-        mock_wf_result.test_regime = "uptrend"
-        mock_wf_result.train_regime = "uptrend"
+        mock_wf_result.notes = "3/4 windows passed"
+        mock_wf_result.regime_shifts = []
+        mock_wf_result.window_results = [
+            MagicMock(test_sharpe=1.8, train_sharpe=2.1),
+            MagicMock(test_sharpe=1.2, train_sharpe=2.0),
+            MagicMock(test_sharpe=1.6, train_sharpe=1.9),
+            MagicMock(test_sharpe=0.3, train_sharpe=1.5),
+        ]
 
         mock_ct_result = MagicMock()
         mock_ct_result.avg_sharpe = 1.2
@@ -210,7 +218,7 @@ class TestFullValidation:
         mock_ct_result.tickers_profitable = 3
         mock_ct_result.tickers_tested = 3
 
-        with patch("crabquant.validation.walk_forward_test", return_value=mock_wf_result), \
+        with patch("crabquant.validation.rolling_walk_forward", return_value=mock_wf_result), \
              patch("crabquant.validation.cross_ticker_validation", return_value=mock_ct_result):
             result = run_full_validation_check(
                 strategy_fn=mock_strategy_fn,
@@ -221,14 +229,14 @@ class TestFullValidation:
 
         assert "walk_forward" in result
         assert "cross_ticker" in result
-        assert result["walk_forward"]["test_sharpe"] == 1.5
+        assert result["walk_forward"]["avg_test_sharpe"] == 1.5
         assert result["cross_ticker"]["avg_sharpe"] == 1.2
 
     def test_full_validation_handles_exception(self, mock_strategy_fn):
         """Graceful handling when backtest throws an exception."""
         from crabquant.refinement.promotion import run_full_validation_check
 
-        with patch("crabquant.validation.walk_forward_test", side_effect=Exception("Data error")):
+        with patch("crabquant.validation.rolling_walk_forward", side_effect=Exception("Data error")):
             result = run_full_validation_check(
                 strategy_fn=mock_strategy_fn,
                 params={},
@@ -357,8 +365,17 @@ class TestAutoPromotion:
         strategies_dir = tmp_path / "strategies"
         strategies_dir.mkdir()
 
+        mock_regime_tags = {
+            "preferred_regimes": ["trending_up"],
+            "acceptable_regimes": [],
+            "weak_regimes": ["high_volatility"],
+            "regime_sharpes": {"trending_up": 1.2, "high_volatility": -0.5},
+            "is_regime_specific": True,
+        }
+
         with patch("crabquant.refinement.promotion._get_strategies_dir", return_value=strategies_dir), \
              patch("crabquant.refinement.promotion._get_winners_path", return_value=tmp_path / "winners.json"), \
+             patch("crabquant.refinement.regime_tagger.compute_strategy_regime_tags", return_value=mock_regime_tags), \
              patch.dict("crabquant.strategies.STRATEGY_REGISTRY", {}, clear=True):
             from crabquant.strategies import STRATEGY_REGISTRY
             result = auto_promote(
@@ -371,6 +388,8 @@ class TestAutoPromotion:
 
         assert result["registered"] is True
         assert result["strategy_name"].startswith("refined_")
+        assert result["regime_tags"] is not None
+        assert result["regime_tags"]["preferred_regimes"] == ["trending_up"]
 
     def test_auto_promote_skips_on_fail(self, mock_strategy_module, mock_backtest_result, mock_run_state):
         """Auto-promote does not register when validation fails."""
@@ -402,15 +421,24 @@ class TestAutoPromotion:
             "passed": True,
             "walk_forward_robust": True,
             "cross_ticker_robust": True,
-            "walk_forward": {"test_regime": "uptrend"},
+            "walk_forward": {"avg_test_sharpe": 1.5, "windows_passed": 3},
         }
         strategy_code = "# metadata strategy\npass"
 
         strategies_dir = tmp_path / "strategies"
         strategies_dir.mkdir()
 
+        mock_regime_tags = {
+            "preferred_regimes": ["trending_up", "mean_reverting"],
+            "acceptable_regimes": [],
+            "weak_regimes": [],
+            "regime_sharpes": {"trending_up": 1.0, "mean_reverting": 0.9},
+            "is_regime_specific": False,
+        }
+
         with patch("crabquant.refinement.promotion._get_strategies_dir", return_value=strategies_dir), \
              patch("crabquant.refinement.promotion._get_winners_path", return_value=tmp_path / "winners.json"), \
+             patch("crabquant.refinement.regime_tagger.compute_strategy_regime_tags", return_value=mock_regime_tags), \
              patch.dict("crabquant.strategies.STRATEGY_REGISTRY", {}, clear=True):
             result = auto_promote(
                 strategy_code=strategy_code,
@@ -430,3 +458,6 @@ class TestAutoPromotion:
         assert winner["sharpe"] == 2.0
         assert "validation" in winner
         assert "refinement_run" in winner
+        # Check regime tags saved to winner
+        assert "regime_tags" in winner
+        assert winner["regime_tags"]["preferred_regimes"] == ["trending_up", "mean_reverting"]

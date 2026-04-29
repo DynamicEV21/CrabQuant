@@ -48,9 +48,13 @@ from crabquant.refinement.action_analytics import (
     track_action_result, generate_llm_context as generate_analytics_context,
     load_run_history,
 )
-from crabquant.refinement.promotion import auto_promote, run_full_validation_check
+from crabquant.refinement.promotion import auto_promote, run_full_validation_check, soft_promote
 from crabquant.refinement.stagnation import compute_stagnation, get_stagnation_response
 from crabquant.refinement.wave_dashboard import generate_dashboard, snapshot_to_json
+from crabquant.refinement.prompts import (
+    get_parallel_prompt_variants,
+    compute_composite_score,
+)
 
 
 def load_json(path: str) -> Dict[str, Any]:
@@ -188,17 +192,28 @@ def _promote_post_loop(
     """
     # Try full validation first
     validation: Dict[str, Any] = {"status": "ok", "passed": False}
+    is_regime_specific = False
     try:
         strategy_fn = strategy_module.generate_signals
         params = (strategy_module.DEFAULT_PARAMS.copy()
                   if hasattr(strategy_module, 'DEFAULT_PARAMS') else {})
         primary_ticker = mandate.get("primary_ticker", state.tickers[0])
         validation_tickers = mandate.get("tickers", [primary_ticker])
+
+        # Quick regime-specificity pre-check (uses backtest on primary ticker)
+        try:
+            from crabquant.refinement.regime_tagger import compute_strategy_regime_tags
+            tags = compute_strategy_regime_tags(strategy_fn, params, ticker=primary_ticker)
+            is_regime_specific = tags.get("is_regime_specific", False)
+        except Exception:
+            pass  # Non-critical — proceed without regime info
+
         validation = run_full_validation_check(
             strategy_fn=strategy_fn,
             params=params,
             discovery_ticker=primary_ticker,
             validation_tickers=validation_tickers,
+            is_regime_specific=is_regime_specific,
         )
     except Exception as e:
         print(f"  ⚠️ Post-loop validation error: {e}")
@@ -290,8 +305,181 @@ def _build_retry_feedback(gate_errors: list[str]) -> str:
     return "\n".join(parts)
 
 
+def _run_parallel_invention(
+    context: Dict[str, Any],
+    context_path: Path,
+    run_dir: Path,
+    mandate: Dict[str, Any],
+    config: RefinementConfig,
+    cb: Any,
+    turn: int,
+) -> Optional[Tuple[str, Any, bool, list]]:
+    """Run parallel strategy invention on turn 1.
+
+    Spawns N strategies via N LLM calls, each with a different prompt variant.
+    Backtests all N, ranks by composite score, returns the best.
+
+    Args:
+        context: Base LLM context dict.
+        context_path: Path to save context JSON.
+        run_dir: Run directory for saving artifacts.
+        mandate: Mandate dict.
+        config: RefinementConfig (uses parallel_invention_count).
+        cb: CircuitBreaker instance.
+        turn: Current turn number (should be 1).
+
+    Returns:
+        Tuple of (strategy_code, strategy_module, gates_ok, gate_errors) for the
+        best parallel strategy, or None if all variants failed.
+    """
+    count = config.parallel_invention_count
+    print(f"  🔄 Parallel invention: spawning {count} strategy variants...", flush=True)
+
+    # Build base prompt from context (reuse the LLM inventor's prompt construction)
+    from crabquant.refinement.llm_api import call_llm_inventor
+
+    # Generate prompt variants
+    # The base prompt is what call_llm_inventor would build internally.
+    # We need to pass variant info through context so call_llm_inventor picks it up.
+    parallel_results = []
+
+    for i in range(count):
+        variant_label = f"variant_{i}"
+        print(f"    Variant {i+1}/{count}...", flush=True)
+
+        # Clone context and add variant bias
+        variant_context = dict(context)
+        variant_context["parallel_variant_index"] = i
+        variant_context["parallel_variant_count"] = count
+
+        # Save variant context
+        variant_context_path = run_dir / f"context_v{turn}_variant{i}.json"
+        write_json(variant_context_path, variant_context)
+
+        # Call LLM with variant context
+        modification = None
+        strategy_code = None
+        gates_ok = False
+        gate_errors = []
+
+        for attempt in range(2):  # Fewer retries per variant (2 instead of 3)
+            try:
+                modification = call_llm_inventor(
+                    context=variant_context,
+                    context_path=str(variant_context_path),
+                )
+                if modification is None:
+                    cb.record(False, turn=turn, mandate=variant_label)
+                    continue
+
+                strategy_code = modification.get("new_strategy_code", "")
+                if not strategy_code:
+                    cb.record(False, turn=turn, mandate=variant_label)
+                    continue
+
+                gates_ok, gate_errors = run_validation_gates(strategy_code)
+                cb.record(gates_ok, turn=turn, mandate=variant_label)
+                if gates_ok:
+                    break
+            except Exception as e:
+                print(f"      Variant {i+1} error (attempt {attempt+1}): {e}")
+                cb.record(False, turn=turn, mandate=variant_label)
+                continue
+
+        if gates_ok and strategy_code:
+            # Save variant strategy
+            variant_path = run_dir / f"strategy_v{turn}_variant{i}.py"
+            variant_path.write_text(strategy_code)
+
+            # Load and backtest
+            variant_module = load_strategy_module(variant_path)
+            if variant_module is not None:
+                primary_ticker = mandate.get("primary_ticker", mandate.get("tickers", ["SPY"])[0])
+                period = mandate.get("period", "1y")
+                backtest_output = run_backtest_safely(
+                    variant_module, primary_ticker, period,
+                    return_portfolio=True,
+                )
+                if backtest_output is not None:
+                    result, df, portfolio = backtest_output
+                    composite = compute_composite_score(
+                        sharpe=result.sharpe,
+                        trades=result.num_trades,
+                        max_drawdown=result.max_drawdown,
+                    )
+                    parallel_results.append({
+                        "variant_index": i,
+                        "strategy_code": strategy_code,
+                        "strategy_module": variant_module,
+                        "strategy_path": variant_path,
+                        "gates_ok": True,
+                        "gate_errors": [],
+                        "sharpe": result.sharpe,
+                        "trades": result.num_trades,
+                        "max_drawdown": result.max_drawdown,
+                        "composite_score": composite,
+                        "modification": modification,
+                    })
+                    print(f"      Variant {i+1}: Sharpe={result.sharpe:.2f}, "
+                          f"Trades={result.num_trades}, Composite={composite:.2f}", flush=True)
+                else:
+                    parallel_results.append({
+                        "variant_index": i,
+                        "strategy_code": strategy_code,
+                        "strategy_module": variant_module,
+                        "strategy_path": variant_path,
+                        "gates_ok": True,
+                        "gate_errors": [],
+                        "sharpe": 0.0, "trades": 0, "max_drawdown": 0.0,
+                        "composite_score": 0.0,
+                        "modification": modification,
+                    })
+                    print(f"      Variant {i+1}: backtest failed", flush=True)
+            else:
+                print(f"      Variant {i+1}: module load failed", flush=True)
+        else:
+            print(f"      Variant {i+1}: validation failed: {gate_errors}", flush=True)
+
+    if not parallel_results:
+        print(f"  ⚠️ All {count} parallel variants failed. Falling back to sequential.", flush=True)
+        return None
+
+    # Rank by composite score, pick the best
+    parallel_results.sort(key=lambda x: x["composite_score"], reverse=True)
+    best = parallel_results[0]
+
+    # Log all parallel results
+    parallel_log = {
+        "turn": turn,
+        "variant_count": count,
+        "variants": [
+            {
+                "variant_index": r["variant_index"],
+                "sharpe": r["sharpe"],
+                "trades": r["trades"],
+                "max_drawdown": r["max_drawdown"],
+                "composite_score": r["composite_score"],
+                "selected": r["variant_index"] == best["variant_index"],
+            }
+            for r in parallel_results
+        ],
+    }
+    write_json(run_dir / f"parallel_results_v{turn}.json", parallel_log)
+
+    print(f"  ✅ Best variant: #{best['variant_index']+1} "
+          f"(Sharpe={best['sharpe']:.2f}, Composite={best['composite_score']:.2f})", flush=True)
+
+    return (
+        best["strategy_code"],
+        best["strategy_module"],
+        best["gates_ok"],
+        best["gate_errors"],
+    )
+
+
 def refinement_loop(mandate_path: str, max_turns: int = 7, 
-                    sharpe_target: float = 1.5) -> RunState:
+                    sharpe_target: float = 1.5,
+                    config: Optional[RefinementConfig] = None) -> RunState:
     """
     Main refinement loop. One strategy, up to 7 turns.
     
@@ -299,11 +487,40 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         mandate_path: Path to mandate JSON file
         max_turns: Maximum number of refinement turns
         sharpe_target: Target Sharpe ratio for success
+        config: Optional RefinementConfig. If None, builds from mandate.
     
     Returns:
         Final RunState with results
     """
     mandate = load_json(mandate_path)
+    
+    # Build config from mandate if not provided
+    if config is None:
+        config = RefinementConfig.from_mandate(mandate)
+    
+    # Apply mode from mandate if present
+    mode = mandate.get("mode")
+    if mode:
+        config.apply_mode(mode)
+    
+    # Apply individual toggles from mandate (override mode)
+    toggles = mandate.get("toggles", {})
+    if toggles:
+        if "cross_run_learning" in toggles:
+            config.cross_run_learning = toggles["cross_run_learning"]
+        if "parallel_invention" in toggles:
+            config.parallel_invention = toggles["parallel_invention"]
+        if "parallel_count" in toggles:
+            config.parallel_invention_count = toggles["parallel_count"]
+        if "soft_promote" in toggles:
+            config.soft_promote = toggles["soft_promote"]
+        if "soft_promote_min_sharpe" in toggles:
+            config.soft_promote_sharpe = toggles["soft_promote_min_sharpe"]
+        if "soft_promote_min_windows" in toggles:
+            config.soft_promote_min_windows = toggles["soft_promote_min_windows"]
+    
+    # Also pass toggle values through to mandate for context_builder
+    mandate.setdefault("cross_run_learning", config.cross_run_learning)
     run_dir = create_run_directory(mandate)
     state = RunState(
         run_id=run_dir.name,
@@ -381,47 +598,71 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         gate_errors = []
         retry_feedback = ""  # Accumulated error feedback for retries
 
-        for attempt in range(3):  # up to 3 code-repair attempts
-            try:
-                # If this is a retry, inject specific error feedback into context
-                if retry_feedback and attempt > 0:
-                    context["retry_feedback"] = retry_feedback
+        # ── Parallel Invention (Phase 5.6.2) ──────────────────────────────
+        # On turn 1, if parallel_invention is enabled, spawn N strategies
+        # in parallel, backtest all, and keep the best by composite score.
+        parallel_used = False
+        if turn == 1 and config.parallel_invention and config.parallel_invention_count > 1:
+            parallel_result = _run_parallel_invention(
+                context=context,
+                context_path=context_path,
+                run_dir=run_dir,
+                mandate=mandate,
+                config=config,
+                cb=cb,
+                turn=turn,
+            )
+            if parallel_result is not None:
+                strategy_code, strategy_module, gates_ok, gate_errors = parallel_result
+                modification = {}  # Will be reconstructed below from strategy_code
+                parallel_used = True
+                print(f"  🔄 Parallel invention succeeded — using best variant", flush=True)
+            else:
+                print(f"  🔄 Parallel invention failed — falling back to sequential", flush=True)
 
-                # Use call_llm_inventor for structured JSON output
-                modification = call_llm_inventor(
-                    context=context,
-                    context_path=str(context_path),
-                )
-                
-                if modification is None:
-                    print(f"  LLM call failed (attempt {attempt+1})")
-                    # Phase 3: Record validation failure for circuit breaker
-                    cb.record(False, turn=turn, mandate=state.mandate_name)
-                    continue
-                
-                strategy_code = modification.get("new_strategy_code", "")
-                if not strategy_code:
-                    print(f"  No strategy code in LLM response (attempt {attempt+1})")
-                    cb.record(False, turn=turn, mandate=state.mandate_name)
-                    continue
-                
-                # 3. Validate through gates
-                gates_ok, gate_errors = run_validation_gates(strategy_code)
-                
-                # Phase 3: Record pass/fail for circuit breaker
-                cb.record(gates_ok, turn=turn, mandate=state.mandate_name)
-                
-                if gates_ok:
-                    break
-                
-                # Build specific feedback for the next retry (Fix 3)
-                retry_feedback = _build_retry_feedback(gate_errors)
-                print(f"  Gate failed (attempt {attempt+1}): {gate_errors}")
+        # ── Sequential LLM call (default or parallel fallback) ───────────
+        if not parallel_used:
+            for attempt in range(3):  # up to 3 code-repair attempts
+                try:
+                    # If this is a retry, inject specific error feedback into context
+                    if retry_feedback and attempt > 0:
+                        context["retry_feedback"] = retry_feedback
+
+                    # Use call_llm_inventor for structured JSON output
+                    modification = call_llm_inventor(
+                        context=context,
+                        context_path=str(context_path),
+                    )
                     
-            except Exception as e:
-                print(f"  LLM call error (attempt {attempt+1}): {e}")
-                cb.record(False, turn=turn, mandate=state.mandate_name)
-                continue
+                    if modification is None:
+                        print(f"  LLM call failed (attempt {attempt+1})")
+                        # Phase 3: Record validation failure for circuit breaker
+                        cb.record(False, turn=turn, mandate=state.mandate_name)
+                        continue
+                    
+                    strategy_code = modification.get("new_strategy_code", "")
+                    if not strategy_code:
+                        print(f"  No strategy code in LLM response (attempt {attempt+1})")
+                        cb.record(False, turn=turn, mandate=state.mandate_name)
+                        continue
+                    
+                    # 3. Validate through gates
+                    gates_ok, gate_errors = run_validation_gates(strategy_code)
+                    
+                    # Phase 3: Record pass/fail for circuit breaker
+                    cb.record(gates_ok, turn=turn, mandate=state.mandate_name)
+                    
+                    if gates_ok:
+                        break
+                    
+                    # Build specific feedback for the next retry (Fix 3)
+                    retry_feedback = _build_retry_feedback(gate_errors)
+                    print(f"  Gate failed (attempt {attempt+1}): {gate_errors}")
+                        
+                except Exception as e:
+                    print(f"  LLM call error (attempt {attempt+1}): {e}")
+                    cb.record(False, turn=turn, mandate=state.mandate_name)
+                    continue
         
         if not gates_ok or strategy_code is None:
             print(f"  All 3 validation attempts failed. Advancing turn.")
@@ -579,7 +820,37 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         #    secondary guardrails (trade count, drawdown, etc.) are logged
         #    as warnings but do NOT block promotion.
         if result.sharpe >= sharpe_target:
-            print(f"  🏆 SUCCESS! Sharpe {result.sharpe:.2f} >= {sharpe_target}")
+            # ── Hard pre-validation gate: skip expensive WF on sparse strategies ──
+            # A strategy with too few trades has no statistical power.
+            # No point running 6-window walk-forward on a curve-fit.
+            MIN_TRADES_FOR_VALIDATION = 20
+            if result.num_trades < MIN_TRADES_FOR_VALIDATION:
+                print(f"  🏆 Sharpe {result.sharpe:.2f} >= {sharpe_target}, "
+                      f"but only {result.num_trades} trades "
+                      f"(need >= {MIN_TRADES_FOR_VALIDATION}) — skipping validation")
+                failure_mode = "too_few_trades_for_validation"
+                # Update state to reflect best Sharpe found but not validated
+                if result.sharpe > state.best_sharpe:
+                    state.best_sharpe = result.sharpe
+                    state.best_turn = turn
+                    state.best_code_path = str(strategy_path)
+                # Record in history so LLM gets feedback about trade count
+                state.history.append({
+                    "turn": turn, "sharpe": result.sharpe,
+                    "failure_mode": failure_mode,
+                    "action": modification.action,
+                    "hypothesis": modification.hypothesis,
+                    "code_path": str(strategy_path),
+                    "num_trades": result.num_trades,
+                    "params_used": result.params if result.params else strategy_module.DEFAULT_PARAMS.copy(),
+                    "strategy_hash": compute_strategy_hash(strategy_code),
+                    "delta_from_prev": "Sharpe hit but too few trades for validation",
+                })
+                save_state(run_dir, state)
+                continue  # Keep iterating — LLM might find a strategy with more trades
+
+            print(f"  🏆 SUCCESS! Sharpe {result.sharpe:.2f} >= {sharpe_target} "
+                  f"({result.num_trades} trades)")
 
             # Log secondary guardrail issues as warnings (non-blocking)
             if guardrail_violations:
@@ -592,15 +863,26 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
 
             # Phase 3: Run full validation check (walk-forward + cross-ticker)
             validation = {"status": "ok", "passed": False}
+            _is_regime_specific = False
             try:
                 strategy_fn = strategy_module.generate_signals
                 params = result.params if result.params else strategy_module.DEFAULT_PARAMS.copy()
                 validation_tickers = mandate.get("tickers", [primary_ticker])
+
+                # Quick regime-specificity pre-check
+                try:
+                    from crabquant.refinement.regime_tagger import compute_strategy_regime_tags
+                    _tags = compute_strategy_regime_tags(strategy_fn, params, ticker=primary_ticker)
+                    _is_regime_specific = _tags.get("is_regime_specific", False)
+                except Exception:
+                    pass
+
                 validation = run_full_validation_check(
                     strategy_fn=strategy_fn,
                     params=params,
                     discovery_ticker=primary_ticker,
                     validation_tickers=validation_tickers,
+                    is_regime_specific=_is_regime_specific,
                 )
             except Exception as e:
                 print(f"  ⚠️ Full validation error: {e}")
@@ -641,6 +923,40 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 except Exception as e:
                     print(f"  ⚠️ Auto-promote error: {e}")
             else:
+                # Validation did not pass — update history failure_mode
+                # so the LLM gets actionable feedback on the next turn.
+                wf_result = (validation.get("walk_forward") or {})
+                state.history[-1]["failure_mode"] = "validation_failed"
+                state.history[-1]["num_trades"] = result.num_trades
+                state.history[-1]["validation"] = {
+                    "avg_test_sharpe": wf_result.get("avg_test_sharpe"),
+                    "windows_passed": wf_result.get("windows_passed"),
+                    "num_windows": wf_result.get("num_windows"),
+                    "window_results": wf_result.get("window_results", []),
+                }
+
+                # Phase 5.6.3: Soft-promote near-miss strategies to candidates pool
+                if config.soft_promote:
+                    try:
+                        sp_result = soft_promote(
+                            strategy_code=strategy_code,
+                            strategy_module=strategy_module,
+                            result=result,
+                            validation=validation,
+                            state=state,
+                            min_sharpe=config.soft_promote_sharpe,
+                            min_windows=config.soft_promote_min_windows,
+                            is_regime_specific=_is_regime_specific,
+                        )
+                        if sp_result.get("promoted"):
+                            print(f"  📋 Soft-promoted to candidates: {sp_result['candidate_file']}")
+                            print(f"     Avg test Sharpe: {sp_result['avg_test_sharpe']:.3f}, "
+                                  f"Windows passed: {sp_result['windows_passed']}")
+                        else:
+                            print(f"  📋 Soft-promote skipped: {sp_result.get('reason', 'unknown')}")
+                    except Exception as e:
+                        print(f"  ⚠️ Soft-promote error: {e}")
+
                 # Fall back to legacy promote_to_winner
                 print(f"  📋 Validation not passed — using legacy promotion...")
                 try:

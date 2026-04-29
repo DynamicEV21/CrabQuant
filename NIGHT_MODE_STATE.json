@@ -1,0 +1,22 @@
+{
+  "mode": "active",
+  "project": "CrabQuant",
+  "project_root": "/home/Zev/development/CrabQuant",
+  "branch": "night/crabquant/2026-04-29",
+  "base_commit": "3b4b16b9c1e4b9943dcf71d69ec523f38c0b122a",
+  "actual_start": "2026-04-29T11:19:01Z",
+  "last_updated": "2026-04-29T11:29:17Z",
+  "llm_calls": 10,
+  "estimated_cost_usd": 0.15,
+  "phases_completed": [],
+  "current_phase": "phase_5b",
+  "current_step": null,
+  "morning_summary_sent": false,
+  "pr_url": null,
+  "pr_number": null,
+  "linked_state_file": "LONG_RUNNING_STATE.json",
+  "disabled_crons": [
+    "c7abaf36-c1ce-4510-9e43-7f02771af8c8",
+    "69fd7ce3-b875-4a22-96cd-1a72896ca83f"
+  ]
+}
