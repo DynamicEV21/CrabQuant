@@ -414,3 +414,27 @@ If you complete all tasks above, keep going using VISION.md. Legacy items (compl
   - Updated VISION.md priorities: P0 now "Fix Code Gen Failure Rate" (promotion funnel is fixed).
   - Commit: 5b083bc. Push: 5591ca9..5b083bc. Tests: 4037 passing.
 
+- [2026-04-29 10:xx] **CYCLE 15 — P0: Improve Strategy Quality Feedback Loop**
+  - Investigated the "54% code gen failure rate" from VISION.md — found it was a phantom metric.
+  - Real production mandates (21 unique, 147 turns): 0% code gen failures, 6.8% per-turn success.
+  - Real failure modes: low_sharpe (35%), regime_fragility (25%), too_few_trades (24%), excessive_drawdown (10%).
+  - smoke_test and test_mandate entries (1507/2050 = 73%) inflated the code gen failure rate.
+  - Worker-1: Created Sharpe Root Cause Analyzer (`sharpe_diagnosis.py`) — 12 diagnosis patterns with specific fixes.
+    - Maps metrics (win_rate, profit_factor, sortino, drawdown, sharpe_by_year) to root causes.
+    - E.g., "win_rate < 35%" → "Add trend filter", "sortino << sharpe" → "Add downside protection".
+    - Wired into `build_failure_guidance()` with backward-compatible keyword args.
+    - 37 tests. Commit: 063f79e.
+  - Worker-2: Created Regime Diagnosis System (`regime_diagnosis.py`) — 9 regime patterns with per-year breakdown.
+    - Classifies: always_losing, single_year_fluke, volatile_adverse, calm_adverse, time_decay, etc.
+    - Shows per-year Sharpe with ✅/⚠️/❌ labels and market regime context.
+    - Pattern-specific fixes: volatility filter for volatile_adverse, regime gates for mostly_bad, etc.
+    - Wired into `build_failure_guidance()` and `format_previous_attempts_section()`.
+    - 41 tests. Commit: f75bcfd.
+  - Orchestrator: Added `too_few_trades` guidance template + inline note (was completely missing).
+    - Specific fixes: loosen thresholds, remove filters, shorten periods, add short side.
+    - Anti-patterns: don't add filters, don't tighten exits, don't use very long lookbacks.
+    - Updated VISION.md with accurate metrics and corrected priority queue.
+    - Commit: ea61fb2.
+  - All 3 commits pushed. Tests: 4137 passing.
+  - **REMAINING**: Run live mandates to verify the 3 diagnosis systems improve per-turn success rate.
+
