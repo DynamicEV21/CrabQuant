@@ -577,7 +577,10 @@
     "GOOGL|refined_momentum_googl|44136fa355b3",
     "GOOGL|refined_multi_rsi_googl|44136fa355b3",
     "SPY|refined_Momentum Strategy for SPY|44136fa355b3",
-    "SPY|refined_Explorer SPY Momentum|b1489937d63a"
+    "SPY|refined_Explorer SPY Momentum|b1489937d63a",
+    "GOOGL|refined_roc_ema_volume_googl|1842d975aff6",
+    "SPY|refined_e2e_test_momentum|b92ab22a4ccf",
+    "SPY|refined_roc_ema_volume_googl|1842d975aff6"
   ],
   "total_runs": 459,
   "total_winners": 8156,
