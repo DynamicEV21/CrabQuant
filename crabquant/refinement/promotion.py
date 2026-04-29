@@ -59,8 +59,8 @@ def run_full_validation_check(
     params: dict,
     discovery_ticker: str,
     validation_tickers: list[str],
-    min_walk_forward_sharpe: float = 0.5,
-    min_cross_ticker_sharpe: float = 0.5,
+    min_walk_forward_sharpe: float | None = None,
+    min_cross_ticker_sharpe: float | None = None,
     *,
     use_rolling: bool = True,
     rolling_config: dict | None = None,
@@ -79,7 +79,11 @@ def run_full_validation_check(
         discovery_ticker: Ticker where strategy was discovered.
         validation_tickers: All tickers including discovery.
         min_walk_forward_sharpe: Min avg OOS Sharpe for walk-forward to pass.
+            Defaults to VALIDATION_CONFIG["min_avg_test_sharpe"] (0.3) if not
+            explicitly provided.
         min_cross_ticker_sharpe: Min avg Sharpe for cross-ticker to pass.
+            Defaults to VALIDATION_CONFIG["min_cross_ticker_sharpe"] (0.3) if
+            not explicitly provided.
         use_rolling: Use rolling walk-forward (default True).  Set False for
             the old single-split behaviour.
         rolling_config: Override rolling window params.  Keys: train_window,
@@ -97,6 +101,12 @@ def run_full_validation_check(
         rolling_walk_forward,
     )
     from crabquant.refinement.config import VALIDATION_CONFIG
+
+    # Default to VALIDATION_CONFIG if not explicitly provided by the caller
+    if min_walk_forward_sharpe is None:
+        min_walk_forward_sharpe = VALIDATION_CONFIG.get("min_avg_test_sharpe", 0.3)
+    if min_cross_ticker_sharpe is None:
+        min_cross_ticker_sharpe = VALIDATION_CONFIG.get("min_cross_ticker_sharpe", 0.3)
 
     # ── Adjust thresholds for regime-specific strategies ──
     if is_regime_specific:
