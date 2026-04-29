@@ -486,10 +486,25 @@ def build_llm_context(
     except Exception:
         pass  # Non-critical — don't block prompt building
 
+    # Phase 6: Compute failure pattern analysis for adaptive prompts
+    failure_pattern_section = ""
+    try:
+        from crabquant.refinement.failure_patterns import (
+            analyze_failure_patterns,
+            format_failure_patterns_for_prompt,
+        )
+        from crabquant.refinement.action_analytics import RUN_HISTORY_FILE
+
+        pattern_data = analyze_failure_patterns(RUN_HISTORY_FILE)
+        if pattern_data.get("total_failures", 0) > 0:
+            failure_pattern_section = format_failure_patterns_for_prompt(pattern_data)
+    except Exception:
+        pass  # Non-critical — don't block prompt building
+
     if report is None:
         # Turn 1: Use build_turn1_prompt for invention
         try:
-            context["prompt"] = build_turn1_prompt(
+            base_prompt = build_turn1_prompt(
                 mandate=mandate,
                 current_turn=current_turn_num,
                 max_turns=context.get("max_turns", 7),
@@ -501,6 +516,55 @@ def build_llm_context(
                 effective_target=effective_target,
                 trade_count_guidance=trade_count_guidance,
             )
+
+            # Phase 6: Apply adaptive prompt modifications (regime hints, portfolio gaps)
+            try:
+                from crabquant.refinement.adaptive_prompts import (
+                    build_adaptive_invention_prompt,
+                )
+                from crabquant.refinement.regime_tagger import detect_regime
+
+                # Detect current regime from primary ticker
+                regime = "UNKNOWN"
+                try:
+                    ticker = (mandate.get("tickers") or ["SPY"])[0]
+                    regime = detect_regime(ticker)
+                except Exception:
+                    pass
+
+                # Compute portfolio gaps from registry
+                portfolio_gaps = {}
+                try:
+                    from crabquant.refinement.portfolio_correlation import (
+                        load_winners_equity_curves,
+                    )
+                    # Use archetype coverage as a simple gap metric
+                    from crabquant.refinement.archetypes import list_archetypes
+                    from crabquant.strategies import STRATEGY_REGISTRY
+                    archetypes = list_archetypes()
+                    for arch in archetypes:
+                        # Count strategies matching this archetype in registry
+                        arch_strategies = [
+                            name for name in STRATEGY_REGISTRY
+                            if arch.lower() in name.lower()
+                        ]
+                        portfolio_gaps[arch] = min(1.0, len(arch_strategies) / 5.0)
+                except Exception:
+                    pass
+
+                context["prompt"] = build_adaptive_invention_prompt(
+                    base_prompt=base_prompt,
+                    regime=regime,
+                    portfolio_gaps=portfolio_gaps,
+                    adaptation_rate=mandate.get("adaptation_rate", 0.80),
+                )
+            except Exception:
+                # Fallback to non-adaptive prompt
+                context["prompt"] = base_prompt
+
+            # Inject failure pattern section into context for Turn 1 awareness
+            if failure_pattern_section:
+                context["failure_pattern_section"] = failure_pattern_section
         except Exception:
             # If prompt building fails, let call_llm_inventor use its fallback
             pass
@@ -585,6 +649,7 @@ def build_llm_context(
                 indicator_reference=indicator_ref,
                 indicator_quick_ref=indicator_qr,
                 action_effectiveness_section=action_effectiveness_section,
+                failure_pattern_section=failure_pattern_section,
                 trade_count_guidance=trade_count_guidance,
             )
         except Exception:

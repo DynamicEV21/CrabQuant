@@ -215,6 +215,7 @@ Current params: {current_params}
 
 {failure_guidance}
 {action_effectiveness_section}
+{failure_pattern_section}
 ### Sharpe by Year
 {sharpe_by_year}
 {tier2_section}
@@ -1034,6 +1035,7 @@ def build_refinement_prompt(
     indicator_reference: str = "",
     indicator_quick_ref: str = "",
     action_effectiveness_section: str = "",
+    failure_pattern_section: str = "",
     trade_count_guidance: str = "",
 ) -> str:
     """Build the complete refinement prompt for turns 2+.
@@ -1159,6 +1161,7 @@ def build_refinement_prompt(
         winner_examples_section=winner_section,
         indicator_quick_ref=indicator_quick_ref,
         action_effectiveness_section=action_effectiveness_section,
+        failure_pattern_section=failure_pattern_section,
         trade_count_guidance=trade_count_guidance,
     )
 
