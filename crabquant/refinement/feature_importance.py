@@ -386,7 +386,11 @@ def compute_feature_importance(
     results.sort(key=lambda x: x["abs_correlation"], reverse=True)
 
     # Identify dominant and weakest indicators
-    dominant = results[0]["name"] if results[0]["classification"] == "contributing" else None
+    dominant = None
+    for r in results:  # sorted by abs_correlation desc
+        if r["classification"] == "contributing":
+            dominant = r["name"]
+            break
     weakest = None
     for r in reversed(results):
         if r["classification"] == "harmful":
