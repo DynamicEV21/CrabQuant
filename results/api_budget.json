@@ -1,0 +1,10 @@
+{
+  "daily_count": 8,
+  "weekly_count": 8,
+  "daily_limit": 500,
+  "weekly_limit": 2000,
+  "last_reset_date": "2026-04-29",
+  "history": {
+    "2026-04-29": 8
+  }
+}

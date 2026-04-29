@@ -21,6 +21,28 @@ sys.path.insert(0, str(project_root))
 
 from crabquant.refinement.state import DaemonState
 
+# ── Phase 5B: lazy imports (graceful degradation) ──────────────────────────
+_resource_limiter = None
+_smart_mandates_available = False
+
+try:
+    from crabquant.refinement.resource_limiter import ResourceLimiter
+    _resource_limiter = ResourceLimiter()
+except Exception as exc:
+    import logging
+    logging.getLogger(__name__).warning(
+        "Could not import ResourceLimiter: %s — resource checks disabled", exc
+    )
+
+try:
+    from crabquant.refinement.mandate_generator import generate_smart_mandates, save_mandates
+    _smart_mandates_available = True
+except Exception as exc:
+    import logging
+    logging.getLogger(__name__).warning(
+        "Could not import smart mandate generator: %s", exc
+    )
+
 PID_FILE = project_root / "crabquant.pid"
 STATE_FILE = project_root / "results" / "daemon_state.json"
 HEARTBEAT_FILE = project_root / "results" / "daemon_heartbeat.json"
@@ -184,9 +206,22 @@ def run_daemon(
         print("Daemon already running. Use --stop or --status.")
         sys.exit(1)
 
+    # ── Phase 5B: resource check at daemon start ────────────────────────────
+    effective_parallel = parallel
+    if _resource_limiter is not None:
+        res = _resource_limiter.check_resources()
+        print(f"Resource check: CPU={res['cpu_percent']:.0%}, RAM={res['ram_free_gb']:.1f}GB, Disk={res['disk_free_gb']:.1f}GB, status={res['status']}")
+        rec = _resource_limiter.get_recommended_parallel()
+        if rec > 0:
+            effective_parallel = min(parallel, rec)
+            if effective_parallel != parallel:
+                print(f"Resource limiter: reducing parallel {parallel} → {effective_parallel}")
+        else:
+            print("Resource limiter: recommended 0 workers — will pause before first wave")
+
     print(f"CrabQuant daemon started (PID {os.getpid()})")
     print(f"Max waves: {'unlimited' if max_waves == 0 else max_waves}")
-    print(f"Parallel: {parallel}, Sleep: {sleep_seconds}s")
+    print(f"Parallel: {effective_parallel}, Sleep: {sleep_seconds}s")
     print(f"Mandates dir: {mandates_dir}")
 
     # Load or create state
@@ -219,13 +254,45 @@ def run_daemon(
                     state.save(str(STATE_FILE))
                     print(f"Discovered {len(new_mandates)} new mandates")
                 else:
-                    print(f"No new mandates found. Sleeping {sleep_seconds}s...")
-                    time.sleep(sleep_seconds)
-                    state.heartbeat(str(STATE_FILE))
-                    continue
+                    # ── Phase 5B: try smart mandate generation ──────────────
+                    smart_generated = False
+                    if _smart_mandates_available:
+                        try:
+                            smart = generate_smart_mandates(count=5, strategies_dir=str(project_root / "strategies"))
+                            if smart:
+                                saved = save_mandates(smart, output_dir=mandates_dir)
+                                state.pending_mandates = [p.name for p in saved]
+                                state.save(str(STATE_FILE))
+                                print(f"Smart generation: created {len(saved)} mandates")
+                                smart_generated = True
+                        except Exception as exc:
+                            print(f"Smart mandate generation failed: {exc}")
+                    if not smart_generated:
+                        print(f"No new mandates found. Sleeping {sleep_seconds}s...")
+                        time.sleep(sleep_seconds)
+                        state.heartbeat(str(STATE_FILE))
+                        continue
+
+            # ── Phase 5B: resource pause check before wave ────────────────
+            if _resource_limiter is not None:
+                pause_retries = 0
+                while _resource_limiter.should_pause() and pause_retries < 3:
+                    res = _resource_limiter.check_resources()
+                    print(f"Resource pause (attempt {pause_retries + 1}/3): CPU={res['cpu_percent']:.0%}, RAM={res['ram_free_gb']:.1f}GB — waiting 60s")
+                    time.sleep(60)
+                    pause_retries += 1
+                if _resource_limiter.should_pause():
+                    print("Resource limits still critical after 3 retries. Exiting.")
+                    break
+                # Re-check recommended parallel for this wave
+                rec = _resource_limiter.get_recommended_parallel()
+                if rec > 0:
+                    effective_parallel = min(parallel, rec)
+                else:
+                    effective_parallel = 1
 
             # ── Pick mandates for this wave ───────────────────────────
-            wave_mandates = state.pending_mandates[:parallel]
+            wave_mandates = state.pending_mandates[:effective_parallel]
             wave += 1
             state.current_wave = wave
             # record_wave_start requires a mandate_name — use the first one
@@ -246,7 +313,7 @@ def run_daemon(
 
                 # Fill slots up to --parallel concurrency
                 while (idx < len(wave_mandates)
-                       and len(active_procs) < parallel):
+                       and len(active_procs) < effective_parallel):
                     mandate_name = wave_mandates[idx]
                     idx += 1
                     mandate_path = str(mandates_dir / mandate_name)
@@ -324,6 +391,16 @@ def run_daemon(
             # ── Post-wave: heartbeat + heartbeat file ─────────────────
             state.last_wave_completed = datetime.now(timezone.utc).isoformat()
             state.heartbeat(str(STATE_FILE))
+
+            # ── Phase 5B: sync budget info to state ───────────────────────
+            try:
+                from crabquant.refinement.api_budget import ApiBudgetTracker
+                _bt = ApiBudgetTracker()
+                state.api_budget_used_today = _bt.daily_count
+                state.api_budget_throttled = _bt.should_throttle()
+                state.save(str(STATE_FILE))
+            except Exception:
+                pass
 
             HEARTBEAT_FILE.parent.mkdir(parents=True, exist_ok=True)
             HEARTBEAT_FILE.write_text(

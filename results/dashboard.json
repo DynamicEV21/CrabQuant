@@ -1,8 +1,8 @@
 {
-  "running_count": 44,
-  "total_mandates": 86,
-  "convergence_rate": 0.23809523809523808,
-  "wave_progress": 0.6609080841638981,
+  "running_count": 48,
+  "total_mandates": 92,
+  "convergence_rate": 0.25,
+  "wave_progress": 0.6667184265010352,
   "best_strategies": [
     {
       "mandate_name": "momentum_googl",
@@ -115,6 +115,12 @@
       "best_sharpe": 0.35646860736168795
     },
     {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 1,
+      "max_turns": 2,
+      "best_sharpe": 1.2307632985168413
+    },
+    {
       "mandate_name": "Momentum Strategy for SPY",
       "current_turn": 1,
       "max_turns": 7,
@@ -205,6 +211,12 @@
       "best_sharpe": 0.4833610139102345
     },
     {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 7,
+      "max_turns": 10,
+      "best_sharpe": 1.3751681529605486
+    },
+    {
       "mandate_name": "momentum_aapl",
       "current_turn": 2,
       "max_turns": 7,
@@ -221,6 +233,12 @@
       "current_turn": 2,
       "max_turns": 7,
       "best_sharpe": 0.0
+    },
+    {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 4,
+      "max_turns": 5,
+      "best_sharpe": 0.9160120104178994
     },
     {
       "mandate_name": "momentum_spy",
@@ -257,6 +275,12 @@
       "current_turn": 0,
       "max_turns": 2,
       "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 5,
+      "max_turns": 10,
+      "best_sharpe": 1.1575047878253522
     },
     {
       "mandate_name": "mean_reversion_nflx",
@@ -301,5 +325,5 @@
       "best_sharpe": 1.0504761504747684
     }
   ],
-  "timestamp": "2026-04-28T17:24:00.430265+00:00"
+  "timestamp": "2026-04-29T11:27:09.041416+00:00"
 }

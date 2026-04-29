@@ -15,6 +15,22 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
+# ── Lazy API budget tracker (Phase 5B) ────────────────────────────────────────
+_budget_tracker = None
+
+
+def _get_budget_tracker():
+    """Lazily instantiate ApiBudgetTracker. Returns None on import failure."""
+    global _budget_tracker
+    if _budget_tracker is None:
+        try:
+            from crabquant.refinement.api_budget import ApiBudgetTracker
+            _budget_tracker = ApiBudgetTracker()
+            logger.info("ApiBudgetTracker initialised")
+        except Exception as exc:
+            logger.warning("Could not import ApiBudgetTracker: %s", exc)
+    return _budget_tracker
+
 
 def load_api_config() -> dict:
     """Load z.ai credentials from OpenClaw config.
@@ -54,6 +70,19 @@ def call_zai_llm(
         httpx.ConnectTimeout / httpx.ReadTimeout: on timeouts after retries
         ValueError: on unexpected response format
     """
+    # ── Phase 5B: check throttle before calling ────────────────────────────
+    budget = _get_budget_tracker()
+    if budget is not None and budget.should_throttle():
+        throttled_model = budget.get_recommended_model()
+        # Strip zai/ prefix if present for comparison
+        throttled_short = throttled_model.split("/")[-1] if "/" in throttled_model else throttled_model
+        if model != throttled_short:
+            logger.info(
+                "API budget throttle active (%d/%d daily); switching %s → %s",
+                budget.daily_count, budget.daily_limit, model, throttled_short,
+            )
+            model = throttled_short
+
     cfg = load_api_config()
     url = f"{cfg['base_url']}/chat/completions"
     payload = {
@@ -121,7 +150,15 @@ def call_zai_llm(
     if "choices" not in result or not result["choices"]:
         raise ValueError(f"Unexpected API response: {json.dumps(result)[:200]}")
 
-    return result["choices"][0]["message"]["content"]
+    content = result["choices"][0]["message"]["content"]
+
+    # ── Phase 5B: record prompt usage ─────────────────────────────────────
+    if budget is not None:
+        usage = result.get("usage", {})
+        tokens = usage.get("total_tokens") or usage.get("completion_tokens", 0)
+        budget.record_prompt(model=model, tokens=tokens if tokens else None)
+
+    return content
 
 
 def extract_json_from_llm(text: str) -> dict:
