@@ -438,3 +438,27 @@ If you complete all tasks above, keep going using VISION.md. Legacy items (compl
   - All 3 commits pushed. Tests: 4137 passing.
   - **REMAINING**: Run live mandates to verify the 3 diagnosis systems improve per-turn success rate.
 
+- [2026-04-29 14:xx] **CYCLE 16 — P0: Wiring Audit + System Prompt Enhancement + Action Enforcement**
+  - Dispatched wiring audit to trace all 9 diagnosis/guidance systems end-to-end.
+  - **FOUND**: `format_stagnation_suffix` call in `context_builder.py` had wrong signature — passed (turn_num, prev_sharpes, trend) but function expects (constraint, prompt_suffix). Always threw TypeError caught by except-pass. `get_stagnation_response()` was dead code.
+  - **FIX**: Rewired to use proper call chain: `compute_stagnation()` → `get_stagnation_response()` → `format_stagnation_suffix()`. Commit: 3d4f86a.
+  - **FOUND**: `SYSTEM_PROMPT` template had 9 critical rules (trade frequency, anti-overfitting, regular signals) but `call_llm_inventor()` used a separate hardcoded system message with only 5 basic rules. The anti-overfitting and trade frequency guidance was never sent to the LLM.
+  - **FIX**: Added 6 new rules (6-11) to the system message: causal hypothesis requirement, trade frequency (20-80), anti-overfitting, regular signals (2x/month), no lookahead bias, complete file content. Commit: 0ba57b8.
+  - **IMPLEMENTED**: Semantic Action Validator (`action_validator.py`) — 7 rules that reject impossible action/failure_mode combinations:
+    * modify_params + flat_signal → change_entry_logic
+    * modify_params + too_few_trades (1-4) → change_entry_logic
+    * add_filter + flat_signal → change_entry_logic
+    * add_filter + too_few_trades (1-4) → change_entry_logic
+    * change_exit_logic + flat_signal → change_entry_logic
+    * modify_params + module_load_failed/backtest_crash → novel
+    Wired into refinement loop after classifier. 32 tests.
+  - **IMPLEMENTED**: Failure-Mode-Aware Cosmetic Guard upgrade:
+    * Forced actions now use RECOMMENDED_ACTIONS keyed by failure mode (not random)
+    * Within-run action cooldown tracker: (failure_mode, action) → consecutive_fail_count
+    * After 2 consecutive failures: warning
+    * After 3 consecutive failures: forced override
+    * Cooldowns persisted in RunState for resume
+    Wired into all turn exit points. 34 tests.
+  - Commit: f522f31. Tests: 4430 passing (up from 4411).
+  - **REMAINING**: Run live mandates to verify all improvements work end-to-end.
+

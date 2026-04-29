@@ -46,7 +46,7 @@ Minutes between strategy discoveries, not hours. The refinement pipeline should 
 ### Research Engine (Refinement Pipeline)
 The core. An LLM-driven iterative refinement loop that takes a strategy mandate and loops up to 7 turns, using LLM intelligence to improve strategies until they hit a Sharpe target.
 
-31 components: orchestrator, LLM API, validation gates, backtest engine, circuit breaker, stagnation detection, action analytics, auto-promotion, wave manager, regime tagger, rolling walk-forward, cross-run learning, feature importance, stagnation recovery, and more. All tested (3700+ tests passing).
+31 components: orchestrator, LLM API, validation gates, backtest engine, circuit breaker, stagnation detection, action analytics, auto-promotion, wave manager, regime tagger, rolling walk-forward, cross-run learning, feature importance, stagnation recovery, semantic action validation, and more. All tested (4430+ tests passing).
 
 ### Backtest Engine
 VectorBT-based with composite scoring, parallel execution across tickers, real OHLCV from Yahoo Finance with pickle caching (20hr TTL).
@@ -101,7 +101,7 @@ The pipeline runs end-to-end. Strategies get invented and backtested. Some hit S
 | Mandate convergence rate | >50% | 33% (7/21) | 🟡 17% |
 | Per-turn success rate | >20% | 6.8% (10/147) | 🔴 13% |
 | Code gen failure rate | <30% | 0% (real) | ✅ Fixed |
-| Test coverage | 100% of new code | 4137+ tests | ✅ Surpassed |
+| Test coverage | 100% of new code | 4430+ tests | ✅ Surpassed |
 
 ---
 
@@ -140,7 +140,7 @@ The orchestrator should recalculate priorities every cycle by looking at actual 
 - ROADMAP Phase 6 prep items — daemon config, budget tracking, Telegram briefs
 
 **⚪ P3 — Diminished Returns (avoid unless directly tied to P0/P1 work)**
-- Test expansion — we have 4137+ tests. Only write tests for code you're actively modifying for a higher-priority goal.
+- Test expansion — we have 4430+ tests. Only write tests for code you're actively modifying for a higher-priority goal.
 
 ### Dynamic Priority Rules
 
