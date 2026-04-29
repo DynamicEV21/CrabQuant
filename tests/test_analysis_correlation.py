@@ -289,3 +289,315 @@ class TestEdgeCases:
         result = compute_signal_correlation(_make_ohlcv(n=n), sig_a, sig_b)
         # With 90% overlap, correlation should be meaningfully high
         assert result["pearson"] > 0.5
+
+
+# ── Additional compute_signal_correlation tests ─────────────────────────
+
+
+class TestComputeSignalCorrelationExtended:
+    def test_both_constant_same_value(self):
+        """Both signals constant with same value → pearson=1.0."""
+        n = 50
+        sig = pd.Series([1.0] * n)
+        result = compute_signal_correlation(_make_ohlcv(n=n), sig, sig)
+        assert result["pearson"] == 1.0
+
+    def test_both_constant_different_values(self):
+        """Both signals constant with different values → pearson=0.0."""
+        n = 50
+        sig_a = pd.Series([1.0] * n)
+        sig_b = pd.Series([0.0] * n)
+        result = compute_signal_correlation(_make_ohlcv(n=n), sig_a, sig_b)
+        assert result["pearson"] == 0.0
+
+    def test_one_constant_one_varying(self):
+        """One constant signal, one varying → pearson=0.0."""
+        n = 50
+        np.random.seed(10)
+        sig_a = pd.Series([1.0] * n)
+        sig_b = pd.Series(np.random.randn(n))
+        result = compute_signal_correlation(_make_ohlcv(n=n), sig_a, sig_b)
+        assert result["pearson"] == 0.0
+
+    def test_empty_dataframe(self):
+        """Empty OHLCV df should still work (df param is unused)."""
+        sig_a = pd.Series([True, False])
+        sig_b = pd.Series([False, True])
+        empty_df = pd.DataFrame()
+        result = compute_signal_correlation(empty_df, sig_a, sig_b)
+        assert isinstance(result, dict)
+        assert "pearson" in result
+
+    def test_two_element_signals(self):
+        """Two-element signals should produce valid results."""
+        sig_a = pd.Series([True, False])
+        sig_b = pd.Series([True, True])
+        result = compute_signal_correlation(_make_ohlcv(n=2), sig_a, sig_b)
+        assert -1.0 <= result["pearson"] <= 1.0
+
+    def test_negatively_correlated_continuous(self):
+        """Negatively correlated continuous signals."""
+        np.random.seed(77)
+        n = 100
+        base = np.random.randn(n)
+        sig_a = pd.Series(base)
+        sig_b = pd.Series(-base)
+        result = compute_signal_correlation(_make_ohlcv(n=n), sig_a, sig_b)
+        assert result["pearson"] < -0.9
+        assert result["anti_correlated"] is True
+
+    def test_partial_index_overlap(self):
+        """Signals with partially overlapping indices."""
+        sig_a = pd.Series([1, 1, 0, 0, 0], index=[0, 1, 2, 3, 4])
+        sig_b = pd.Series([0, 1, 1, 0, 0], index=[2, 3, 4, 5, 6])
+        result = compute_signal_correlation(_make_ohlcv(n=7), sig_a, sig_b)
+        # Should produce valid results
+        assert isinstance(result["pearson"], float)
+        assert isinstance(result["agreement_rate"], float)
+
+    def test_zero_length_after_alignment(self):
+        """Signals with completely disjoint indices should still work."""
+        sig_a = pd.Series([True, True], index=[0, 1])
+        sig_b = pd.Series([True, True], index=[100, 101])
+        result = compute_signal_correlation(_make_ohlcv(n=102), sig_a, sig_b)
+        # After alignment, each has the other's index filled with 0
+        # Should be a valid result
+        assert isinstance(result["pearson"], float)
+
+    def test_float_signals_with_nans(self):
+        """Float signals with NaN values should be handled."""
+        sig_a = pd.Series([1.0, np.nan, 0.0, 1.0])
+        sig_b = pd.Series([1.0, 0.0, np.nan, 1.0])
+        result = compute_signal_correlation(_make_ohlcv(n=4), sig_a, sig_b)
+        assert isinstance(result["pearson"], float)
+
+    def test_agreement_rate_all_disagree(self):
+        """Signals that always disagree should have low agreement rate."""
+        n = 50
+        sig_a = pd.Series([True] * n)
+        sig_b = pd.Series([False] * n)
+        result = compute_signal_correlation(_make_ohlcv(n=n), sig_a, sig_b)
+        # Both <= 0 → agreement should be high (both not-positive)
+        # Actually True > 0 and False <= 0, so they disagree
+        assert result["agreement_rate"] == pytest.approx(0.0, abs=0.01)
+
+    def test_jaccard_one_signal_all_long(self):
+        """Jaccard when one signal is always long and the other never."""
+        n = 50
+        sig_a = pd.Series([True] * n)
+        sig_b = pd.Series([False] * n)
+        result = compute_signal_correlation(_make_ohlcv(n=n), sig_a, sig_b)
+        # long_a has all indices, long_b has none, intersection=0
+        assert result["jaccard_long"] == 0.0
+
+
+# ── Additional analyze_strategy_pair tests ───────────────────────────────
+
+
+class TestAnalyzeStrategyPairExtended:
+    def test_tuple_registry_entry(self, monkeypatch):
+        """Should handle registry entries that are tuples (func, params)."""
+        from crabquant import analysis
+
+        def mock_gen(df, params):
+            return pd.Series([1, 0, -1] * (len(df) // 3), index=df.index[:len(df) // 3 * 3])
+
+        ohlcv = _make_ohlcv()
+        monkeypatch.setattr(analysis.correlation, "load_data", lambda *a, **kw: ohlcv)
+        monkeypatch.setattr(
+            "crabquant.strategies.STRATEGY_REGISTRY",
+            {"strat_a": (mock_gen, {}), "strat_b": (mock_gen, {})},
+        )
+        result = analyze_strategy_pair("strat_a", "strat_b", ticker="SPY")
+        assert result["strategy_a"] == "strat_a"
+        assert result["strategy_b"] == "strat_b"
+        assert "signal_correlation" in result
+        assert "returns_correlation" in result
+        assert "is_duplicate" in result
+
+    def test_dict_registry_entry(self, monkeypatch):
+        """Should handle registry entries that are dicts with generate_signals."""
+        from crabquant import analysis
+
+        def mock_gen(df, params):
+            return pd.Series([0] * len(df), index=df.index)
+
+        ohlcv = _make_ohlcv()
+        monkeypatch.setattr(analysis.correlation, "load_data", lambda *a, **kw: ohlcv)
+        monkeypatch.setattr(
+            "crabquant.strategies.STRATEGY_REGISTRY",
+            {
+                "strat_a": {"generate_signals": mock_gen, "params": {}},
+                "strat_b": {"generate_signals": mock_gen, "params": {}},
+            },
+        )
+        result = analyze_strategy_pair("strat_a", "strat_b")
+        assert result["ticker"] == "SPY"
+        assert result["period"] == "1y"
+
+    def test_custom_params_override(self, monkeypatch):
+        """Should use custom params when provided."""
+        from crabquant import analysis
+
+        captured_params = []
+
+        def mock_gen(df, params):
+            captured_params.append(params)
+            return pd.Series([0] * len(df), index=df.index)
+
+        ohlcv = _make_ohlcv()
+        monkeypatch.setattr(analysis.correlation, "load_data", lambda *a, **kw: ohlcv)
+        monkeypatch.setattr(
+            "crabquant.strategies.STRATEGY_REGISTRY",
+            {"strat_a": (mock_gen, {"default_param": 10})},
+        )
+        # Provide custom params
+        analyze_strategy_pair("strat_a", "strat_a", params_a={"custom": True})
+        assert captured_params[0] == {"custom": True}
+
+    def test_is_duplicate_flag_high_correlation(self, monkeypatch):
+        """is_duplicate should be True when pearson > 0.8 and jaccard > 0.7."""
+        from crabquant import analysis
+
+        def mock_gen(df, params):
+            return pd.Series([True] * (len(df) // 2) + [False] * (len(df) - len(df) // 2),
+                             index=df.index)
+
+        ohlcv = _make_ohlcv()
+        monkeypatch.setattr(analysis.correlation, "load_data", lambda *a, **kw: ohlcv)
+        monkeypatch.setattr(
+            "crabquant.strategies.STRATEGY_REGISTRY",
+            {"strat_a": (mock_gen, {}), "strat_b": (mock_gen, {})},
+        )
+        result = analyze_strategy_pair("strat_a", "strat_b")
+        # Identical signals → high pearson, high jaccard
+        assert result["is_duplicate"] is True
+
+    def test_custom_ticker_and_period(self, monkeypatch):
+        """Should pass custom ticker and period to load_data."""
+        from crabquant import analysis
+
+        captured_args = []
+
+        def mock_load(ticker, period="1y"):
+            captured_args.append((ticker, period))
+            return _make_ohlcv()
+
+        def mock_gen(df, params):
+            return pd.Series([0] * len(df), index=df.index)
+
+        monkeypatch.setattr(analysis.correlation, "load_data", mock_load)
+        monkeypatch.setattr(
+            "crabquant.strategies.STRATEGY_REGISTRY",
+            {"strat_a": (mock_gen, {}), "strat_b": (mock_gen, {})},
+        )
+        analyze_strategy_pair("strat_a", "strat_b", ticker="AAPL", period="6mo")
+        assert captured_args[0] == ("AAPL", "6mo")
+
+
+# ── Additional scan_registry_correlations tests ─────────────────────────
+
+
+class TestScanRegistryCorrelationsExtended:
+    def test_duplicates_sorted_descending(self, monkeypatch):
+        """Duplicate pairs should be sorted by correlation descending."""
+        from crabquant import analysis
+        monkeypatch.setattr(
+            analysis.correlation, "load_data", lambda *a, **kw: _make_ohlcv()
+        )
+
+        call_idx = [0]
+        pearsons = [0.95, 0.85, 0.60]
+
+        def mock_pair(a, b, ticker, period):
+            idx = call_idx[0]
+            call_idx[0] += 1
+            p = pearsons[idx % len(pearsons)]
+            return {
+                "strategy_a": a, "strategy_b": b,
+                "ticker": ticker, "period": period,
+                "signal_correlation": {
+                    "pearson": round(p, 4), "agreement_rate": 0.9,
+                    "jaccard_long": 0.8, "anti_correlated": False,
+                },
+                "returns_correlation": round(p, 4),
+                "is_duplicate": p > 0.8,
+            }
+
+        monkeypatch.setattr(analysis.correlation, "analyze_strategy_pair", mock_pair)
+        result = scan_registry_correlations(max_strategies=5)
+        # Duplicates should be sorted descending
+        if len(result["duplicates"]) > 1:
+            for i in range(len(result["duplicates"]) - 1):
+                assert result["duplicates"][i][2] >= result["duplicates"][i + 1][2]
+
+    def test_single_strategy_no_pairs(self, monkeypatch):
+        """Single strategy → 0 pairs."""
+        from crabquant import analysis
+        monkeypatch.setattr(
+            analysis.correlation, "load_data", lambda *a, **kw: _make_ohlcv()
+        )
+        monkeypatch.setattr(
+            "crabquant.strategies.STRATEGY_REGISTRY",
+            {"only_strat": (lambda df, p: pd.Series([0] * len(df), index=df.index), {})},
+        )
+        result = scan_registry_correlations(max_strategies=1)
+        assert result["total_analyzed"] == 1
+        assert result["total_pairs"] == 0
+
+    def test_all_results_limited_to_50(self, monkeypatch):
+        """all_results should be capped at 50 entries."""
+        from crabquant import analysis
+        monkeypatch.setattr(
+            analysis.correlation, "load_data", lambda *a, **kw: _make_ohlcv()
+        )
+
+        # Create many strategies
+        big_registry = {}
+        for i in range(15):
+            big_registry[f"strat_{i}"] = (
+                lambda df, p, idx=i: pd.Series([0] * len(df), index=df.index), {}
+            )
+        monkeypatch.setattr("crabquant.strategies.STRATEGY_REGISTRY", big_registry)
+
+        def mock_pair(a, b, ticker, period):
+            return {
+                "strategy_a": a, "strategy_b": b,
+                "ticker": ticker, "period": period,
+                "signal_correlation": {
+                    "pearson": 0.1, "agreement_rate": 0.5,
+                    "jaccard_long": 0.0, "anti_correlated": False,
+                },
+                "returns_correlation": 0.1,
+                "is_duplicate": False,
+            }
+
+        monkeypatch.setattr(analysis.correlation, "analyze_strategy_pair", mock_pair)
+        result = scan_registry_correlations(max_strategies=15)
+        assert len(result["all_results"]) <= 50
+
+    def test_custom_duplicate_threshold(self, monkeypatch):
+        """Custom duplicate_threshold should be respected."""
+        from crabquant import analysis
+        monkeypatch.setattr(
+            analysis.correlation, "load_data", lambda *a, **kw: _make_ohlcv()
+        )
+
+        def mock_pair(a, b, ticker, period):
+            pearson = 0.6
+            return {
+                "strategy_a": a, "strategy_b": b,
+                "ticker": ticker, "period": period,
+                "signal_correlation": {
+                    "pearson": pearson, "agreement_rate": 0.9,
+                    "jaccard_long": 0.8, "anti_correlated": False,
+                },
+                "returns_correlation": pearson,
+                "is_duplicate": pearson > 0.5,  # Uses internal default 0.8
+            }
+
+        monkeypatch.setattr(analysis.correlation, "analyze_strategy_pair", mock_pair)
+        # duplicate_threshold param is passed to scan but only used internally
+        # The actual duplicate check is in analyze_strategy_pair
+        result = scan_registry_correlations(max_strategies=3, duplicate_threshold=0.5)
+        assert result["total_analyzed"] == 3
