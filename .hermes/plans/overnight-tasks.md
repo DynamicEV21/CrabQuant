@@ -143,7 +143,17 @@ This runs as a repeating cron job (every 45 min). Each run:
 
 ### Tier 3: Continuous Improvement (do after all tasks done)
 
-If you complete all tasks above, keep going. Here's the priority order:
+**⚠️ DELEGATE TO VISION.md**: All planned tasks are complete. For ongoing work priorities,
+read `VISION.md` and follow its **priority system** (P0/P1/P2/P3). VISION.md has a
+dynamic priority engine with diminishing returns detection — it takes precedence over
+anything listed below.
+
+**What was here before:** A static list of "expand thin test files." That approach
+maxed out at ~3,700 tests across 9 cycles with no metric movement. VISION.md's priority
+system replaces this with goal-driven work (fix validation pass rate, improve strategy
+promotion, etc.) with test expansion only when it supports a P0/P1 goal.
+
+If you complete all tasks above, keep going using VISION.md. Legacy items (completed):
 
 - [x] 1. ~~Analyze mandate run results~~ (from task 6) and identify the top 3 prompt improvements. Implement them. ✅
   - Analysis done in task 6. Top 3: stagnation recovery, indicator diversity, winner example utilization.
