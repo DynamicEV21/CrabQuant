@@ -3,7 +3,7 @@ Three-gate pre-backtest validation for LLM-generated strategy code.
 
 Gate 1 (~0.1s): Syntax + import check via AST.
 Gate 2 (~1s):   Signal sanity — run generate_signals, verify output shape/dtype.
-Gate 3:         Placeholder, always passes (Phase 2).
+Gate 3 (~10s):  Smoke backtest — quick 6-month backtest, check metrics.
 """
 
 import ast
@@ -170,8 +170,13 @@ def gate_signal_sanity(
 
 
 def gate_smoke_backtest(code: str, ticker: str = "SPY") -> tuple[bool, list[str]]:
-    """Gate 3: Placeholder — always passes (Phase 2)."""
-    return (True, [])
+    """Gate 3: quick 6-month smoke backtest validation.
+
+    Delegates to the real implementation in gate3_smoke.
+    """
+    from crabquant.refinement.gate3_smoke import gate_smoke_backtest as _real
+
+    return _real(code, ticker=ticker)
 
 
 def run_validation_gates(

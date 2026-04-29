@@ -629,7 +629,7 @@ def generate_signals(df, params=None):
         assert len(errors) >= 2  # Should catch both dtype and index issues
 
 
-# ── Gate 3: Smoke Backtest (placeholder) ───────────────────────────────────
+# ── Gate 3: Smoke Backtest ───────────────────────────────────────────────
 
 class TestGateSmokeBacktest:
     def test_always_passes(self):
@@ -637,21 +637,20 @@ class TestGateSmokeBacktest:
         assert ok is True
         assert errors == []
 
-    def test_passes_even_for_broken_code(self):
+    def test_rejects_broken_code(self):
         ok, errors = gate_smoke_backtest(SYNTAX_ERROR_STRATEGY)
-        assert ok is True
-        assert errors == []
+        assert ok is False
+        assert len(errors) > 0
 
-    def test_passes_with_empty_code(self):
+    def test_rejects_empty_code(self):
         ok, errors = gate_smoke_backtest("")
-        assert ok is True
-        assert errors == []
+        assert ok is False
+        assert len(errors) > 0
 
-    def test_passes_with_none_code(self):
-        """gate_smoke_backtest should handle any input (placeholder)."""
+    def test_rejects_garbage_code(self):
         ok, errors = gate_smoke_backtest("garbage")
-        assert ok is True
-        assert errors == []
+        assert ok is False
+        assert len(errors) > 0
 
 
 # ── _load_module_from_code ──────────────────────────────────────────────────

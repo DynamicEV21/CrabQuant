@@ -382,7 +382,9 @@ def _run_parallel_invention(
                     cb.record(False, turn=turn, mandate=variant_label)
                     continue
 
-                gates_ok, gate_errors = run_validation_gates(strategy_code)
+                variant_ticker = mandate.get("primary_ticker", mandate.get("tickers", ["SPY"])[0])
+                variant_period = mandate.get("period", "1y")
+                gates_ok, gate_errors = run_validation_gates(strategy_code, ticker=variant_ticker, period=variant_period)
                 cb.record(gates_ok, turn=turn, mandate=variant_label)
                 if gates_ok:
                     break
@@ -661,7 +663,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                         continue
                     
                     # 3. Validate through gates
-                    gates_ok, gate_errors = run_validation_gates(strategy_code)
+                    primary_ticker = mandate.get("primary_ticker", state.tickers[0])
+                    gates_ok, gate_errors = run_validation_gates(strategy_code, ticker=primary_ticker, period=state.period)
                     
                     # Phase 3: Record pass/fail for circuit breaker
                     cb.record(gates_ok, turn=turn, mandate=state.mandate_name)
@@ -765,9 +768,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             print(f"  ⚠️ Backtest slow ({bt_elapsed:.1f}s > 30s)", flush=True)
         
         # Phase 6: Extract error info from 4th return element
-        backtest_error = None
-        if backtest_output is not None and len(backtest_output) > 3:
-            backtest_error = backtest_output[3]
+        backtest_error = backtest_output[3] if backtest_output and len(backtest_output) > 3 else {}
         if backtest_output is None or backtest_output[0] is None:
             error_detail = backtest_error or {}
             print(f"  Backtest crashed: {error_detail.get('error_type', 'unknown')} - {error_detail.get('error_message', 'no details')}")
