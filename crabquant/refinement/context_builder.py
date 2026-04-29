@@ -356,6 +356,7 @@ def build_llm_context(
     state,
     report: Optional[object] = None,
     mandate: Optional[dict] = None,
+    effective_target: Optional[float] = None,
 ) -> dict:
     """Build the context payload for the LLM inventor agent.
     
@@ -363,17 +364,25 @@ def build_llm_context(
         state: RunState dataclass instance with current loop state.
         report: BacktestReport from previous turn (None on turn 1).
         mandate: Dict with mandate configuration.
+        effective_target: Adaptive Sharpe target for this turn. If None,
+            uses the original sharpe_target from state.
     
     Returns:
         Context dict to be passed to the LLM.
     """
     mandate = mandate or {}
     
+    # If no effective_target provided, fall back to original sharpe_target
+    original_sharpe_target = getattr(state, "sharpe_target", 1.5)
+    if effective_target is None:
+        effective_target = original_sharpe_target
+    
     context = {
         "mandate": mandate,
         "current_turn": getattr(state, "current_turn", 0) + 1,
         "max_turns": getattr(state, "max_turns", 7),
-        "sharpe_target": getattr(state, "sharpe_target", 1.5),
+        "sharpe_target": original_sharpe_target,
+        "effective_target": effective_target,
         "tickers": getattr(state, "tickers", ["AAPL", "SPY"]),
         
         # Previous attempts (last 3, with params and deltas)
@@ -472,6 +481,7 @@ def build_llm_context(
                 indicator_reference=indicator_ref,
                 indicator_quick_ref=indicator_qr,
                 archetype_section=context.get("archetype_section"),
+                effective_target=effective_target,
             )
         except Exception:
             # If prompt building fails, let call_llm_inventor use its fallback
@@ -539,6 +549,7 @@ def build_llm_context(
                 current_turn=current_turn_num,
                 max_turns=context.get("max_turns", 7),
                 sharpe_target=context.get("sharpe_target", 1.5),
+                effective_target=effective_target,
                 best_sharpe=context.get("best_sharpe_so_far", 0.0),
                 best_turn=context.get("best_turn", 0),
                 stagnation_suffix=stag_suffix,

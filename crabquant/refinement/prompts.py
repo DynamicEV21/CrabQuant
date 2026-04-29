@@ -904,6 +904,7 @@ def build_turn1_prompt(
     indicator_reference: str = "",
     indicator_quick_ref: str = "",
     archetype_section: str | None = None,
+    effective_target: float | None = None,
 ) -> str:
     """Build the complete Turn 1 (invention) prompt.
 
@@ -920,6 +921,7 @@ def build_turn1_prompt(
         indicator_reference: Full indicator API reference text.
         indicator_quick_ref: Quick reference card (section 7) for user message.
         archetype_section: Optional pre-formatted archetype template section.
+        effective_target: Adaptive Sharpe target for this turn. If None, uses sharpe_target.
 
     Returns:
         Complete prompt string for the LLM.
@@ -985,10 +987,19 @@ def build_turn1_prompt(
     
     archetype_text = archetype_section or ""
 
+    sharpe_target_val = mandate.get("sharpe_target", 1.5)
+    eff_target = effective_target if effective_target is not None else sharpe_target_val
+    
+    # Build adaptive target display
+    if effective_target is not None and abs(effective_target - sharpe_target_val) > 1e-9:
+        target_display = f"{eff_target:.2f} (ramping toward final target: {sharpe_target_val:.2f})"
+    else:
+        target_display = f"{sharpe_target_val:.2f}"
+
     return TURN1_PROMPT.format(
         mandate_name=mandate.get("name", "unnamed"),
         strategy_archetype=mandate.get("strategy_archetype", "any"),
-        sharpe_target=mandate.get("sharpe_target", 1.5),
+        sharpe_target=target_display,
         tickers=mandate.get("tickers", ["AAPL", "SPY"]),
         period=mandate.get("period", "2y"),
         seed_section=seed_section,
@@ -1006,6 +1017,7 @@ def build_refinement_prompt(
     current_turn: int,
     max_turns: int,
     sharpe_target: float,
+    effective_target: float | None = None,
     best_sharpe: float,
     best_turn: int,
     stagnation_suffix: str = "",
@@ -1022,7 +1034,8 @@ def build_refinement_prompt(
         tier1_report: Tier 1 diagnostic report dict.
         current_turn: Current turn number.
         max_turns: Maximum turns in the run.
-        sharpe_target: Target Sharpe ratio.
+        sharpe_target: Target Sharpe ratio (full/final target).
+        effective_target: Adaptive Sharpe target for this turn. If None, uses sharpe_target.
         best_sharpe: Best Sharpe achieved so far.
         best_turn: Turn number of the best Sharpe.
         stagnation_suffix: Formatted stagnation response string.
@@ -1036,6 +1049,12 @@ def build_refinement_prompt(
     Returns:
         Complete prompt string for the LLM.
     """
+    # Resolve effective target for display
+    eff = effective_target if effective_target is not None else sharpe_target
+    if effective_target is not None and abs(effective_target - sharpe_target) > 1e-9:
+        target_display = f"{eff:.2f} (ramping toward final target: {sharpe_target:.2f})"
+    else:
+        target_display = f"{sharpe_target:.2f}"
     # Format previous attempts
     prev_attempts = tier1_report.get("previous_attempts", [])
     prev_section = format_previous_attempts_section(prev_attempts)
@@ -1104,7 +1123,7 @@ def build_refinement_prompt(
     return REFINEMENT_PROMPT.format(
         current_turn=current_turn,
         max_turns=max_turns,
-        sharpe_target=sharpe_target,
+        sharpe_target=target_display,
         current_strategy_code=tier1_report.get("current_strategy_code", "# code unavailable"),
         current_params=tier1_report.get("current_params", {}),
         sharpe_ratio=tier1_report.get("sharpe_ratio", 0.0),

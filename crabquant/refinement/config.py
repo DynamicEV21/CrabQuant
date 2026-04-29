@@ -66,6 +66,13 @@ class RefinementConfig:
     # back to the LLM so it can make data-driven code changes.
     feature_importance: bool = True
 
+    # ── Adaptive Sharpe targeting (Phase 6) ────────────────────────────
+    # Starts with a lower target on early turns and ramps up to the
+    # full target. Makes early turns productive instead of always wasted.
+    adaptive_sharpe_target: bool = False   # Enable/disable adaptive targeting
+    adaptive_start_factor: float = 0.5     # Initial target = sharpe_target * this
+    adaptive_ramp_turns: int = 3           # Turns to ramp from start_factor to 1.0
+
     # Timeouts
     per_strategy_timeout_minutes: int = 15
     backtest_timeout_seconds: int = 60
@@ -174,6 +181,43 @@ class RefinementConfig:
         """Load a mandate JSON file and build config from it."""
         mandate = json.loads(Path(path).read_text())
         return cls.from_mandate(mandate, **overrides)
+
+
+def compute_effective_target(
+    sharpe_target: float,
+    turn: int,
+    adaptive_sharpe_target: bool,
+    adaptive_start_factor: float,
+    adaptive_ramp_turns: int,
+) -> float:
+    """Compute the effective Sharpe target for a given turn.
+
+    When adaptive targeting is enabled, the target starts at
+    ``sharpe_target * adaptive_start_factor`` on turn 1 and linearly
+    ramps up to ``sharpe_target`` over ``adaptive_ramp_turns`` turns.
+    After the ramp period (or when disabled), returns the original target.
+
+    Args:
+        sharpe_target: The original/final Sharpe target from the mandate.
+        turn: The current turn number (1-indexed).
+        adaptive_sharpe_target: Whether adaptive targeting is enabled.
+        adaptive_start_factor: Multiplier for the initial target (e.g. 0.5).
+        adaptive_ramp_turns: Number of turns to ramp from start to full.
+
+    Returns:
+        The effective Sharpe target for this turn.
+    """
+    if not adaptive_sharpe_target:
+        return sharpe_target
+
+    if turn <= adaptive_ramp_turns:
+        progress = (turn - 1) / adaptive_ramp_turns
+        return sharpe_target * (
+            adaptive_start_factor
+            + (1.0 - adaptive_start_factor) * progress
+        )
+
+    return sharpe_target
 
 
 # ── Standalone validation config ────────────────────────────────────────

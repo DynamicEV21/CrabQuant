@@ -33,7 +33,7 @@ sys.path.insert(0, str(project_root))
 
 # Import CrabQuant modules
 from crabquant.refinement.schemas import RunState, BacktestReport, StrategyModification
-from crabquant.refinement.config import RefinementConfig
+from crabquant.refinement.config import RefinementConfig, compute_effective_target
 from crabquant.refinement.module_loader import load_strategy_module
 from crabquant.refinement.validation_gates import run_validation_gates
 from crabquant.refinement.diagnostics import (
@@ -636,6 +636,20 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         print(f"\n{'='*60}")
         print(f"Turn {turn}/{max_turns} | Best Sharpe: {state.best_sharpe:.2f}")
         
+        # ── Adaptive Sharpe targeting ────────────────────────────────
+        # Compute the effective target for this turn (lower on early turns).
+        effective_target = compute_effective_target(
+            sharpe_target=sharpe_target,
+            turn=turn,
+            adaptive_sharpe_target=config.adaptive_sharpe_target,
+            adaptive_start_factor=config.adaptive_start_factor,
+            adaptive_ramp_turns=config.adaptive_ramp_turns,
+        )
+        if effective_target != sharpe_target:
+            print(f"  📈 Adaptive target: {effective_target:.2f} "
+                  f"(ramping from {sharpe_target * config.adaptive_start_factor:.2f} "
+                  f"→ {sharpe_target:.2f})")
+        
         # 0. Clear indicator cache between turns
         clear_cache()
         
@@ -654,7 +668,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         
         # 1. Build context
         prev_report = load_report(run_dir, turn - 1) if turn > 1 else None
-        context = build_llm_context(state, prev_report, mandate)
+        context = build_llm_context(state, prev_report, mandate,
+                                   effective_target=effective_target)
         
         # Phase 3: Append action analytics context to LLM prompt
         try:
@@ -876,7 +891,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 mt_start = time.time()
                 multi_ticker_results = run_multi_ticker_backtest(
                     strategy_module, secondary_tickers, state.period,
-                    sharpe_target=sharpe_target,
+                    sharpe_target=effective_target,
                 )
                 mt_elapsed = time.time() - mt_start
                 print(f"  Multi-ticker backtest ({len(secondary_tickers)} tickers, "
@@ -924,7 +939,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         failure_mode, failure_details = classify_failure(
             result, guardrail_report, sharpe_by_year,
             data_length=len(df),
-            sharpe_target=sharpe_target
+            sharpe_target=effective_target
         )
         
         # 6. Compute stagnation (using Phase 3 module)
@@ -970,7 +985,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         save_report(run_dir, turn, report)
         
         # Phase 3: Track action analytics for this turn
-        turn_success = result.sharpe >= sharpe_target
+        turn_success = result.sharpe >= effective_target
         track_action_result(
             mandate=state.mandate_name,
             turn=turn,
@@ -981,16 +996,16 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             path=str(results_dir / "run_history.jsonl"),
         )
         
-        # 8. Check success — primary gate is Sharpe >= target;
+        # 8. Check success — primary gate is Sharpe >= effective_target;
         #    secondary guardrails (trade count, drawdown, etc.) are logged
         #    as warnings but do NOT block promotion.
-        if result.sharpe >= sharpe_target:
+        if result.sharpe >= effective_target:
             # ── Hard pre-validation gate: skip expensive WF on sparse strategies ──
             # A strategy with too few trades has no statistical power.
             # No point running 6-window walk-forward on a curve-fit.
             MIN_TRADES_FOR_VALIDATION = 20
             if result.num_trades < MIN_TRADES_FOR_VALIDATION:
-                print(f"  🏆 Sharpe {result.sharpe:.2f} >= {sharpe_target}, "
+                print(f"  🏆 Sharpe {result.sharpe:.2f} >= {effective_target}, "
                       f"but only {result.num_trades} trades "
                       f"(need >= {MIN_TRADES_FOR_VALIDATION}) — skipping validation")
                 failure_mode = "too_few_trades_for_validation"
@@ -1019,7 +1034,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 save_state(run_dir, state)
                 continue  # Keep iterating — LLM might find a strategy with more trades
 
-            print(f"  🏆 SUCCESS! Sharpe {result.sharpe:.2f} >= {sharpe_target} "
+            print(f"  🏆 SUCCESS! Sharpe {result.sharpe:.2f} >= {effective_target} "
                   f"({result.num_trades} trades)")
 
             # Log secondary guardrail issues as warnings (non-blocking)
