@@ -397,3 +397,20 @@ If you complete all tasks above, keep going using VISION.md. Legacy items (compl
   - All 3995 tests passing.
   - **REMAINING**: The promotion pipeline works end-to-end for existing strategies. Next: verify it works during actual mandate runs (LLM-invented strategies).
 
+- [2026-04-29 09:xx] **CYCLE 13 — P0: Fix Promotion Pipeline Gap + Batch Promote 117 Winners**
+  - Investigated why 119 winners in winners.json had validation_status="promoted" but only 1 was in registry.json.
+  - **ROOT CAUSE**: `confirm_task.py` only handles VBT-style winners (with "key"/"score" fields). Refinement winners have different schema (strategy/ticker/sharpe/params/validation_status) and were silently skipped.
+  - **FIX**: Added `batch_promote_refinement_winners()` to `promoter.py` (~150 lines) that:
+    - Reads winners.json, filters by validation_status=promoted
+    - Deduplicates by strategy_name|ticker|params_hash
+    - Checks strategy .py files exist in crabquant/strategies/
+    - Writes entries to registry.json with proper schema mapping
+    - Generates markdown reports per entry
+  - Made strategy_dir a configurable parameter (was hardcoded) for testability.
+  - Dry-run verified: 119 candidates, 2 already in registry, 117 new, 0 errors.
+  - Live run: 117 new entries added, registry now has **118 total ROBUST strategies**.
+  - Added 12 unit tests covering all edge cases.
+  - Updated VISION.md metrics: registry 3→118, winners 65→178 (119 promoted), validation rate 30%→67%.
+  - Updated VISION.md priorities: P0 now "Fix Code Gen Failure Rate" (promotion funnel is fixed).
+  - Commit: 5b083bc. Push: 5591ca9..5b083bc. Tests: 4037 passing.
+

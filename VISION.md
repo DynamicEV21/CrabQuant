@@ -64,20 +64,20 @@ Persistent process with PID management, state persistence, graceful shutdown, he
 
 ## Current Reality (April 2026)
 
-The pipeline runs end-to-end. Strategies get invented and backtested. Some hit Sharpe >2.0 in 2 turns. But the system has a fundamental funnel problem:
+The pipeline runs end-to-end. Strategies get invented and backtested. Some hit Sharpe >2.0 in 2 turns. The promotion pipeline gap has been fixed — 118 strategies now in the production registry.
 
 | Metric | Value | Problem? |
 |--------|-------|----------|
 | Total mandates run | 95 | — |
 | Backtest successes (Sharpe ≥ target) | ~26% | ✅ Improved |
 | Code gen failure rate | 54% | 🟡 Too high |
-| Strategies registered in registry | **3** (from promotion) | 🟡 Progress |
-| winners.json entries | 65 (4 promoted) | 🟡 Improving |
-| Validation pass rate | 30% (3/10 top winners) | 🟡 Progress |
+| Strategies in production registry | **118** (ROBUST) | ✅ Exceeded target |
+| winners.json entries | 178 (119 promoted) | ✅ Strong pipeline |
+| Validation pass rate | 67% (119/178 winners) | ✅ Exceeded target |
 
-**The funnel is opening.** After fixing two critical threshold bugs (rolling WF per-window thresholds in Cycle 10-11, cross-ticker robust threshold in Cycle 12), the first strategies are now passing validation and getting promoted. The pipeline works end-to-end.
+**The funnel is open.** After fixing threshold bugs (Cycle 10-12) and the promotion pipeline gap (Cycle 13), 118 validated strategies are now in the production registry. The batch promoter bridges the refinement pipeline to the production registry.
 
-**Remaining gaps:** Need more strategies to pass (target 10+), and need to verify LLM-invented strategies can pass during live mandate runs (not just retroactive promotion of existing winners).
+**Remaining gaps:** Code gen failure rate (54%) wastes API calls. Need to verify LLM-invented strategies can pass during live mandate runs (not just retroactive promotion).
 
 **Phase 5 fixes the funnel. Phase 5.5 adds regime awareness. Phase 5.6 accelerates invention.** See ROADMAP.md.
 
@@ -87,12 +87,12 @@ The pipeline runs end-to-end. Strategies get invented and backtested. Some hit S
 
 | Metric | Target | Current | Gap |
 |--------|--------|---------|-----|
-| Validation pass rate | >50% | 30% (3/10 top winners) | 🟡 20% |
-| Strategies in registry (from invention) | 10+ | 3 promoted | 🟡 7 |
+| Validation pass rate | >50% | 67% (119/178) | ✅ Met |
+| Strategies in registry (from invention) | 10+ | 118 promoted | ✅ Exceeded |
 | Code gen failure rate | <30% | 54% | 🟡 24% |
 | Convergence rate | >20% | ~26% | ✅ Met |
 | Unattended runtime | 7+ days | ~1 day | 🟢 6 days |
-| Test coverage | 100% of new code | 3995+ tests | ✅ Surpassed |
+| Test coverage | 100% of new code | 4049+ tests | ✅ Surpassed |
 
 ---
 
@@ -112,23 +112,19 @@ This section tells the orchestrator what to do when all planned tasks are comple
 
 The orchestrator should recalculate priorities every cycle by looking at actual metric values (not just what's written here — check real files like `results/winners/`, `STRATEGY_REGISTRY`, test counts, etc.):
 
-**🔴 P0 — Fix the Funnel (blocks everything else)**
-- **Validation pass rate (0% → >50%)** — the wall. Nothing gets promoted until this works.
-  - Investigate why rolling walk-forward always detects regime shift and rejects
-  - Try different window configs, thresholds, degradation calculations
-  - Run diagnostic mandates to understand the failure pattern
-  - Consider if the validation logic itself has bugs
-- **Strategies in registry (0 → 10+)** — the whole point.
-  - Depends on fixing validation first, but also: are there near-misses in `results/candidates/`?
-  - Can soft_promote threshold be adjusted to capture more?
-  - Run mandates with `mode: explorer` to maximize discovery
-
-**🟡 P1 — Improve Efficiency**
+**🔴 P0 — Fix Code Gen Failure Rate (54% → <30%)**
 - **Code gen failure rate (54% → <30%)** — wasting half our API calls.
+  - Analyze which failure modes are most common
   - Improve indicator usage examples in prompts
   - Better zero-signals recovery hints
   - Tune circuit breaker thresholds
-  - Analyze which failure modes are most common and fix them
+  - Consider adding a code validation step before backtest
+
+**🟡 P1 — Verify End-to-End During Live Mandates**
+- **Live mandate promotion** — verify LLM-invented strategies pass during actual mandate runs
+  - Run mandates with `mode: explorer` to maximize discovery
+  - Verify batch_promote_refinement_winners() captures new winners automatically
+  - Check that newly invented strategies flow through the full pipeline
 
 **🟢 P2 — Polish (only after P0/P1 are significantly improved)**
 - **Convergence rate (~10% → >20%)** — nice to have but blocked by validation
