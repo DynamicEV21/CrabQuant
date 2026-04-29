@@ -121,6 +121,20 @@ def call_zai_llm(
     if "choices" not in result or not result["choices"]:
         raise ValueError(f"Unexpected API response: {json.dumps(result)[:200]}")
 
+    # Record API usage for budget tracking (Phase 6 prep)
+    try:
+        from crabquant.refinement.api_budget import get_global_tracker
+        usage = result.get("usage", {})
+        get_global_tracker().record_call(
+            model=model,
+            prompt_tokens=usage.get("prompt_tokens", 0),
+            completion_tokens=usage.get("completion_tokens", 0),
+            latency_seconds=elapsed,
+            success=True,
+        )
+    except Exception:
+        pass  # Budget tracking is best-effort, never block the pipeline
+
     return result["choices"][0]["message"]["content"]
 
 
