@@ -1061,6 +1061,104 @@ class TestCallLlmInventor:
                 user_msg = captured["messages"][1]["content"]
                 assert "failed on 3 of 5 tickers" in user_msg
 
+    def test_context_with_feature_importance_section(self):
+        """Feature importance feedback from context_builder should be injected into prompt."""
+        from crabquant.refinement.llm_api import call_llm_inventor
+
+        captured = {}
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+
+        def mock_post(url, json=None, headers=None):
+            captured["messages"] = json["messages"]
+            return self._mock_llm_response({"action": "novel"})
+
+        mock_client.post.side_effect = mock_post
+
+        with patch("crabquant.refinement.llm_api.load_api_config",
+                   return_value={"base_url": "https://api.test.com", "api_key": "***"}):
+            with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
+                call_llm_inventor({
+                    "feature_importance_section": "## Feature Importance\n- RSI: 0.85\n- EMA: 0.32",
+                })
+                user_msg = captured["messages"][1]["content"]
+                assert "Feature Importance" in user_msg
+                assert "RSI: 0.85" in user_msg
+
+    def test_context_without_feature_importance_section(self):
+        """When feature_importance_section is absent, prompt should not contain it."""
+        from crabquant.refinement.llm_api import call_llm_inventor
+
+        captured = {}
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+
+        def mock_post(url, json=None, headers=None):
+            captured["messages"] = json["messages"]
+            return self._mock_llm_response({"action": "novel"})
+
+        mock_client.post.side_effect = mock_post
+
+        with patch("crabquant.refinement.llm_api.load_api_config",
+                   return_value={"base_url": "https://api.test.com", "api_key": "***"}):
+            with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
+                call_llm_inventor({})
+                user_msg = captured["messages"][1]["content"]
+                assert "Feature Importance" not in user_msg
+
+    def test_context_with_crash_error_feedback(self):
+        """Crash error feedback from context_builder should be injected into prompt."""
+        from crabquant.refinement.llm_api import call_llm_inventor
+
+        captured = {}
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+
+        def mock_post(url, json=None, headers=None):
+            captured["messages"] = json["messages"]
+            return self._mock_llm_response({"action": "novel"})
+
+        mock_client.post.side_effect = mock_post
+
+        with patch("crabquant.refinement.llm_api.load_api_config",
+                   return_value={"base_url": "https://api.test.com", "api_key": "***"}):
+            with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
+                call_llm_inventor({
+                    "crash_error_feedback": "## Recent Code Crashes\nKeyError: 'Close'",
+                })
+                user_msg = captured["messages"][1]["content"]
+                assert "Recent Code Crashes" in user_msg
+                assert "KeyError" in user_msg
+
+    def test_context_without_crash_error_feedback(self):
+        """When crash_error_feedback is absent, prompt should not contain crash section."""
+        from crabquant.refinement.llm_api import call_llm_inventor
+
+        captured = {}
+
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+
+        def mock_post(url, json=None, headers=None):
+            captured["messages"] = json["messages"]
+            return self._mock_llm_response({"action": "novel"})
+
+        mock_client.post.side_effect = mock_post
+
+        with patch("crabquant.refinement.llm_api.load_api_config",
+                   return_value={"base_url": "https://api.test.com", "api_key": "***"}):
+            with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
+                call_llm_inventor({})
+                user_msg = captured["messages"][1]["content"]
+                assert "Recent Code Crashes" not in user_msg
+
     def test_context_with_indicator_quick_ref(self):
         from crabquant.refinement.llm_api import call_llm_inventor
 
@@ -1077,7 +1175,7 @@ class TestCallLlmInventor:
         mock_client.post.side_effect = mock_post
 
         with patch("crabquant.refinement.llm_api.load_api_config",
-                   return_value={"base_url": "https://api.test.com", "api_key": "test-key-123"}):
+                   return_value={"base_url": "https://api.test.com", "api_key": "***"}):
             with patch("crabquant.refinement.llm_api.httpx.Client", return_value=mock_client):
                 call_llm_inventor({
                     "indicator_quick_ref": "rsi(close, length=14)",

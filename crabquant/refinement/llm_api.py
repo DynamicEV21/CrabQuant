@@ -374,6 +374,14 @@ def call_llm_inventor(
         if context.get("multi_ticker_feedback"):
             user_parts.append(f"{context['multi_ticker_feedback']}\n")
 
+        # Phase 5.6: Inject feature importance feedback if available
+        if context.get("feature_importance_section"):
+            user_parts.append(f"{context['feature_importance_section']}\n")
+
+        # Phase 6: Inject crash error feedback if available
+        if context.get("crash_error_feedback"):
+            user_parts.append(f"{context['crash_error_feedback']}\n")
+
     user_content = "\n".join(user_parts)
 
     # Inject parallel variant bias if present in context (Phase 5.6.2)
