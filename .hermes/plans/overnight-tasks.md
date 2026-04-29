@@ -183,7 +183,14 @@ If you complete all tasks above, keep going. Here's the priority order:
   - `{feature_importance_section}` placeholder in `REFINEMENT_PROMPT` template
   - 57 unit tests in `tests/refinement/test_feature_importance.py`
   - Commit: `1fae2e7`
-6. **Update SKILL.md** with any architecture changes you made
+- [x] 6. **Update SKILL.md** ✅ DONE
+  - Updated test count (1335 pass), architecture diagram (feature_importance.py)
+  - Added Stagnation Recovery section (7 trap types, indicator diversity)
+  - Added Feature Importance section (18 indicators, correlation method, data flow)
+  - Updated pipeline flow (multi-ticker, feature importance, composite score, soft_promote, stagnation)
+  - Updated invention accelerator toggles (removed "not yet implemented" notes)
+  - Commit: `fe665e8`
+
 7. **Update ROADMAP.md** — mark completed items, add new items you discovered
 8. **Run more mandates** to validate improvements (8 min max each)
 9. **Create the PR** — `gh pr create --title "Phase 5.6: Invention Accelerators" --body "..."` from `phase5.6-overnight` to `master`

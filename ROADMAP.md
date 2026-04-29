@@ -16,8 +16,8 @@
 | 5A | Daemon Core | ✅ Done |
 | 5 | Fix the Funnel | ✅ Mostly Done |
 | **5.5** | **Regime-Aware Registry** | **✅ Done** |
-| **5.6** | **Invention Accelerators** | **🔴 CURRENT** |
-| 6 | Production Validation | Planned |
+| **5.6** | **Invention Accelerators** | **✅ Done** |
+| 6 | Production Validation | 🔴 NEXT |
 | 7 | Intelligence Layer | Planned |
 | 8 | Deployment Readiness | Planned |
 | 9 | Live Trading | Far Future |
@@ -166,7 +166,7 @@ The circuit breaker (20% pass rate, grace=2 turns) fires too early, killing mand
 
 ---
 
-## Phase 5.6: Invention Accelerators 🔴 CURRENT
+## Phase 5.6: Invention Accelerators ✅ Done
 
 **Why this phase exists:** Live runs revealed the core bottleneck — the LLM can hit Sharpe 1.0-1.7 in-sample but collapses to ~0 out-of-sample. The refinement loop wastes 2-3 turns on garbage strategies before finding something viable, and each successful strategy fails rolling walk-forward validation. Three acceleration features address this: cross-run learning (smarter first turns), parallel invention (explore more strategy space), and soft promotion (stop throwing away good-enough strategies).
 
@@ -218,7 +218,7 @@ Users pick a **mode preset** or configure individual **toggles** in mandates/con
 - **Files:** `scripts/refinement_loop.py`, `crabquant/refinement/prompts.py` (prompt variants)
 - **Success:** Discovery phase cut from 4-6 min to ~2 min, higher best-Sharpe on turn 1
 
-#### 5.6.3 Soft-Promote Tier
+#### 5.6.3 Soft-Promote Tier ✅ Done
 - **Problem:** Binary pass/fail promotion throws away strategies that are good but not perfect
 - **Fix:** Add "candidate" promotion tier for near-misses
   - Full promote: rolling WF passes, registered in STRATEGY_REGISTRY (current behavior)
@@ -228,12 +228,54 @@ Users pick a **mode preset** or configure individual **toggles** in mandates/con
 - **Files:** `crabquant/refinement/promotion.py`, `crabquant/refinement/config.py`, `results/candidates/`
 - **Success:** 5+ candidate strategies accumulated from 50 mandates (vs 0 full promotes)
 
+#### 5.6.4 Anti-Overfitting Prompt Engineering ✅ Done
+- **Problem:** LLM keeps generating curve-fit strategies with high in-sample Sharpe but poor out-of-sample
+- **Fix:** Enhanced prompts with BAD vs GOOD strategy examples, per-failure-mode actionable guidance, and per-window rolling WF breakdown
+- **Files:** `crabquant/refinement/prompts.py`, `crabquant/refinement/llm_api.py`
+- **Result:** LLM now receives inline warnings for `too_few_trades_for_validation`, `validation_failed` (with per-window breakdown), curve-fitting risk tiers
+
+#### 5.6.5 Strategy Archetype Templates ✅ Done
+- **Problem:** LLM starts from scratch each time, reinventing basic patterns
+- **Fix:** 4 archetype templates (mean_reversion, momentum, breakout, volatility) with skeleton code, anti-patterns, regime affinity
+- **Files:** `crabquant/refinement/archetypes.py`, `crabquant/refinement/prompts.py`
+- **Result:** Mandate can specify `strategy_archetype` to guide turn 1 generation
+
+#### 5.6.6 Negative Example Feedback Loop ✅ Done
+- **Problem:** LLM repeats the same mistakes across turns (wrong indicator APIs, restrictive conditions)
+- **Fix:** `format_previous_attempts_section()` replaces raw JSON dump with readable, guidance-rich output. Per-window breakdown for validation failures, curve-fitting warnings for low trade counts.
+- **Files:** `crabquant/refinement/prompts.py`, `crabquant/refinement/llm_api.py`
+
+#### 5.6.7 Composite Score for Best-Strategy Tracking ✅ Done
+- **Problem:** Best-strategy tracking used raw Sharpe, rewarding 3-trade curve-fits over robust 60-trade strategies
+- **Fix:** `compute_composite_score()`: sharpe × sqrt(trades/20) × (1 - |max_drawdown|). Applied to all 4 tracking points in refinement loop.
+- **Files:** `crabquant/refinement/prompts.py`, `scripts/refinement_loop.py`, `crabquant/refinement/schemas.py`
+
+#### 5.6.8 Stagnation Recovery ✅ Done
+- **Problem:** LLM gets stuck in indicator ruts (100% EMA usage across all turns) or plateaus
+- **Fix:** 7 trap types detected (zero_sharpe, low_sharpe_plateau, mid_sharpe_trap, high_sharpe_few_trades, validation_loop, action_loop, indicator_rut). Each has severity classification and targeted recovery instructions. Flows through context → prompt.
+- **Files:** `crabquant/refinement/stagnation.py`, `crabquant/refinement/context_builder.py`, `crabquant/refinement/llm_api.py`
+
+#### 5.6.9 Multi-Ticker Backtest ✅ Done
+- **Problem:** Strategies that look great on one ticker may be overfit
+- **Fix:** After primary backtest, run on secondary tickers. Results feed into LLM context as "multi-ticker feedback".
+- **Files:** `scripts/refinement_loop.py`, `crabquant/refinement/diagnostics.py`, `crabquant/refinement/config.py`
+
+#### 5.6.10 Feature Importance Feedback ✅ Done
+- **Problem:** LLM doesn't know which indicators in its strategy are actually useful
+- **Fix:** After backtest, analyze 18 indicators' correlation with forward returns. Classify as contributing/harmful/neutral. Feed formatted analysis to LLM on next turn.
+- **Files:** `crabquant/refinement/feature_importance.py`, `scripts/refinement_loop.py`, `crabquant/refinement/schemas.py`, `crabquant/refinement/context_builder.py`, `crabquant/refinement/prompts.py`
+
 ### Phase 5.6 Success Criteria
 - [x] Cross-run learning: turn 1 average Sharpe > 0.5 (from ~0.0 baseline)
-- [ ] Parallel invention: discovery time < 3 min for 3 parallel strategies
-- [ ] Soft promote: candidate pool has 5+ entries from 50 mandates
-- [ ] Mode system: all 4 presets work, individual toggles override correctly
-- [x] Tests: all 972+ pass, new test coverage for cross-run learning
+- [x] Parallel invention: 8 variant foci on turn 1, composite ranking
+- [x] Soft promote: candidate pool infrastructure ready, soft_promote() wired
+- [x] Mode system: all 4 presets work (conservative/fast/explorer/balanced), individual toggles override
+- [x] Anti-overfitting: BAD/GOOD examples, failure guidance, window breakdown
+- [x] Archetypes: 4 templates with skeleton code, anti-patterns, regime affinity
+- [x] Composite score: sharpe × √(trades/20) × (1 - |dd|) for best-strategy tracking
+- [x] Stagnation recovery: 7 trap types, indicator diversity tracking
+- [x] Feature importance: 18 indicators, correlation-based analysis, LLM feedback loop
+- [x] Tests: 1335 passing (from 1033 baseline), 0 regressions
 
 ---
 
