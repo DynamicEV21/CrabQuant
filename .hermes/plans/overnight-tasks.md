@@ -229,6 +229,20 @@ If you complete all tasks above, keep going. Here's the priority order:
   - Worker-2: 49 new tests for engine/backtest.py — BacktestResult, BacktestEngine.run(), run_vectorized(), edge cases. Commit: 0f2d4f4
   - Worker-3: 83 new tests for refinement/prompts.py — all prompt-building functions, failure guidance, composite score, parallel variants. Commit: 6c081af
   - Total: 207 new tests. Suite: 1889 passing (up from 1682). All 3 merges clean (no conflicts).
+- [2026-04-28 20:xx] Continuous improvement cycle 2 — 3 parallel workers dispatched:
+  - Worker-3 (completed first): 108 new tests expanding thin refinement test files:
+    - cosmetic_guard: 32 new tests (state from_dict, threshold edge cases, action tracking)
+    - hypothesis_enforcement: 31 new tests (generic patterns, boundary conditions, unicode)
+    - regime_tagger: 45 new tests (empty results, edge cases, SPY fallback, legacy tuples)
+    - Commits: 50282f9, a755dc4, 7f1085f
+  - Worker-1 (retry, completed): 70 new tests for run.py module:
+    - Constants, sample_params, mutate_params, save_result/load round-trip, print_result/summary, run_discovery, run_validation, main CLI, edge cases
+    - Commit: 10521a9
+  - Worker-2 (retry, completed): 55 new tests for confirm/runner.py:
+    - Slippage commission, profit factor, expectancy, run_confirmation (load/convert/backtest/success/edge cases)
+    - Commit: 9222bb7
+  - Total: 233 new tests. Suite: 2136 passing (up from 1889). All 3 merges clean (minor conflict in result files only).
+  - ALL core modules now have test coverage. Only untested: deprecated invention.py.
 
 ## Errors / Blockers
 
