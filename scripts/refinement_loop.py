@@ -15,6 +15,7 @@ Usage:
 """
 
 import json
+import logging
 import os
 import tempfile
 import time
@@ -23,6 +24,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
 import sys
+
+logger = logging.getLogger(__name__)
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent
@@ -55,7 +58,65 @@ from crabquant.refinement.wave_dashboard import generate_dashboard, snapshot_to_
 from crabquant.refinement.prompts import (
     get_parallel_prompt_variants,
     compute_composite_score,
+    VALID_ACTIONS,
 )
+
+
+# ── Action Type Validation ──────────────────────────────────────────────────
+# The LLM frequently returns action types that aren't in VALID_ACTIONS.
+# This mapping auto-corrects common invalid actions to valid ones.
+
+ACTION_ALIASES: Dict[str, str] = {
+    "new_strategy": "novel",
+    "create": "novel",
+    "propose_strategy": "novel",
+    "propose": "novel",
+    "iterate": "modify_params",
+    "simplify": "replace_indicator",
+    "modify": "modify_params",
+    "refine": "replace_indicator",
+    "refine_params": "modify_params",
+}
+
+DEFAULT_FALLBACK_ACTION = "novel"
+
+
+def validate_action(raw_action: str) -> Tuple[str, bool]:
+    """Validate and normalise an LLM-returned action type.
+
+    If the action is already in VALID_ACTIONS, return it unchanged.
+    If it matches a known alias, map it to the canonical action.
+    Otherwise, fall back to ``DEFAULT_FALLBACK_ACTION`` ("novel") and log a warning.
+
+    Args:
+        raw_action: The action string from the LLM response.
+
+    Returns:
+        Tuple of (validated_action, was_remapped).
+        ``was_remapped`` is True if the action was not already valid.
+    """
+    # Strip whitespace first so "  novel  " still matches
+    stripped = raw_action.strip() if raw_action else ""
+    if stripped in VALID_ACTIONS:
+        return stripped, False
+
+    # Try alias lookup (case-insensitive)
+    normalised = stripped.lower().replace("-", "_")
+    if normalised in ACTION_ALIASES:
+        mapped = ACTION_ALIASES[normalised]
+        logger.info(
+            "Action validation: mapped '%s' → '%s'",
+            raw_action, mapped,
+        )
+        return mapped, True
+
+    # Unknown action — default to "novel" with a warning
+    logger.warning(
+        "Action validation: unknown action '%s' — defaulting to '%s'. "
+        "Consider adding an alias for this action.",
+        raw_action, DEFAULT_FALLBACK_ACTION,
+    )
+    return DEFAULT_FALLBACK_ACTION, True
 
 
 def load_json(path: str) -> Dict[str, Any]:
@@ -692,7 +753,10 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             continue
         
         # Create modification object from LLM response
-        action = modification.get("action", "novel") if isinstance(modification, dict) else "novel"
+        raw_action = modification.get("action", "novel") if isinstance(modification, dict) else "novel"
+        action, action_was_remapped = validate_action(raw_action)
+        if action_was_remapped and action != raw_action:
+            print(f"  🔀 Action validation: '{raw_action}' → '{action}'")
         hypothesis = modification.get("hypothesis", "LLM-generated strategy") if isinstance(modification, dict) else "LLM-generated strategy"
         expected_impact = modification.get("expected_impact", "higher") if isinstance(modification, dict) else "higher"
         
