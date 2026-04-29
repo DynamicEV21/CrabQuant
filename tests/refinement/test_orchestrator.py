@@ -575,7 +575,7 @@ class TestRefinementLoop:
         mock_module.generate_signals = MagicMock(return_value=(MagicMock(), MagicMock()))
         mock_loader.return_value = mock_module
         result = _mock_backtest_result(sharpe=2.0, passed=True)
-        mock_backtest.return_value = (result, MagicMock(), MagicMock())
+        mock_backtest.return_value = (result, MagicMock(), MagicMock(), None)
         mock_guardrails.return_value = MagicMock(violations=[], warnings=[])
 
         mandate_path = self._make_mandate(tmp_path)
@@ -674,7 +674,7 @@ class TestRefinementLoop:
         mock_module.DEFAULT_PARAMS = {}
         mock_loader.return_value = mock_module
         mock_backtest.return_value = (
-            _mock_backtest_result(sharpe=0.3), MagicMock(), MagicMock()
+            _mock_backtest_result(sharpe=0.3), MagicMock(), MagicMock(), None
         )
         mock_guardrails.return_value = MagicMock(violations=[], warnings=[])
 
@@ -713,7 +713,7 @@ class TestRefinementLoop:
         mock_module.DEFAULT_PARAMS = {}
         mock_loader.return_value = mock_module
         mock_backtest.return_value = (
-            _mock_backtest_result(sharpe=0.3), MagicMock(), MagicMock()
+            _mock_backtest_result(sharpe=0.3), MagicMock(), MagicMock(), None
         )
         mock_guardrails.return_value = MagicMock(violations=[], warnings=[])
 
@@ -773,7 +773,7 @@ class TestRefinementLoop:
         mock_module.generate_signals = MagicMock(return_value=(MagicMock(), MagicMock()))
         mock_loader.return_value = mock_module
         result = _mock_backtest_result(sharpe=2.0, passed=True, num_trades=25)
-        mock_backtest.return_value = (result, MagicMock(), MagicMock())
+        mock_backtest.return_value = (result, MagicMock(), MagicMock(), None)
         mock_guardrails.return_value = MagicMock(violations=[], warnings=[])
 
         mandate_path = self._make_mandate(tmp_path)

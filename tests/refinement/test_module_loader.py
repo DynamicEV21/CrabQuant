@@ -77,66 +77,79 @@ def write_strategy(tmp_path):
 class TestLoadStrategyModule:
     def test_returns_module_for_valid_file(self, write_strategy):
         path = write_strategy(VALID_STRATEGY_CODE)
-        module = load_strategy_module(path)
+        module, err = load_strategy_module(path)
         assert module is not None
+        assert err is None
 
     def test_loaded_module_has_generate_signals(self, write_strategy):
         path = write_strategy(VALID_STRATEGY_CODE)
-        module = load_strategy_module(path)
+        module, err = load_strategy_module(path)
+        assert err is None
         assert hasattr(module, "generate_signals")
         assert callable(module.generate_signals)
 
     def test_loaded_module_has_default_params(self, write_strategy):
         path = write_strategy(VALID_STRATEGY_CODE)
-        module = load_strategy_module(path)
+        module, err = load_strategy_module(path)
+        assert err is None
         assert hasattr(module, "DEFAULT_PARAMS")
         assert isinstance(module.DEFAULT_PARAMS, dict)
 
     def test_loaded_module_has_param_grid(self, write_strategy):
         path = write_strategy(VALID_STRATEGY_CODE)
-        module = load_strategy_module(path)
+        module, err = load_strategy_module(path)
+        assert err is None
         assert hasattr(module, "PARAM_GRID")
         assert isinstance(module.PARAM_GRID, dict)
 
     def test_returns_none_for_nonexistent_path(self, tmp_path):
-        result = load_strategy_module(tmp_path / "ghost.py")
-        assert result is None
+        module, err = load_strategy_module(tmp_path / "ghost.py")
+        assert module is None
+        assert err is not None
+        assert err["error_type"] == "FileNotFoundError"
 
     def test_returns_none_for_syntax_error(self, write_strategy):
         path = write_strategy(SYNTAX_ERROR_CODE)
-        result = load_strategy_module(path)
-        assert result is None
+        module, err = load_strategy_module(path)
+        assert module is None
+        assert err is not None
 
     def test_returns_none_for_missing_generate_signals(self, write_strategy):
         path = write_strategy(MISSING_GENERATE_SIGNALS)
-        result = load_strategy_module(path)
-        assert result is None
+        module, err = load_strategy_module(path)
+        assert module is None
+        assert err is not None
 
     def test_returns_none_for_missing_default_params(self, write_strategy):
         path = write_strategy(MISSING_DEFAULT_PARAMS)
-        result = load_strategy_module(path)
-        assert result is None
+        module, err = load_strategy_module(path)
+        assert module is None
+        assert err is not None
 
     def test_accepts_missing_param_grid(self, write_strategy):
         """PARAM_GRID is optional for LLM-generated strategies."""
         path = write_strategy(MISSING_PARAM_GRID)
-        result = load_strategy_module(path)
-        assert result is not None
+        module, err = load_strategy_module(path)
+        assert module is not None
+        assert err is None
 
     def test_returns_none_for_runtime_error_at_import(self, write_strategy):
         path = write_strategy(RUNTIME_ERROR_CODE)
-        result = load_strategy_module(path)
-        assert result is None
+        module, err = load_strategy_module(path)
+        assert module is None
+        assert err is not None
 
     def test_accepts_string_path(self, write_strategy):
         path = write_strategy(VALID_STRATEGY_CODE)
-        module = load_strategy_module(str(path))
+        module, err = load_strategy_module(str(path))
         assert module is not None
+        assert err is None
 
     def test_custom_module_name(self, write_strategy):
         path = write_strategy(VALID_STRATEGY_CODE)
-        module = load_strategy_module(path, module_name="my_custom_name")
+        module, err = load_strategy_module(path, module_name="my_custom_name")
         assert module is not None
+        assert err is None
         assert "my_custom_name" in sys.modules
 
     def test_default_module_name_derives_from_stem(self, write_strategy):
@@ -147,19 +160,20 @@ class TestLoadStrategyModule:
     def test_reloads_stale_cached_module(self, write_strategy):
         """Loading same module name twice uses the latest code, not the cached version."""
         path = write_strategy(VALID_STRATEGY_CODE)
-        m1 = load_strategy_module(path, module_name="test_stale_cache")
+        m1, _ = load_strategy_module(path, module_name="test_stale_cache")
 
         updated_code = VALID_STRATEGY_CODE.replace('{"period": 14}', '{"period": 99}')
         path.write_text(updated_code)
 
-        m2 = load_strategy_module(path, module_name="test_stale_cache")
+        m2, _ = load_strategy_module(path, module_name="test_stale_cache")
         assert m2.DEFAULT_PARAMS["period"] == 99
 
     def test_loads_real_rsi_crossover_strategy(self):
         """Smoke test: load an actual strategy from the crabquant strategies directory."""
         strategy_path = Path("crabquant/strategies/rsi_crossover.py")
-        module = load_strategy_module(strategy_path)
+        module, err = load_strategy_module(strategy_path)
         assert module is not None
+        assert err is None
         assert callable(module.generate_signals)
         assert isinstance(module.DEFAULT_PARAMS, dict)
         assert isinstance(module.PARAM_GRID, dict)
@@ -229,14 +243,16 @@ class TestLoadStrategyModuleEdgeCases:
     """Additional edge-case tests for load_strategy_module."""
 
     def test_returns_none_for_directory_path(self, tmp_path):
-        result = load_strategy_module(tmp_path)
-        assert result is None
+        module, err = load_strategy_module(tmp_path)
+        assert module is None
+        assert err is not None
 
     def test_returns_none_for_non_py_file(self, write_strategy):
         path = write_strategy(VALID_STRATEGY_CODE, filename="strategy.txt")
         # importlib can't create a spec for non-.py files
-        result = load_strategy_module(path, module_name="txt_file_test")
-        assert result is None
+        module, err = load_strategy_module(path, module_name="txt_file_test")
+        assert module is None
+        assert err is not None
 
     def test_unicode_code_loads_correctly(self, write_strategy):
         code = textwrap.dedent("""
@@ -246,8 +262,9 @@ class TestLoadStrategyModuleEdgeCases:
                 return None, None
         """).strip()
         path = write_strategy(code, filename="unicode_strategy.py")
-        module = load_strategy_module(path, module_name="unicode_test")
+        module, err = load_strategy_module(path, module_name="unicode_test")
         assert module is not None
+        assert err is None
         assert module.DESCRIPTION == "RSI 策略 — 反转信号"
 
     def test_import_error_in_code(self, write_strategy):
@@ -258,29 +275,33 @@ class TestLoadStrategyModuleEdgeCases:
                 return None, None
         """).strip()
         path = write_strategy(code, filename="import_err.py")
-        result = load_strategy_module(path, module_name="import_err_test")
-        assert result is None
+        module, err = load_strategy_module(path, module_name="import_err_test")
+        assert module is None
+        assert err is not None
 
     def test_empty_file(self, write_strategy):
         path = write_strategy("", filename="empty.py")
-        result = load_strategy_module(path, module_name="empty_test")
-        assert result is None
+        module, err = load_strategy_module(path, module_name="empty_test")
+        assert module is None
+        assert err is not None
 
     def test_only_comments(self, write_strategy):
         code = "# This is a comment\n# Another comment\n"
         path = write_strategy(code, filename="comments.py")
-        result = load_strategy_module(path, module_name="comments_test")
-        assert result is None
+        module, err = load_strategy_module(path, module_name="comments_test")
+        assert module is None
+        assert err is not None
 
     def test_module_has_correct_file_attribute(self, write_strategy):
         path = write_strategy(VALID_STRATEGY_CODE, filename="my_strat.py")
-        module = load_strategy_module(path, module_name="file_attr_test")
+        module, err = load_strategy_module(path, module_name="file_attr_test")
         assert module is not None
+        assert err is None
         assert str(path) in module.__file__
 
     def test_generate_signals_is_callable(self, write_strategy):
         path = write_strategy(VALID_STRATEGY_CODE)
-        module = load_strategy_module(path, module_name="callable_test")
+        module, _ = load_strategy_module(path, module_name="callable_test")
         assert callable(module.generate_signals)
 
     def test_non_callable_generate_signals_rejected(self, write_strategy):
@@ -290,8 +311,9 @@ class TestLoadStrategyModuleEdgeCases:
         """).strip()
         path = write_strategy(code, filename="non_callable.py")
         # hasattr check passes since attribute exists (even if not callable)
-        module = load_strategy_module(path, module_name="non_callable_test")
+        module, err = load_strategy_module(path, module_name="non_callable_test")
         assert module is not None  # only checks hasattr, not callable
+        assert err is None
 
     def test_default_params_not_dict(self, write_strategy):
         code = textwrap.dedent("""
@@ -301,14 +323,16 @@ class TestLoadStrategyModuleEdgeCases:
         """).strip()
         path = write_strategy(code, filename="bad_params.py")
         # Only checks hasattr, not type
-        module = load_strategy_module(path, module_name="bad_params_test")
+        module, err = load_strategy_module(path, module_name="bad_params_test")
         assert module is not None
+        assert err is None
 
     def test_module_name_with_dashes(self, write_strategy):
         path = write_strategy(VALID_STRATEGY_CODE)
         # Dashes in module name are technically valid for importlib
-        module = load_strategy_module(path, module_name="my-strategy-test")
+        module, err = load_strategy_module(path, module_name="my-strategy-test")
         assert module is not None
+        assert err is None
         assert "my-strategy-test" in sys.modules
 
     def test_deeply_nested_directory(self, tmp_path):
@@ -316,8 +340,9 @@ class TestLoadStrategyModuleEdgeCases:
         nested.mkdir(parents=True)
         path = nested / "deep_strategy.py"
         path.write_text(VALID_STRATEGY_CODE)
-        module = load_strategy_module(path, module_name="deep_test")
+        module, err = load_strategy_module(path, module_name="deep_test")
         assert module is not None
+        assert err is None
 
     def test_infinite_loop_protection_at_import(self, write_strategy):
         code = textwrap.dedent("""
@@ -327,8 +352,9 @@ class TestLoadStrategyModuleEdgeCases:
                 return None, None
         """).strip()
         path = write_strategy(code, filename="safe_import.py")
-        module = load_strategy_module(path, module_name="safe_import_test")
+        module, err = load_strategy_module(path, module_name="safe_import_test")
         assert module is not None
+        assert err is None
 
     def test_syntax_error_in_function_body(self, write_strategy):
         code = textwrap.dedent("""
@@ -338,8 +364,9 @@ class TestLoadStrategyModuleEdgeCases:
                 return None, None
         """).strip()
         path = write_strategy(code, filename="fn_syntax_err.py")
-        result = load_strategy_module(path, module_name="fn_syntax_test")
-        assert result is None
+        module, err = load_strategy_module(path, module_name="fn_syntax_test")
+        assert module is None
+        assert err is not None
 
     def test_name_error_at_module_level(self, write_strategy):
         code = textwrap.dedent("""
@@ -349,8 +376,9 @@ class TestLoadStrategyModuleEdgeCases:
                 return None, None
         """).strip()
         path = write_strategy(code, filename="name_err.py")
-        result = load_strategy_module(path, module_name="name_err_test")
-        assert result is None
+        module, err = load_strategy_module(path, module_name="name_err_test")
+        assert module is None
+        assert err is not None
 
 
 # ─── Expanded load_module_from_code edge cases ─────────────────────────────

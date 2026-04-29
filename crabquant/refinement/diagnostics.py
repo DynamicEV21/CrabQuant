@@ -2,6 +2,7 @@
 
 import hashlib
 import logging
+import traceback
 from pathlib import Path
 from types import ModuleType
 
@@ -14,6 +15,25 @@ from crabquant.regime import detect_regime
 logger = logging.getLogger(__name__)
 
 
+def _build_error_info(exc: Exception) -> dict:
+    """Build a structured error info dict from an exception.
+
+    Args:
+        exc: The caught exception.
+
+    Returns:
+        Dict with error_type, error_message, and error_traceback (last 10 lines).
+    """
+    tb_lines = traceback.format_exception(type(exc), exc, exc.__traceback__)
+    # Take last 10 lines of traceback (the most relevant part)
+    last_lines = tb_lines[-10:] if len(tb_lines) > 10 else tb_lines
+    return {
+        "error_type": type(exc).__name__,
+        "error_message": str(exc),
+        "error_traceback": "".join(last_lines).strip(),
+    }
+
+
 def run_backtest_safely(
     strategy_module: ModuleType,
     ticker: str,
@@ -22,15 +42,25 @@ def run_backtest_safely(
 ) -> tuple:
     """Load data, generate signals, and run a backtest.
 
-    Returns (BacktestResult, df, portfolio) on success, or (None, None, None) on any
-    error.  When return_portfolio=True the engine is called with that kwarg and
-    the vbt.Portfolio object is returned as the third element.
+    Returns (BacktestResult, df, portfolio, None) on success, or
+    (None, None, None, error_info_dict) on any error.  When return_portfolio=True
+    the engine is called with that kwarg and the vbt.Portfolio object is returned
+    as the third element.
+
+    The 4th element is always None on success and an error_info dict on failure,
+    providing backward compatibility for callers that only unpack 3 elements.
+    error_info_dict contains: error_type, error_message, error_traceback.
     """
     try:
         df = load_data(ticker, period)
         if df is None or df.empty:
             logger.warning("No data for %s/%s", ticker, period)
-            return None, None, None
+            error_info = {
+                "error_type": "ValueError",
+                "error_message": f"No data available for {ticker}/{period}",
+                "error_traceback": "",
+            }
+            return None, None, None, error_info
 
         params = strategy_module.DEFAULT_PARAMS
         entries, exits = strategy_module.generate_signals(df, params)
@@ -60,14 +90,14 @@ def run_backtest_safely(
                 ticker=ticker,
             )
 
-        return result, df, portfolio
+        return result, df, portfolio, None
 
     except ValueError as e:
         logger.warning("Data error for %s: %s", ticker, e)
-        return None, None, None
+        return None, None, None, _build_error_info(e)
     except Exception as e:
         logger.warning("Backtest error for %s: %s", ticker, e)
-        return None, None, None
+        return None, None, None, _build_error_info(e)
 
 
 def run_multi_ticker_backtest(
@@ -115,7 +145,7 @@ def run_multi_ticker_backtest(
         }
 
         try:
-            result, df, portfolio = run_backtest_safely(
+            result, df, portfolio, _ = run_backtest_safely(
                 strategy_module, ticker, period, return_portfolio=True
             )
             if result is not None:

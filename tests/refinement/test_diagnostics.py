@@ -95,7 +95,7 @@ class TestRunBacktestSafely:
         mock_engine.run.return_value = result
 
         module = make_strategy_module()
-        r, ret_df, portfolio = run_backtest_safely(module, "AAPL", "2y", return_portfolio=False)
+        r, ret_df, portfolio, _ = run_backtest_safely(module, "AAPL", "2y", return_portfolio=False)
 
         assert r is result
         assert ret_df is df
@@ -117,7 +117,7 @@ class TestRunBacktestSafely:
         mock_engine.run.return_value = (result, mock_pf)
 
         module = make_strategy_module()
-        r, ret_df, pf = run_backtest_safely(module, "AAPL", "2y", return_portfolio=True)
+        r, ret_df, pf, _ = run_backtest_safely(module, "AAPL", "2y", return_portfolio=True)
 
         assert r is result
         assert ret_df is df
@@ -138,7 +138,7 @@ class TestRunBacktestSafely:
         ]
 
         module = make_strategy_module()
-        r, ret_df, pf = run_backtest_safely(module, "AAPL", "2y", return_portfolio=True)
+        r, ret_df, pf, _ = run_backtest_safely(module, "AAPL", "2y", return_portfolio=True)
 
         assert r is result
         assert ret_df is df
@@ -150,14 +150,14 @@ class TestRunBacktestSafely:
         """ValueError from load_data → (None, None, None)."""
         mock_load.side_effect = ValueError("No data returned from yfinance for 'FAKE'")
         module = make_strategy_module()
-        assert run_backtest_safely(module, "FAKE", "2y") == (None, None, None)
+        assert run_backtest_safely(module, "FAKE", "2y")[:3] == (None, None, None)
 
     @patch("crabquant.refinement.diagnostics.load_data")
-    def test_empty_dataframe_returns_none_tuple(self, mock_load):
-        """Empty DataFrame from load_data → (None, None, None)."""
+    def test_empty_df_returns_none_tuple(self, mock_load):
+        """Empty DataFrame → (None, None, None)."""
         mock_load.return_value = pd.DataFrame()
         module = make_strategy_module()
-        assert run_backtest_safely(module, "FAKE", "2y") == (None, None, None)
+        assert run_backtest_safely(module, "FAKE", "2y")[:3] == (None, None, None)
 
     @patch("crabquant.refinement.diagnostics.BacktestEngine")
     @patch("crabquant.refinement.diagnostics.load_data")
@@ -169,7 +169,10 @@ class TestRunBacktestSafely:
             raise RuntimeError("indicator blew up")
 
         module = make_strategy_module(signals_fn=bad_signals)
-        assert run_backtest_safely(module, "AAPL", "2y") == (None, None, None)
+        result = run_backtest_safely(module, "AAPL", "2y")
+        assert result[:3] == (None, None, None)
+        assert result[3] is not None  # error_info dict present
+        assert result[3]["error_type"] == "RuntimeError"
 
     @patch("crabquant.refinement.diagnostics.BacktestEngine")
     @patch("crabquant.refinement.diagnostics.load_data")
@@ -223,7 +226,7 @@ class TestRunBacktestSafely:
             pd.Series(False, index=df.index),
         )
 
-        r, ret_df, pf = run_backtest_safely(module, "AAPL")
+        r, ret_df, pf, _ = run_backtest_safely(module, "AAPL")
         assert r is not None
 
 
@@ -491,8 +494,8 @@ class TestRunMultiTickerBacktest:
         r2 = make_result(ticker="AAPL", sharpe=1.8)
         with patch("crabquant.refinement.diagnostics.run_backtest_safely") as mock_bt:
             mock_bt.side_effect = [
-                (r1, MagicMock(), MagicMock()),
-                (r2, MagicMock(), MagicMock()),
+                (r1, MagicMock(), MagicMock(), None),
+                (r2, MagicMock(), MagicMock(), None),
             ]
             result = run_multi_ticker_backtest(
                 mock_module, ["SPY", "AAPL"], sharpe_target=1.0
@@ -511,8 +514,8 @@ class TestRunMultiTickerBacktest:
         r2 = make_result(ticker="AAPL", sharpe=-0.5)
         with patch("crabquant.refinement.diagnostics.run_backtest_safely") as mock_bt:
             mock_bt.side_effect = [
-                (r1, MagicMock(), MagicMock()),
-                (r2, MagicMock(), MagicMock()),
+                (r1, MagicMock(), MagicMock(), None),
+                (r2, MagicMock(), MagicMock(), None),
             ]
             result = run_multi_ticker_backtest(
                 mock_module, ["SPY", "AAPL"], sharpe_target=1.0
@@ -528,9 +531,9 @@ class TestRunMultiTickerBacktest:
         r3 = make_result(ticker="MSFT", sharpe=1.2)
         with patch("crabquant.refinement.diagnostics.run_backtest_safely") as mock_bt:
             mock_bt.side_effect = [
-                (r1, MagicMock(), MagicMock()),
-                (r2, MagicMock(), MagicMock()),
-                (r3, MagicMock(), MagicMock()),
+                (r1, MagicMock(), MagicMock(), None),
+                (r2, MagicMock(), MagicMock(), None),
+                (r3, MagicMock(), MagicMock(), None),
             ]
             result = run_multi_ticker_backtest(
                 mock_module, ["SPY", "AAPL", "MSFT"], sharpe_target=1.0
@@ -540,10 +543,10 @@ class TestRunMultiTickerBacktest:
         assert result["pass_rate"] == pytest.approx(2/3)
 
     def test_handles_backtest_failure(self):
-        """When run_backtest_safely returns (None, None, None), entry should show error."""
+        """When run_backtest_safely returns (None, None, None, error_info), entry should show error."""
         mock_module = MagicMock()
         with patch("crabquant.refinement.diagnostics.run_backtest_safely") as mock_bt:
-            mock_bt.return_value = (None, None, None)
+            mock_bt.return_value = (None, None, None, {"error_type": "ValueError", "error_message": "no data", "error_traceback": ""})
             result = run_multi_ticker_backtest(
                 mock_module, ["BADTK"], sharpe_target=1.0
             )
@@ -579,8 +582,8 @@ class TestRunMultiTickerBacktest:
         r2 = make_result(ticker="AAPL", sharpe=-0.5)
         with patch("crabquant.refinement.diagnostics.run_backtest_safely") as mock_bt:
             mock_bt.side_effect = [
-                (r1, MagicMock(), MagicMock()),
-                (r2, MagicMock(), MagicMock()),
+                (r1, MagicMock(), MagicMock(), None),
+                (r2, MagicMock(), MagicMock(), None),
             ]
             result = run_multi_ticker_backtest(mock_module, ["SPY", "AAPL"])
         assert result["tickers_passed"] == 1  # Only SPY (0.1 >= 0)
@@ -590,7 +593,7 @@ class TestRunMultiTickerBacktest:
         mock_module = MagicMock()
         r1 = make_result(ticker="SPY", sharpe=2.0, num_trades=50, max_drawdown=-0.08)
         with patch("crabquant.refinement.diagnostics.run_backtest_safely") as mock_bt:
-            mock_bt.return_value = (r1, MagicMock(), MagicMock())
+            mock_bt.return_value = (r1, MagicMock(), MagicMock(), None)
             result = run_multi_ticker_backtest(mock_module, ["SPY"])
         assert "SPY" in result["summary"]
         assert "✅" in result["summary"]
@@ -602,8 +605,8 @@ class TestRunMultiTickerBacktest:
         r2 = make_result(ticker="AAPL", sharpe=0.5)
         with patch("crabquant.refinement.diagnostics.run_backtest_safely") as mock_bt:
             mock_bt.side_effect = [
-                (r1, MagicMock(), MagicMock()),
-                (r2, MagicMock(), MagicMock()),
+                (r1, MagicMock(), MagicMock(), None),
+                (r2, MagicMock(), MagicMock(), None),
             ]
             result = run_multi_ticker_backtest(mock_module, ["SPY", "AAPL"])
         assert result["min_sharpe"] == pytest.approx(0.5)

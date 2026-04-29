@@ -440,6 +440,11 @@ def build_llm_context(
     if stagnation_recovery:
         context["stagnation_recovery"] = stagnation_recovery
 
+    # Phase 6: Recent crash error feedback — help LLM learn from failures
+    crash_feedback = _build_crash_error_feedback(state)
+    if crash_feedback:
+        context["crash_error_feedback"] = crash_feedback
+
     return context
 
 
@@ -533,3 +538,80 @@ def _build_stagnation_recovery_section(state) -> str:
     )
 
     return header + recovery
+
+
+def _build_crash_error_feedback(state) -> str:
+    """Build crash error feedback section for LLM context injection.
+
+    Analyzes turn history to find recent backtest_crash and module_load_failed
+    entries with error details. Formats the last 2-3 crash errors as actionable
+    feedback so the LLM can learn from its mistakes.
+
+    Args:
+        state: RunState dataclass instance.
+
+    Returns:
+        Formatted feedback string for prompt injection, or empty string if
+        no crash errors found.
+    """
+    history = getattr(state, "history", [])
+
+    # Find recent crash errors (with error detail)
+    crash_entries = [
+        h for h in history
+        if h.get("status") in ("backtest_crash", "module_load_failed")
+        and h.get("error")
+    ]
+
+    if not crash_entries:
+        return ""
+
+    # Take the last 3 most recent crashes
+    recent_crashes = crash_entries[-3:]
+
+    from crabquant.refinement.prompts import get_crash_recovery_hints
+
+    lines = [
+        "## Recent Code Crashes — FIX THESE ERRORS",
+        "",
+        "Your previous strategy code crashed during backtesting. Below are the ",
+        "exact error messages. Read them carefully and fix the root cause.",
+        "",
+    ]
+
+    for entry in recent_crashes:
+        turn = entry.get("turn", "?")
+        status = entry.get("status", "unknown")
+        error = entry.get("error", {})
+        error_type = error.get("error_type", "UnknownError")
+        error_msg = error.get("error_message", "No details available")
+        tb = error.get("error_traceback", "")
+
+        lines.append(f"### Turn {turn} — {status}")
+        lines.append(f"**Error:** `{error_type}: {error_msg}`")
+
+        # Show traceback (truncated to last 5 lines for readability)
+        if tb:
+            tb_lines = tb.strip().split("\n")
+            relevant = tb_lines[-5:] if len(tb_lines) > 5 else tb_lines
+            lines.append("**Traceback (last frames):**")
+            for tb_line in relevant:
+                lines.append(f"```\n{tb_line}\n```")
+
+        # Add recovery hints based on error type
+        hints = get_crash_recovery_hints(error_type, error_msg)
+        if hints:
+            lines.append(f"**How to fix:** {hints}")
+
+        lines.append("")
+
+    # Add common patterns summary
+    lines.append("---")
+    lines.append("**Common crash patterns and fixes:**")
+    lines.append("- `KeyError` on column name → Use lowercase: 'open', 'high', 'low', 'close', 'volume'")
+    lines.append("- `NameError` for indicator → Import from `crabquant.indicators` or use `cached_indicator()`")
+    lines.append("- `TypeError` in `generate_signals` → Must accept exactly `(df, params)` and return `(entries, exits)`")
+    lines.append("- `AttributeError` on DataFrame → Check column names, use `df['close']` not `df.Close`")
+    lines.append("- `ImportError` → Only use standard lib + pandas + pandas_ta + crabquant modules")
+
+    return "\n".join(lines)

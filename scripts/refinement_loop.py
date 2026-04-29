@@ -397,7 +397,12 @@ def _run_parallel_invention(
             variant_path.write_text(strategy_code)
 
             # Load and backtest
-            variant_module = load_strategy_module(variant_path)
+            load_result = load_strategy_module(variant_path)
+            # Handle both old (ModuleType|None) and new (ModuleType | tuple) return types
+            if isinstance(load_result, tuple):
+                variant_module = load_result[0]
+            else:
+                variant_module = load_result
             if variant_module is not None:
                 primary_ticker = mandate.get("primary_ticker", mandate.get("tickers", ["SPY"])[0])
                 period = mandate.get("period", "1y")
@@ -406,7 +411,7 @@ def _run_parallel_invention(
                     return_portfolio=True,
                 )
                 if backtest_output is not None:
-                    result, df, portfolio = backtest_output
+                    result, df, portfolio, _ = backtest_output
                     composite = compute_composite_score(
                         sharpe=result.sharpe,
                         trades=result.num_trades,
@@ -713,10 +718,34 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         strategy_path.write_text(strategy_code)
         
         # 3b. Load strategy module
-        strategy_module = load_strategy_module(strategy_path)
+        load_result = load_strategy_module(strategy_path)
+        # Handle both old (ModuleType|None) and new (ModuleType | tuple) return types
+        if isinstance(load_result, tuple):
+            strategy_module, load_error = load_result
+        else:
+            strategy_module = load_result
+            load_error = None
+
         if strategy_module is None:
-            print(f"  Failed to load strategy module. Advancing turn.")
-            state.history.append({"turn": turn, "status": "module_load_failed"})
+            error_detail = load_error or {}
+            print(f"  Failed to load strategy module: {error_detail.get('error_type', 'unknown')} - {error_detail.get('error_message', 'no details')}")
+            # Phase 6: Track action analytics for failed turn
+            track_action_result(
+                mandate=state.mandate_name,
+                turn=turn,
+                action=action,
+                sharpe=0.0,
+                success=False,
+                failure_mode="module_load_failed",
+                path=str(results_dir / "run_history.jsonl"),
+            )
+            state.history.append({
+                "turn": turn,
+                "status": "module_load_failed",
+                "error": error_detail,
+                "action": action,
+                "hypothesis": getattr(modification, "hypothesis", ""),
+            })
             save_state(run_dir, state)
             _write_dashboard(run_dir)
             continue
@@ -734,8 +763,13 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         if bt_elapsed > 30:
             print(f"  ⚠️ Backtest slow ({bt_elapsed:.1f}s > 30s)", flush=True)
         
-        if backtest_output is None:
-            print(f"  Backtest crashed. Advancing turn.")
+        # Phase 6: Extract error info from 4th return element
+        backtest_error = None
+        if backtest_output is not None and len(backtest_output) > 3:
+            backtest_error = backtest_output[3]
+        if backtest_output is None or backtest_output[0] is None:
+            error_detail = backtest_error or {}
+            print(f"  Backtest crashed: {error_detail.get('error_type', 'unknown')} - {error_detail.get('error_message', 'no details')}")
             # Phase 3: Track action analytics for failed turn
             track_action_result(
                 mandate=state.mandate_name,
@@ -747,13 +781,16 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 path=str(results_dir / "run_history.jsonl"),
             )
             state.history.append({
-                "turn": turn, "status": "backtest_crash"
+                "turn": turn, "status": "backtest_crash",
+                "error": error_detail,
+                "action": action,
+                "hypothesis": getattr(modification, "hypothesis", ""),
             })
             save_state(run_dir, state)
             _write_dashboard(run_dir)
             continue
         
-        result, df, portfolio = backtest_output
+        result, df, portfolio, _ = backtest_output
         
         # ── Multi-ticker backtest (Phase 5.6) ────────────────────────────
         # If enabled, backtest on secondary tickers to detect single-ticker overfit.
@@ -1139,7 +1176,12 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             best_strategy_file = Path(state.best_code_path)
             if best_strategy_file.exists():
                 strategy_code = best_strategy_file.read_text()
-                best_module = load_strategy_module(best_strategy_file)
+                best_module_load = load_strategy_module(best_strategy_file)
+                # Handle both old (ModuleType|None) and new (ModuleType | tuple) return types
+                if isinstance(best_module_load, tuple):
+                    best_module = best_module_load[0]
+                else:
+                    best_module = best_module_load
 
                 if best_module is not None:
                     # Build a synthetic result-like object for promote_to_winner

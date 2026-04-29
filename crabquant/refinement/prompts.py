@@ -657,6 +657,27 @@ def build_failure_guidance(
             "- Try different indicator parameters or a different indicator family entirely\n"
             "- Consider adding a trend filter — only take signals in the direction of the trend"
         ),
+        "backtest_crash": (
+            "### ⚠️ ACTION REQUIRED: Fix Code Crash\n"
+            "Your strategy code crashed during backtesting. This is NOT a performance issue — "
+            "your code has a bug that prevents it from running.\n\n"
+            "**Common causes:**\n"
+            "- Wrong column names: use lowercase 'open', 'high', 'low', 'close', 'volume'\n"
+            "- Missing imports: import indicators from `crabquant.indicators`\n"
+            "- Wrong function signature: `generate_signals(df, params)` returns `(entries, exits)`\n"
+            "- NaN handling: use `.fillna()` or `.dropna()` on indicator outputs\n\n"
+            "**Check the crash error details in the feedback section above and fix the exact error.**"
+        ),
+        "module_load_failed": (
+            "### ⚠️ ACTION REQUIRED: Fix Import/Load Error\n"
+            "Your strategy module failed to load. This means there is a syntax error, "
+            "import error, or other issue preventing Python from loading your code.\n\n"
+            "**Common causes:**\n"
+            "- SyntaxError: check for missing colons, unmatched parentheses, bad indentation\n"
+            "- ImportError: only use standard lib + pandas + numpy + crabquant modules\n"
+            "- NameError at module level: all top-level code must be valid\n\n"
+            "**Check the crash error details in the feedback section above and fix the exact error.**"
+        ),
     }
 
     template = guidance_map.get(failure_mode, "")
@@ -911,3 +932,159 @@ def build_refinement_prompt(
         winner_examples_section=winner_section,
         indicator_quick_ref=indicator_quick_ref,
     )
+
+
+# ── Phase 6: Crash error recovery hints ──────────────────────────────────────
+
+_CRASH_HINTS: list[tuple[str, str, str]] = [
+    # (error_type_pattern, message_pattern, hint)
+    (
+        "KeyError",
+        "",
+        "Check column names — use lowercase: 'open', 'high', 'low', 'close', 'volume'. "
+        "DataFrame columns are lowercase in CrabQuant. Access via df['close'], not df.Close.",
+    ),
+    (
+        "NameError",
+        "not defined",
+        "A variable or function is used without being defined or imported. "
+        "If it's an indicator, import it from `crabquant.indicators` or use `cached_indicator('indicator_name', df)`.",
+    ),
+    (
+        "TypeError",
+        "generate_signals",
+        "`generate_signals` must accept exactly two arguments: `(df, params)` and return "
+        "a tuple of two Series `(entries, exits)` with boolean values. "
+        "Do NOT add extra parameters.",
+    ),
+    (
+        "TypeError",
+        "missing",
+        "A function is called with the wrong number of arguments. "
+        "Check the function signature and ensure all required parameters are passed.",
+    ),
+    (
+        "AttributeError",
+        "",
+        "An attribute or method does not exist on the object. "
+        "For DataFrames, use bracket notation: df['close'] not df.close. "
+        "Check that indicator functions return the expected type.",
+    ),
+    (
+        "ImportError",
+        "",
+        "A module could not be imported. Only use standard library, pandas, pandas_ta, "
+        "numpy, and crabquant modules. Do not import third-party libraries like talib, "
+        "ta-lib, sklearn, or scipy unless explicitly available.",
+    ),
+    (
+        "ModuleNotFoundError",
+        "",
+        "A module could not be found. Only use standard library, pandas, pandas_ta, "
+        "numpy, and crabquant modules.",
+    ),
+    (
+        "ValueError",
+        "array",
+        "An array operation failed — possibly due to NaN values or shape mismatch. "
+        "Use `.dropna()`, `.fillna()`, or `np.nan_to_num()` to handle NaN values. "
+        "Check that your indicators produce the same length as the input DataFrame.",
+    ),
+    (
+        "ValueError",
+        "Truth value",
+        "You likely used a Series/DataFrame in a boolean context (e.g., `if df['signal']:`). "
+        "Use `.any()`, `.all()`, or `.iloc[0]` to get a scalar boolean.",
+    ),
+    (
+        "ZeroDivisionError",
+        "",
+        "Division by zero occurred — likely a denominator that can be zero. "
+        "Add a small epsilon: `denom = series + 1e-10` or guard with `.replace(0, np.nan)`.",
+    ),
+    (
+        "IndexError",
+        "",
+        "An index is out of bounds — likely accessing a list/array with an invalid index. "
+        "Check array lengths before indexing, or use `.iloc[-1]` instead of `.iloc[N]`.",
+    ),
+    (
+        "SyntaxError",
+        "",
+        "The generated code has invalid Python syntax. Check for missing colons, "
+        "unmatched parentheses, or incorrect indentation. Make sure all string literals are properly closed.",
+    ),
+    (
+        "IndentationError",
+        "",
+        "Python indentation is incorrect. Ensure consistent use of 4 spaces for indentation. "
+        "Do not mix tabs and spaces.",
+    ),
+]
+
+
+def get_crash_recovery_hints(error_type: str, error_message: str) -> str:
+    """Return recovery hint text for a crash error.
+
+    Matches the error_type and error_message against known patterns and returns
+    the most specific hint available.
+
+    Args:
+        error_type: Exception class name (e.g., 'KeyError', 'NameError').
+        error_message: Exception message string.
+
+    Returns:
+        A recovery hint string, or empty string if no hint matches.
+    """
+    hints: list[str] = []
+
+    for pattern_type, pattern_msg, hint in _CRASH_HINTS:
+        type_match = pattern_type.lower() in error_type.lower()
+        msg_match = not pattern_msg or pattern_msg.lower() in error_message.lower()
+        if type_match and msg_match:
+            hints.append(hint)
+
+    if hints:
+        # Deduplicate while preserving order
+        seen = set()
+        unique = []
+        for h in hints:
+            if h not in seen:
+                seen.add(h)
+                unique.append(h)
+        return " ".join(unique)
+
+    return ""
+
+
+def build_crash_guidance(error_info: dict | None) -> str:
+    """Build guidance text for crash errors (backtest_crash / module_load_failed).
+
+    This is the Phase 6 equivalent of build_failure_guidance() but for code
+    crashes rather than metric failures.
+
+    Args:
+        error_info: Dict with 'error_type', 'error_message', optionally 'error_traceback'.
+
+    Returns:
+        Formatted guidance string.
+    """
+    if not error_info:
+        return ""
+
+    error_type = error_info.get("error_type", "UnknownError")
+    error_message = error_info.get("error_message", "No details")
+    hints = get_crash_recovery_hints(error_type, error_message)
+
+    lines = [
+        f"Your strategy code crashed with: {error_type}: {error_message}",
+    ]
+    if hints:
+        lines.append(f"Fix: {hints}")
+    else:
+        lines.append(
+            "Fix: Review your code for bugs. Common issues: wrong column names, "
+            "missing imports, incorrect function signatures, NaN handling."
+        )
+
+    return "\n".join(lines)

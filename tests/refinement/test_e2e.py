@@ -97,7 +97,7 @@ class TestE2ESmoke:
         mock_load_mod.return_value = self._make_mock_strategy_module()
 
         mock_portfolio = MagicMock()
-        mock_backtest.return_value = (self._make_mock_backtest_result(sharpe=2.0), MagicMock(), mock_portfolio)
+        mock_backtest.return_value = (self._make_mock_backtest_result(sharpe=2.0), MagicMock(), mock_portfolio, None)
         mock_sharpe_yr.return_value = {"2024": 2.0}
         mock_classify.return_value = ("none", {})
         mock_guardrails.return_value = MagicMock(violations=[], warnings=[])
@@ -267,6 +267,7 @@ class TestE2EMandateConfigs:
                 ),
                 MagicMock(),  # df
                 MagicMock(),  # portfolio
+                None,  # error_info (Phase 6)
             ),
             "compute_sharpe_by_year": {"2024": 2.0},
             "classify_failure": ("none", {}),
@@ -367,7 +368,7 @@ class TestE2EMandateConfigs:
                  DEFAULT_PARAMS={}, PARAM_GRID={}, DESCRIPTION="test",
              )), \
              patch("refinement_loop.run_backtest_safely",
-                   return_value=(high_sharpe_result, MagicMock(), MagicMock())), \
+                   return_value=(high_sharpe_result, MagicMock(), MagicMock(), None)), \
              patch("refinement_loop.compute_sharpe_by_year", return_value={"2024": 5.0}), \
              patch("refinement_loop.classify_failure", return_value=("none", {})), \
              patch("refinement_loop.check_guardrails",
@@ -420,7 +421,7 @@ class TestE2EMandateConfigs:
                  DEFAULT_PARAMS={}, PARAM_GRID={}, DESCRIPTION="test",
              )), \
              patch("refinement_loop.run_backtest_safely",
-                   return_value=(low_sharpe_result, MagicMock(), MagicMock())), \
+                   return_value=(low_sharpe_result, MagicMock(), MagicMock(), None)), \
              patch("refinement_loop.compute_sharpe_by_year", return_value={"2024": 0.3}), \
              patch("refinement_loop.classify_failure", return_value=("low_sharpe", {})), \
              patch("refinement_loop.check_guardrails",
@@ -469,7 +470,7 @@ class TestE2EMandateConfigs:
                        sharpe=2.0, total_return=20.0, max_drawdown=5.0,
                        win_rate=0.6, num_trades=20, profit_factor=1.5,
                        calmar_ratio=1.6, score=2.0, sortino_ratio=1.8, params={},
-                   ), MagicMock(), MagicMock())), \
+                   ), MagicMock(), MagicMock(), None)), \
              patch("refinement_loop.compute_sharpe_by_year", return_value={}), \
              patch("refinement_loop.classify_failure", return_value=("none", {})), \
              patch("refinement_loop.check_guardrails",
@@ -660,7 +661,7 @@ class TestE2EMandateConfigs:
                 win_rate=0.6, num_trades=25, profit_factor=1.5,
                 calmar_ratio=1.6, score=2.0, sortino_ratio=1.8, params={},
             ),
-            MagicMock(), MagicMock(),
+            MagicMock(), MagicMock(), None,
         )
         mock_sharpe_yr.return_value = {}
         mock_classify.return_value = ("none", {})
@@ -748,7 +749,7 @@ class TestE2EMandateConfigs:
                 win_rate=0.55, num_trades=22, profit_factor=1.3,
                 calmar_ratio=1.5, score=1.5, sortino_ratio=1.7, params={},
             ),
-            MagicMock(), MagicMock(),
+            MagicMock(), MagicMock(), None,
         )
         mock_sharpe_yr.return_value = {"2024": 1.5}
         mock_classify.return_value = ("none", {})
