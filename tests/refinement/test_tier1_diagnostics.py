@@ -110,6 +110,86 @@ class TestFormatPreviousAttempts:
         result = format_previous_attempts(history)
         assert "0.12" in result
 
+    # ── NEW TESTS ──────────────────────────────────────────────────────────
+
+    def test_empty_dict_in_history(self):
+        """Completely empty dict entry uses defaults."""
+        history = [{}]
+        result = format_previous_attempts(history)
+        assert "Turn ?" in result
+        assert "unknown" in result
+        assert "N/A" in result
+
+    def test_negative_sharpe(self):
+        history = [{"turn": 1, "sharpe": -0.75}]
+        result = format_previous_attempts(history)
+        assert "-0.75" in result
+
+    def test_zero_sharpe(self):
+        history = [{"turn": 1, "sharpe": 0.0}]
+        result = format_previous_attempts(history)
+        assert "0.00" in result
+
+    def test_large_sharpe(self):
+        history = [{"turn": 1, "sharpe": 5.6789}]
+        result = format_previous_attempts(history)
+        assert "5.68" in result
+
+    def test_multiline_hypothesis(self):
+        history = [{
+            "turn": 1, "sharpe": 1.0,
+            "hypothesis": "Line 1\nLine 2\nLine 3",
+        }]
+        result = format_previous_attempts(history)
+        assert "Line 1" in result
+        assert "Line 2" in result
+
+    def test_special_chars_in_failure_mode(self):
+        history = [{"turn": 1, "sharpe": 0.5, "failure_mode": "max_dd > -25% (exceeded)"}]
+        result = format_previous_attempts(history)
+        assert "max_dd > -25%" in result
+
+    def test_empty_params_used(self):
+        history = [{"turn": 1, "sharpe": 0.5, "params_used": {}}]
+        result = format_previous_attempts(history)
+        assert "Params used: {}" in result
+
+    def test_complex_params_used(self):
+        history = [{
+            "turn": 1, "sharpe": 0.5,
+            "params_used": {"fast": 12, "slow": 26, "threshold": 0.75},
+        }]
+        result = format_previous_attempts(history)
+        assert "fast" in result
+        assert "slow" in result
+        assert "threshold" in result
+
+    def test_each_entry_on_new_line(self):
+        history = [
+            {"turn": 1, "sharpe": 0.5},
+            {"turn": 2, "sharpe": 0.8},
+        ]
+        result = format_previous_attempts(history)
+        lines = result.strip().split("\n")
+        # Each entry has 6 lines, so 2 entries = 12 lines
+        assert len(lines) == 12
+
+    def test_delta_from_prev_default(self):
+        """Missing delta_from_prev defaults to 'N/A'."""
+        history = [{"turn": 1, "sharpe": 0.5}]
+        result = format_previous_attempts(history)
+        assert "N/A" in result
+
+    def test_returns_string_type(self):
+        history = [{"turn": 1, "sharpe": 0.5}]
+        result = format_previous_attempts(history)
+        assert isinstance(result, str)
+
+    def test_unicode_in_hypothesis(self):
+        history = [{"turn": 1, "sharpe": 0.5, "hypothesis": "Strategy fails during bear 🐻"}]
+        result = format_previous_attempts(history)
+        assert "🐻" in result
+
 
 # ── compute_consecutive_modify_params ────────────────────────────────────────
 
@@ -163,6 +243,59 @@ class TestComputeConsecutiveModifyParams:
         # Empty dict at start, then modify_params → streak is 1
         history = [{}, {"action": "modify_params"}]
         assert compute_consecutive_modify_params(history) == 1
+
+    # ── NEW TESTS ──────────────────────────────────────────────────────────
+
+    def test_all_different_actions(self):
+        history = [
+            {"action": "add_filter"},
+            {"action": "change_entry_logic"},
+            {"action": "full_rewrite"},
+        ]
+        assert compute_consecutive_modify_params(history) == 0
+
+    def test_long_streak(self):
+        history = [{"action": "modify_params"} for _ in range(10)]
+        assert compute_consecutive_modify_params(history) == 10
+
+    def test_modify_params_not_at_end(self):
+        """Only tail consecutive modify_params counts."""
+        history = [
+            {"action": "modify_params"},
+            {"action": "modify_params"},
+            {"action": "add_filter"},
+        ]
+        assert compute_consecutive_modify_params(history) == 0
+
+    def test_single_non_modify_action(self):
+        history = [{"action": "full_rewrite"}]
+        assert compute_consecutive_modify_params(history) == 0
+
+    def test_returns_int(self):
+        result = compute_consecutive_modify_params([{"action": "modify_params"}])
+        assert isinstance(result, int)
+
+    def test_none_value_for_action(self):
+        """None value for action key should break the streak."""
+        history = [{"action": "modify_params"}, {"action": None}]
+        assert compute_consecutive_modify_params(history) == 0
+
+    def test_empty_string_action(self):
+        """Empty string for action should break the streak."""
+        history = [{"action": "modify_params"}, {"action": ""}]
+        assert compute_consecutive_modify_params(history) == 0
+
+    def test_interleaved_streaks(self):
+        """Only the last streak counts."""
+        history = [
+            {"action": "modify_params"},
+            {"action": "modify_params"},
+            {"action": "add_filter"},
+            {"action": "modify_params"},
+            {"action": "modify_params"},
+            {"action": "modify_params"},
+        ]
+        assert compute_consecutive_modify_params(history) == 3
 
 
 # ── build_tier1_report ──────────────────────────────────────────────────────
@@ -295,3 +428,149 @@ class TestBuildTier1Report:
         report = build_tier1_report(**ctx)
         assert report["calmar_ratio"] == 3.0
         assert report["sortino_ratio"] == 4.0
+
+    # ── NEW TESTS ──────────────────────────────────────────────────────────
+
+    def test_default_strategy_id_and_iteration(self):
+        """Default strategy_id and iteration when not provided."""
+        ctx = self._make_context(strategy_id="", iteration=0)
+        report = build_tier1_report(**ctx)
+        assert report["strategy_id"] == ""
+        assert report["iteration"] == 0
+
+    def test_win_rate_mapping(self):
+        ctx = self._make_context(backtest_result=make_backtest_result(win_rate=0.72))
+        report = build_tier1_report(**ctx)
+        assert report["win_rate"] == 0.72
+
+    def test_profit_factor_mapping(self):
+        ctx = self._make_context(backtest_result=make_backtest_result(profit_factor=2.5))
+        report = build_tier1_report(**ctx)
+        assert report["profit_factor"] == 2.5
+
+    def test_composite_score_mapping(self):
+        ctx = self._make_context(backtest_result=make_backtest_result(score=0.95))
+        report = build_tier1_report(**ctx)
+        assert report["composite_score"] == 0.95
+
+    def test_failure_mode_and_details(self):
+        ctx = self._make_context(
+            failure_mode="high_drawdown",
+            failure_details="Max drawdown of -35% exceeded threshold",
+        )
+        report = build_tier1_report(**ctx)
+        assert report["failure_mode"] == "high_drawdown"
+        assert report["failure_details"] == "Max drawdown of -35% exceeded threshold"
+
+    def test_stagnation_score_and_trend(self):
+        ctx = self._make_context(stagnation_score=0.85, stagnation_trend="declining")
+        report = build_tier1_report(**ctx)
+        assert report["stagnation_score"] == 0.85
+        assert report["stagnation_trend"] == "declining"
+
+    def test_all_stagnation_trends(self):
+        for trend in ("improving", "flat", "declining"):
+            ctx = self._make_context(stagnation_trend=trend)
+            report = build_tier1_report(**ctx)
+            assert report["stagnation_trend"] == trend
+
+    def test_guardrail_warnings_none_becomes_empty_list(self):
+        """None guardrail_warnings should default to empty list."""
+        ctx = self._make_context(guardrail_warnings=None)
+        report = build_tier1_report(**ctx)
+        assert report["guardrail_warnings"] == []
+
+    def test_current_strategy_code_preserved(self):
+        code = "def go(df):\n    return df\n"
+        ctx = self._make_context(current_strategy_code=code)
+        report = build_tier1_report(**ctx)
+        assert report["current_strategy_code"] == code
+
+    def test_current_params_none_becomes_empty_dict(self):
+        ctx = self._make_context(current_params=None)
+        report = build_tier1_report(**ctx)
+        assert report["current_params"] == {}
+
+    def test_current_params_preserved(self):
+        params = {"fast": 10, "slow": 30, "signal": "macd"}
+        ctx = self._make_context(current_params=params)
+        report = build_tier1_report(**ctx)
+        assert report["current_params"] == params
+
+    def test_previous_sharpes_defaults_when_missing(self):
+        """History entries without sharpe key default to 0.0."""
+        history = [{"turn": 1}, {"turn": 2}]
+        ctx = self._make_context(history=history)
+        report = build_tier1_report(**ctx)
+        assert report["previous_sharpes"] == [0.0, 0.0]
+
+    def test_previous_actions_defaults_when_missing(self):
+        """History entries without action key default to empty string."""
+        history = [{"turn": 1}, {"turn": 2}]
+        ctx = self._make_context(history=history)
+        report = build_tier1_report(**ctx)
+        assert report["previous_actions"] == ["", ""]
+
+    def test_sharpe_by_year_empty(self):
+        ctx = self._make_context(sharpe_by_year={})
+        report = build_tier1_report(**ctx)
+        assert report["sharpe_by_year"] == {}
+
+    def test_negative_sharpe_values(self):
+        ctx = self._make_context(backtest_result=make_backtest_result(sharpe=-0.5))
+        report = build_tier1_report(**ctx)
+        assert report["sharpe_ratio"] == -0.5
+
+    def test_zero_trades(self):
+        ctx = self._make_context(backtest_result=make_backtest_result(num_trades=0))
+        report = build_tier1_report(**ctx)
+        assert report["total_trades"] == 0
+
+    def test_multiple_guardrail_violations(self):
+        violations = ["max_drawdown_exceeded", "min_trades_not_met", "overfitting_risk"]
+        ctx = self._make_context(guardrail_violations=violations)
+        report = build_tier1_report(**ctx)
+        assert report["guardrail_violations"] == violations
+
+    def test_history_with_many_entries(self):
+        """With 10 history entries, previous_attempts should be last 3."""
+        history = [{"turn": i, "sharpe": float(i)} for i in range(1, 11)]
+        ctx = self._make_context(history=history)
+        report = build_tier1_report(**ctx)
+        assert len(report["previous_attempts"]) == 3
+        assert report["previous_attempts"][-1]["turn"] == 10
+
+    def test_history_with_less_than_three(self):
+        """With 2 history entries, previous_attempts should be all 2."""
+        history = [{"turn": 1, "sharpe": 0.5}, {"turn": 2, "sharpe": 0.8}]
+        ctx = self._make_context(history=history)
+        report = build_tier1_report(**ctx)
+        assert len(report["previous_attempts"]) == 2
+
+    def test_negative_max_drawdown(self):
+        ctx = self._make_context(backtest_result=make_backtest_result(max_drawdown=-0.50))
+        report = build_tier1_report(**ctx)
+        assert report["max_drawdown_pct"] == -0.50
+
+    def test_negative_total_return(self):
+        ctx = self._make_context(backtest_result=make_backtest_result(total_return=-0.10))
+        report = build_tier1_report(**ctx)
+        assert report["total_return_pct"] == -0.10
+
+    def test_report_is_json_serializable(self):
+        """Report dict should be JSON-serializable."""
+        import json
+        ctx = self._make_context()
+        report = build_tier1_report(**ctx)
+        blob = json.dumps(report)
+        assert isinstance(blob, str)
+
+    def test_zero_stagnation_score(self):
+        ctx = self._make_context(stagnation_score=0.0)
+        report = build_tier1_report(**ctx)
+        assert report["stagnation_score"] == 0.0
+
+    def test_max_stagnation_score(self):
+        ctx = self._make_context(stagnation_score=1.0)
+        report = build_tier1_report(**ctx)
+        assert report["stagnation_score"] == 1.0
