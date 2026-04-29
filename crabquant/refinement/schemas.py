@@ -34,6 +34,10 @@ class RunState:
     # History (append-only)
     history: list = field(default_factory=list)
 
+    # Within-run action cooldown tracking
+    # Maps failure_mode → {action → consecutive_fail_count}
+    action_cooldowns: dict = field(default_factory=dict)
+
     # Concurrency lock
     lock_pid: int | None = None
     lock_timestamp: str | None = None

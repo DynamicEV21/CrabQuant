@@ -47,7 +47,11 @@ from crabquant.guardrails import check_guardrails, GuardrailReport, GuardrailCon
 
 # Phase 3 module imports — replace all inline implementations
 from crabquant.refinement.circuit_breaker import CircuitBreaker
-from crabquant.refinement.cosmetic_guard import check_cosmetic_guard, CosmeticGuardState
+from crabquant.refinement.cosmetic_guard import (
+    check_cosmetic_guard, CosmeticGuardState,
+    update_cooldowns, get_cooldown_warning,
+)
+from crabquant.refinement.action_validator import validate_action_semantically
 from crabquant.refinement.action_analytics import (
     track_action_result, generate_llm_context as generate_analytics_context,
     load_run_history,
@@ -86,7 +90,7 @@ def validate_action(raw_action: str) -> Tuple[str, bool]:
 
     If the action is already in VALID_ACTIONS, return it unchanged.
     If it matches a known alias, map it to the canonical action.
-    Otherwise, fall back to ``DEFAULT_FALLBACK_ACTION`` ("novel") and log a warning.
+    Otherwise, fall back to ``DEFAULT_FALLBACK_ACTION`` (``novel``) and log a warning.
 
     Args:
         raw_action: The action string from the LLM response.
@@ -117,6 +121,13 @@ def validate_action(raw_action: str) -> Tuple[str, bool]:
         raw_action, DEFAULT_FALLBACK_ACTION,
     )
     return DEFAULT_FALLBACK_ACTION, True
+
+
+def _sync_cooldowns_to_state(
+    state: RunState, cosmetic_state: CosmeticGuardState,
+) -> None:
+    """Persist cosmetic guard cooldowns into RunState for serialization."""
+    state.action_cooldowns = dict(cosmetic_state.cooldowns)
 
 
 def load_json(path: str) -> Dict[str, Any]:
@@ -624,7 +635,12 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         min_attempts=5,
         grace_turns=2,
     )
+    # Restore cosmetic guard state from RunState cooldowns if resuming
     cosmetic_state = CosmeticGuardState(threshold=3)
+    if state.action_cooldowns:
+        cosmetic_state.cooldowns = dict(state.action_cooldowns)
+        # Also restore action history from state.history for modify_params counting
+        cosmetic_state.action_history = [h.get("action", "") for h in state.history]
     
     # Results directory for dashboard and analytics
     results_dir = project_root / "results"
@@ -785,15 +801,26 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         )
         
         # Phase 3: Cosmetic guard — check if LLM is stuck doing consecutive modify_params
+        # or if a (failure_mode, action) pair has exceeded cooldown threshold
         temp_history_for_cosmetic = list(state.history)
         temp_history_for_cosmetic.append({"turn": turn, "action": action})
-        cosmetic_state, cosmetic_result = check_cosmetic_guard(temp_history_for_cosmetic, cosmetic_state)
+        # Get the most recent failure mode from history for cooldown-aware checking
+        last_failure_mode = ""
+        for h in reversed(state.history):
+            if h.get("failure_mode"):
+                last_failure_mode = h["failure_mode"]
+                break
+        cosmetic_state, cosmetic_result = check_cosmetic_guard(
+            temp_history_for_cosmetic, cosmetic_state, failure_mode=last_failure_mode,
+        )
         
         if cosmetic_result.forced:
             print(f"  ⚠️ Cosmetic guard: {cosmetic_result.warning}")
             print(f"  🔧 Overriding action: {action} → {cosmetic_result.forced_action}")
             action = cosmetic_result.forced_action
             modification.action = action
+        elif cosmetic_result.cooldown_warning:
+            print(f"  ⚠️ Cooldown: {cosmetic_result.cooldown_warning}")
         
         # Save strategy code
         strategy_path = run_dir / f"strategy_v{turn}.py"
@@ -829,6 +856,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 "action": action,
                 "hypothesis": getattr(modification, "hypothesis", ""),
             })
+            update_cooldowns(cosmetic_state, "module_load_failed", action, success=False)
+            _sync_cooldowns_to_state(state, cosmetic_state)
             save_state(run_dir, state)
             _write_dashboard(run_dir)
             continue
@@ -868,6 +897,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 "action": action,
                 "hypothesis": getattr(modification, "hypothesis", ""),
             })
+            update_cooldowns(cosmetic_state, "backtest_crash", action, success=False)
+            _sync_cooldowns_to_state(state, cosmetic_state)
             save_state(run_dir, state)
             _write_dashboard(run_dir)
             continue
@@ -941,6 +972,15 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             data_length=len(df),
             sharpe_target=effective_target
         )
+
+        # Phase 7: Semantic action validation — reject impossible
+        # action/failure_mode combinations (e.g. modify_params on flat_signal).
+        action, semantic_reason = validate_action_semantically(
+            action, failure_mode, result.num_trades,
+        )
+        if semantic_reason:
+            print(f"  🔀 Semantic validation override: {semantic_reason}")
+            modification.action = action
         
         # 6. Compute stagnation (using Phase 3 module)
         stagnation_score, stagnation_trend = compute_stagnation(state.history)
@@ -1031,6 +1071,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                     "strategy_hash": compute_strategy_hash(strategy_code),
                     "delta_from_prev": "Sharpe hit but too few trades for validation",
                 })
+                update_cooldowns(cosmetic_state, "too_few_trades_for_validation", action, success=False)
+                _sync_cooldowns_to_state(state, cosmetic_state)
                 save_state(run_dir, state)
                 continue  # Keep iterating — LLM might find a strategy with more trades
 
@@ -1075,6 +1117,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                                             f"{multi_ticker_results['tickers_tested']} tickers passed"),
                         "multi_ticker_results": multi_ticker_results,
                     })
+                    update_cooldowns(cosmetic_state, "multi_ticker_gate_failed", action, success=False)
+                    _sync_cooldowns_to_state(state, cosmetic_state)
                     save_state(run_dir, state)
                     continue  # LLM gets feedback, tries again
                 else:
@@ -1133,9 +1177,10 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 "strategy_hash": compute_strategy_hash(strategy_code),
                 "delta_from_prev": "Initial strategy (no prior version)",
             })
+            # Success — reset cooldowns and persist
+            update_cooldowns(cosmetic_state, "", action, success=True)
+            _sync_cooldowns_to_state(state, cosmetic_state)
             save_state(run_dir, state)
-            
-            # Phase 3: Auto-promote if validation passed
             if validation.get("passed", False):
                 print(f"  📋 Validation passed — auto-promoting to registry...")
                 try:
@@ -1234,6 +1279,9 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             "strategy_hash": compute_strategy_hash(strategy_code),
             "delta_from_prev": "Initial strategy (no prior version)",
         })
+        # Update cooldowns for failed turn
+        update_cooldowns(cosmetic_state, failure_mode, action, success=turn_success)
+        _sync_cooldowns_to_state(state, cosmetic_state)
         save_state(run_dir, state)
         
         # Phase 3: Write dashboard snapshot after each turn

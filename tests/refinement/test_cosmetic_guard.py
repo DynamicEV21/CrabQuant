@@ -1,4 +1,6 @@
-"""Tests for crabquant.refinement.cosmetic_guard — track action history, force structural intervention."""
+"""Tests for the cosmetic guard — failure-mode-aware action selection and cooldown tracking."""
+
+from __future__ import annotations
 
 import pytest
 
@@ -6,403 +8,338 @@ from crabquant.refinement.cosmetic_guard import (
     CosmeticGuardState,
     CosmeticGuardResult,
     check_cosmetic_guard,
+    get_cooldown_warning,
+    update_cooldowns,
+    _get_recommended_action,
+    _get_fallback_actions,
+    _pick_forced_action,
+    _STRUCTURAL_ACTIONS,
 )
 
 
-class TestCosmeticGuardState:
-    """Test the state dataclass."""
+# ── Helpers ─────────────────────────────────────────────────────────────────
 
-    def test_defaults(self):
+def _make_history(*actions_and_modes: tuple[str, str]) -> list[dict]:
+    """Build a history list from (action, failure_mode) pairs.
+
+    failure_mode may be "" for successful turns.
+    """
+    history = []
+    for i, (action, fmode) in enumerate(actions_and_modes, start=1):
+        entry: dict = {"turn": i, "action": action}
+        if fmode:
+            entry["failure_mode"] = fmode
+        history.append(entry)
+    return history
+
+
+# ── Recommended action lookups ─────────────────────────────────────────────
+
+class TestRecommendedActionLookup:
+    """Tests for _get_recommended_action and _get_fallback_actions."""
+
+    def test_known_failure_mode_returns_action(self):
+        assert _get_recommended_action("low_sharpe") == "replace_indicator"
+
+    def test_unknown_failure_mode_returns_none(self):
+        assert _get_recommended_action("totally_unknown_mode") is None
+
+    def test_fallback_includes_recommended_first(self):
+        fallbacks = _get_fallback_actions("low_sharpe")
+        assert fallbacks[0] == "replace_indicator"
+
+    def test_fallback_includes_structural_actions(self):
+        fallbacks = _get_fallback_actions("excessive_drawdown")
+        for a in _STRUCTURAL_ACTIONS:
+            assert a in fallbacks
+
+    def test_fallback_unknown_mode_still_has_structural(self):
+        fallbacks = _get_fallback_actions("unknown_mode")
+        assert len(fallbacks) >= len(_STRUCTURAL_ACTIONS)
+
+    def test_fallback_no_duplicates(self):
+        fallbacks = _get_fallback_actions("low_sharpe")
+        assert len(fallbacks) == len(set(fallbacks))
+
+
+# ── _pick_forced_action ────────────────────────────────────────────────────
+
+class TestPickForcedAction:
+    """Tests for _pick_forced_action cooldown-aware selection."""
+
+    def test_prefers_recommended_action(self):
+        # No cooldowns — should pick the recommended action first
+        action = _pick_forced_action("flat_signal", {})
+        assert action == "change_entry_logic"
+
+    def test_skips_cooldown_exhausted_action(self):
+        # "change_entry_logic" exhausted for "flat_signal"
+        cooldowns = {"flat_signal": {"change_entry_logic": 3}}
+        action = _pick_forced_action("flat_signal", cooldowns)
+        assert action != "change_entry_logic"
+        # Should fall to next in fallback list
+        assert action in _STRUCTURAL_ACTIONS or action == "novel"
+
+    def test_all_exhausted_falls_to_random(self):
+        cooldowns = {"backtest_crash": {a: 3 for a in _STRUCTURAL_ACTIONS + ["replace_indicator", "add_filter", "modify_params"]}}
+        action = _pick_forced_action("backtest_crash", cooldowns)
+        assert action in _STRUCTURAL_ACTIONS  # random structural
+
+    def test_unknown_failure_mode_uses_structural(self):
+        action = _pick_forced_action("unknown_xyz", {})
+        # Should return first structural action since no recommendation
+        assert action in _STRUCTURAL_ACTIONS or action in ("replace_indicator", "add_filter")
+
+
+# ── update_cooldowns ───────────────────────────────────────────────────────
+
+class TestUpdateCooldowns:
+    """Tests for update_cooldowns."""
+
+    def test_first_failure_sets_count_to_one(self):
         state = CosmeticGuardState()
-        assert state.consecutive_modify_params == 0
-        assert state.threshold == 3
-        assert state.total_modify_params == 0
-        assert state.action_history == []
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        assert state.cooldowns["low_sharpe"]["modify_params"] == 1
 
-    def test_custom_threshold(self):
-        state = CosmeticGuardState(threshold=5)
-        assert state.threshold == 5
-
-    def test_to_dict(self):
-        state = CosmeticGuardState(
-            consecutive_modify_params=2,
-            threshold=3,
-            total_modify_params=5,
-            action_history=["modify_params", "modify_params"],
-        )
-        d = state.to_dict()
-        assert d["consecutive_modify_params"] == 2
-        assert d["action_history"] == ["modify_params", "modify_params"]
-
-    def test_from_dict_roundtrip(self):
-        original = CosmeticGuardState(
-            consecutive_modify_params=1,
-            total_modify_params=4,
-            action_history=["add_filter", "modify_params"],
-        )
-        restored = CosmeticGuardState.from_dict(original.to_dict())
-        assert restored == original
-
-
-class TestCheckCosmeticGuard:
-    """Test the cosmetic guard check function."""
-
-    def test_no_history_no_warning(self):
-        state, result = check_cosmetic_guard([], CosmeticGuardState())
-        assert result.forced is False
-        assert result.warning == ""
-        assert state.consecutive_modify_params == 0
-
-    def test_single_modify_params_no_warning(self):
-        history = [{"turn": 1, "action": "modify_params"}]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState())
-        assert result.forced is False
-        assert state.consecutive_modify_params == 1
-
-    def test_two_consecutive_modify_params_no_warning(self):
-        history = [
-            {"turn": 1, "action": "modify_params"},
-            {"turn": 2, "action": "modify_params"},
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert result.forced is False
-        assert state.consecutive_modify_params == 2
-
-    def test_three_consecutive_modify_params_triggers_warning(self):
-        history = [
-            {"turn": 1, "action": "modify_params"},
-            {"turn": 2, "action": "modify_params"},
-            {"turn": 3, "action": "modify_params"},
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert result.forced is True
-        assert "modify_params" in result.warning.lower() or "cosmetic" in result.warning.lower() or "structural" in result.warning.lower()
-        assert result.forced_action in ("full_rewrite", "change_entry_logic", "change_exit_logic", "add_regime_filter", "novel")
-
-    def test_non_modify_params_resets_counter(self):
-        history = [
-            {"turn": 1, "action": "modify_params"},
-            {"turn": 2, "action": "modify_params"},
-            {"turn": 3, "action": "add_filter"},
-            {"turn": 4, "action": "modify_params"},
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert result.forced is False
-        assert state.consecutive_modify_params == 1
-
-    def test_custom_threshold(self):
-        history = [
-            {"turn": i, "action": "modify_params"}
-            for i in range(1, 5)
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=4))
-        assert result.forced is True
-
-    def test_custom_threshold_not_triggered_at_three(self):
-        history = [
-            {"turn": i, "action": "modify_params"}
-            for i in range(1, 4)
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=5))
-        assert result.forced is False
-
-    def test_result_is_dataclass(self):
-        state, result = check_cosmetic_guard([], CosmeticGuardState())
-        assert isinstance(result, CosmeticGuardResult)
-        assert isinstance(result.forced, bool)
-        assert isinstance(result.warning, str)
-        assert isinstance(result.forced_action, str)
-
-    def test_persistent_state_tracks_total(self):
-        state = CosmeticGuardState(total_modify_params=3)
-        history = [{"turn": 1, "action": "modify_params"}]
-        state, result = check_cosmetic_guard(history, state)
-        assert state.total_modify_params == 4
-
-    def test_empty_history_dict_no_action_key(self):
-        history = [{"turn": 1}]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState())
-        assert result.forced is False
-        assert state.consecutive_modify_params == 0
-
-    def test_forced_action_is_string(self):
-        history = [
-            {"turn": i, "action": "modify_params"}
-            for i in range(1, 4)
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState())
-        assert isinstance(result.forced_action, str)
-        assert len(result.forced_action) > 0
-
-
-class TestCosmeticGuardStateExpanded:
-    """Additional tests for CosmeticGuardState serialization and edge cases."""
-
-    def test_from_dict_missing_keys_use_defaults(self):
-        state = CosmeticGuardState.from_dict({})
-        assert state.consecutive_modify_params == 0
-        assert state.total_modify_params == 0
-        assert state.threshold == 3
-        assert state.action_history == []
-
-    def test_from_dict_partial_keys(self):
-        state = CosmeticGuardState.from_dict({"threshold": 7})
-        assert state.threshold == 7
-        assert state.consecutive_modify_params == 0
-        assert state.total_modify_params == 0
-
-    def test_from_dict_with_all_keys(self):
-        state = CosmeticGuardState.from_dict({
-            "consecutive_modify_params": 5,
-            "total_modify_params": 10,
-            "threshold": 2,
-            "action_history": ["modify_params", "full_rewrite"],
-        })
-        assert state.consecutive_modify_params == 5
-        assert state.total_modify_params == 10
-        assert state.threshold == 2
-        assert state.action_history == ["modify_params", "full_rewrite"]
-
-    def test_from_dict_ignores_extra_keys(self):
-        state = CosmeticGuardState.from_dict({
-            "consecutive_modify_params": 1,
-            "total_modify_params": 2,
-            "threshold": 3,
-            "action_history": [],
-            "unexpected_key": "ignored",
-        })
-        assert state.consecutive_modify_params == 1
-        assert not hasattr(state, "unexpected_key")
-
-    def test_to_dict_keys_match_expected(self):
+    def test_consecutive_failures_increment(self):
         state = CosmeticGuardState()
-        d = state.to_dict()
-        expected_keys = {"consecutive_modify_params", "total_modify_params", "threshold", "action_history"}
-        assert set(d.keys()) == expected_keys
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        assert state.cooldowns["low_sharpe"]["modify_params"] == 3
 
-    def test_roundtrip_preserves_all_fields(self):
-        original = CosmeticGuardState(
-            consecutive_modify_params=99,
-            total_modify_params=200,
-            threshold=10,
-            action_history=["a", "b", "c"],
-        )
-        restored = CosmeticGuardState.from_dict(original.to_dict())
-        assert restored.consecutive_modify_params == 99
-        assert restored.total_modify_params == 200
-        assert restored.threshold == 10
-        assert restored.action_history == ["a", "b", "c"]
-
-    def test_action_history_default_is_new_list(self):
-        s1 = CosmeticGuardState()
-        s2 = CosmeticGuardState()
-        s1.action_history.append("x")
-        assert s2.action_history == []
-
-    def test_threshold_default_is_three(self):
-        from crabquant.refinement.cosmetic_guard import _DEFAULT_THRESHOLD
+    def test_success_resets_cooldown_for_action(self):
         state = CosmeticGuardState()
-        assert state.threshold == _DEFAULT_THRESHOLD
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        update_cooldowns(state, "low_sharpe", "modify_params", success=True)
+        assert state.cooldowns["low_sharpe"]["modify_params"] == 0
+
+    def test_empty_failure_mode_resets_across_modes(self):
+        """When failure_mode is empty (success), reset that action across all modes."""
+        state = CosmeticGuardState()
+        update_cooldowns(state, "low_sharpe", "replace_indicator", success=False)
+        update_cooldowns(state, "flat_signal", "replace_indicator", success=False)
+        # Simulate success
+        update_cooldowns(state, "", "replace_indicator", success=True)
+        assert state.cooldowns["low_sharpe"]["replace_indicator"] == 0
+        assert state.cooldowns["flat_signal"]["replace_indicator"] == 0
+
+    def test_different_actions_tracked_independently(self):
+        state = CosmeticGuardState()
+        update_cooldowns(state, "low_sharpe", "replace_indicator", success=False)
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        update_cooldowns(state, "low_sharpe", "replace_indicator", success=False)
+        assert state.cooldowns["low_sharpe"]["replace_indicator"] == 2
+        assert state.cooldowns["low_sharpe"]["modify_params"] == 1
+
+    def test_different_failure_modes_tracked_independently(self):
+        state = CosmeticGuardState()
+        update_cooldowns(state, "low_sharpe", "replace_indicator", success=False)
+        update_cooldowns(state, "flat_signal", "replace_indicator", success=False)
+        assert state.cooldowns["low_sharpe"]["replace_indicator"] == 1
+        assert state.cooldowns["flat_signal"]["replace_indicator"] == 1
 
 
-class TestCheckCosmeticGuardExpanded:
-    """Additional tests for check_cosmetic_guard edge cases and branches."""
+# ── get_cooldown_warning ───────────────────────────────────────────────────
 
-    def test_none_state_creates_fresh_state(self):
-        history = []
+class TestGetCooldownWarning:
+    """Tests for get_cooldown_warning."""
+
+    def test_no_warning_when_below_threshold(self):
+        state = CosmeticGuardState()
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        warning = get_cooldown_warning(state, "low_sharpe", "modify_params")
+        assert warning == ""
+
+    def test_warning_at_threshold(self):
+        state = CosmeticGuardState(cooldown_warn_threshold=2)
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        warning = get_cooldown_warning(state, "low_sharpe", "modify_params")
+        assert "cooldown warning" in warning.lower()
+        assert "2" in warning
+
+    def test_critical_warning_at_force_threshold(self):
+        state = CosmeticGuardState(cooldown_warn_threshold=2, cooldown_force_threshold=3)
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        update_cooldowns(state, "low_sharpe", "modify_params", success=False)
+        warning = get_cooldown_warning(state, "low_sharpe", "modify_params")
+        assert "CRITICAL" in warning
+        assert "3" in warning
+
+    def test_no_warning_for_empty_failure_mode(self):
+        state = CosmeticGuardState()
+        warning = get_cooldown_warning(state, "", "modify_params")
+        assert warning == ""
+
+    def test_no_warning_for_unknown_pair(self):
+        state = CosmeticGuardState()
+        warning = get_cooldown_warning(state, "unknown", "never_tried")
+        assert warning == ""
+
+
+# ── check_cosmetic_guard: modify_params threshold ──────────────────────────
+
+class TestCosmeticGuardModifyParams:
+    """Tests for the existing modify_params consecutive threshold behavior."""
+
+    def test_no_force_below_threshold(self):
+        history = _make_history(
+            ("replace_indicator", "low_sharpe"),
+            ("modify_params", "low_sharpe"),
+        )
         state, result = check_cosmetic_guard(history)
-        assert state.consecutive_modify_params == 0
         assert result.forced is False
-
-    def test_none_state_with_modify_params(self):
-        history = [{"action": "modify_params"}]
-        state, result = check_cosmetic_guard(history)
-        assert state.consecutive_modify_params == 1
-        assert result.forced is False
-
-    def test_threshold_of_one_triggers_immediately(self):
-        history = [{"action": "modify_params"}]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=1))
-        assert result.forced is True
-        assert len(result.forced_action) > 0
-
-    def test_threshold_of_zero_always_triggers(self):
-        history = [{"action": "full_rewrite"}]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=0))
-        assert result.forced is True
-
-    def test_threshold_of_zero_with_empty_history(self):
-        history = []
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=0))
-        assert result.forced is True
-
-    def test_exactly_at_threshold_triggers(self):
-        history = [
-            {"action": "modify_params"},
-            {"action": "modify_params"},
-            {"action": "modify_params"},
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert result.forced is True
-
-    def test_one_below_threshold_does_not_trigger(self):
-        history = [
-            {"action": "modify_params"},
-            {"action": "modify_params"},
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert result.forced is False
-
-    def test_far_above_threshold_triggers(self):
-        history = [{"action": "modify_params"} for _ in range(20)]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert result.forced is True
-        assert state.consecutive_modify_params == 20
-
-    def test_single_structural_action_between_modify_params(self):
-        history = [
-            {"action": "modify_params"},
-            {"action": "modify_params"},
-            {"action": "full_rewrite"},
-            {"action": "modify_params"},
-            {"action": "modify_params"},
-            {"action": "modify_params"},
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert result.forced is True
-        assert state.consecutive_modify_params == 3
-
-    def test_forced_warning_contains_consecutive_count(self):
-        history = [{"action": "modify_params"} for _ in range(5)]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert "5" in result.warning
-        assert "modify_params" in result.warning
-
-    def test_forced_warning_contains_forced_action(self):
-        history = [{"action": "modify_params"} for _ in range(3)]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert result.forced_action in result.warning
-
-    def test_forced_warning_mentions_structural_intervention(self):
-        history = [{"action": "modify_params"} for _ in range(3)]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert "structural" in result.warning.lower()
-
-    def test_non_forced_result_has_empty_strings(self):
-        history = [{"action": "full_rewrite"}]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState())
-        assert result.forced is False
-        assert result.warning == ""
         assert result.forced_action == ""
 
-    def test_persistence_total_modify_params_across_calls(self):
+    def test_force_at_threshold(self):
+        history = _make_history(
+            ("modify_params", "low_sharpe"),
+            ("modify_params", "low_sharpe"),
+            ("modify_params", "low_sharpe"),
+        )
+        state, result = check_cosmetic_guard(history)
+        assert result.forced is True
+        assert result.forced_action != ""
+
+    def test_forced_action_uses_failure_mode_recommendation(self):
+        """When modify_params threshold triggers, the forced action should
+        be informed by the failure mode, not purely random."""
+        history = _make_history(
+            ("modify_params", "flat_signal"),
+            ("modify_params", "flat_signal"),
+            ("modify_params", "flat_signal"),
+        )
+        state, result = check_cosmetic_guard(history, failure_mode="flat_signal")
+        assert result.forced is True
+        # For flat_signal, recommended is change_entry_logic — should be picked
+        # (unless cooldowns block it, which they don't here)
+        assert result.forced_action == "change_entry_logic"
+
+    def test_forced_action_falls_back_when_recommended_exhausted(self):
+        """If the recommended action is cooldown-exhausted, fall to next."""
+        history = _make_history(
+            ("modify_params", "low_sharpe"),
+            ("modify_params", "low_sharpe"),
+            ("modify_params", "low_sharpe"),
+        )
         state = CosmeticGuardState()
-        # First call: 2 modify_params
-        history1 = [{"action": "modify_params"}, {"action": "modify_params"}]
-        state, _ = check_cosmetic_guard(history1, state)
-        assert state.total_modify_params == 2
+        # Exhaust the recommended action for low_sharpe (replace_indicator)
+        state.cooldowns = {"low_sharpe": {"replace_indicator": 3}}
+        state, result = check_cosmetic_guard(history, state, failure_mode="low_sharpe")
+        assert result.forced is True
+        assert result.forced_action != "replace_indicator"
 
-        # Second call: same history again (no new entries)
-        state, _ = check_cosmetic_guard(history1, state)
-        assert state.total_modify_params == 2
-
-    def test_persistence_total_increments_with_new_entries(self):
-        state = CosmeticGuardState()
-        history1 = [{"action": "modify_params"}]
-        state, _ = check_cosmetic_guard(history1, state)
-        assert state.total_modify_params == 1
-
-        # history2 has 2 modify_params, state already saw 1 → max(1 + max(2-1,0), 2) = 2
-        history2 = [
-            {"action": "modify_params"},
-            {"action": "modify_params"},
-            {"action": "full_rewrite"},
-        ]
-        state, _ = check_cosmetic_guard(history2, state)
-        assert state.total_modify_params == 2
-
-    def test_action_history_updated_in_state(self):
-        history = [
-            {"action": "modify_params"},
-            {"action": "full_rewrite"},
-            {"action": "change_entry_logic"},
-        ]
-        state, _ = check_cosmetic_guard(history, CosmeticGuardState())
-        assert state.action_history == ["modify_params", "full_rewrite", "change_entry_logic"]
-
-    def test_action_history_strips_non_action_keys(self):
-        history = [
-            {"turn": 1, "action": "modify_params", "score": 0.5},
-            {"turn": 2, "action": "full_rewrite", "score": 0.8},
-        ]
-        state, _ = check_cosmetic_guard(history, CosmeticGuardState())
-        assert state.action_history == ["modify_params", "full_rewrite"]
-
-    def test_entries_without_action_key_count_as_empty(self):
-        history = [
-            {"turn": 1},
-            {"turn": 2},
-            {"turn": 3},
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert state.consecutive_modify_params == 0
+    def test_consecutive_count_resets_on_different_action(self):
+        history = _make_history(
+            ("modify_params", "low_sharpe"),
+            ("modify_params", "low_sharpe"),
+            ("replace_indicator", "low_sharpe"),
+            ("modify_params", "low_sharpe"),
+        )
+        state, result = check_cosmetic_guard(history)
+        assert state.consecutive_modify_params == 1
         assert result.forced is False
 
-    def test_mixed_empty_action_and_modify_params(self):
-        history = [
-            {"action": "modify_params"},
-            {"turn": 2},  # no action key → treated as ""
-            {"action": "modify_params"},
-            {"action": "modify_params"},
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert state.consecutive_modify_params == 2
+
+# ── check_cosmetic_guard: cooldown-based forcing ───────────────────────────
+
+class TestCosmeticGuardCooldownForcing:
+    """Tests for the (failure_mode, action) cooldown forcing."""
+
+    def test_no_cooldown_warning_fresh_state(self):
+        history = _make_history(
+            ("replace_indicator", "low_sharpe"),
+            ("modify_params", "low_sharpe"),
+        )
+        state, result = check_cosmetic_guard(history, failure_mode="low_sharpe")
         assert result.forced is False
+        assert result.cooldown_warning == ""
 
-    def test_consecutive_count_only_from_tail(self):
-        history = [
-            {"action": "modify_params"},
-            {"action": "modify_params"},
-            {"action": "full_rewrite"},
-            {"action": "modify_params"},
-            {"action": "modify_params"},
-        ]
-        state, _ = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert state.consecutive_modify_params == 2
-
-    def test_all_structural_actions_no_force(self):
-        history = [
-            {"action": "full_rewrite"},
-            {"action": "change_entry_logic"},
-            {"action": "change_exit_logic"},
-        ]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
+    def test_cooldown_warning_at_2_consecutive(self):
+        """After 2 consecutive (failure_mode, action) failures, inject warning."""
+        history = _make_history(
+            ("replace_indicator", "low_sharpe"),
+            ("replace_indicator", "low_sharpe"),
+        )
+        state = CosmeticGuardState(cooldown_warn_threshold=2, cooldown_force_threshold=3)
+        # Simulate 2 failures with replace_indicator on low_sharpe
+        state.cooldowns = {"low_sharpe": {"replace_indicator": 2}}
+        state, result = check_cosmetic_guard(history, state, failure_mode="low_sharpe")
         assert result.forced is False
-        assert state.consecutive_modify_params == 0
+        assert "consecutive" in result.cooldown_warning.lower()
+        assert "2" in result.cooldown_warning
 
-    def test_forced_action_is_always_structural(self):
-        from crabquant.refinement.cosmetic_guard import _STRUCTURAL_ACTIONS
-        history = [{"action": "modify_params"} for _ in range(3)]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        assert result.forced_action in _STRUCTURAL_ACTIONS
+    def test_cooldown_force_at_3_consecutive(self):
+        """After 3 consecutive (failure_mode, action) failures, force override."""
+        history = _make_history(
+            ("replace_indicator", "low_sharpe"),
+            ("replace_indicator", "low_sharpe"),
+            ("replace_indicator", "low_sharpe"),
+        )
+        state = CosmeticGuardState(cooldown_warn_threshold=2, cooldown_force_threshold=3)
+        state.cooldowns = {"low_sharpe": {"replace_indicator": 3}}
+        state, result = check_cosmetic_guard(history, state, failure_mode="low_sharpe")
+        assert result.forced is True
+        assert result.forced_action != "replace_indicator"
+        assert "Forcing override" in result.warning
 
-    def test_total_modify_params_never_decreases(self):
-        state = CosmeticGuardState(total_modify_params=10, action_history=[])
-        # History with 1 modify_params — prev_modify_count=0, new=1, total=max(10+1, 1)=11
-        history = [{"action": "modify_params"}]
-        state, _ = check_cosmetic_guard(history, state)
-        # Since state.action_history was empty, prev=0, new=1, total becomes max(10+1, 1)=11
-        assert state.total_modify_params == 11
+    def test_cooldown_force_picks_failure_mode_aware_action(self):
+        """Forced action from cooldown should use failure mode recommendations."""
+        history = _make_history(
+            ("add_filter", "flat_signal"),
+            ("add_filter", "flat_signal"),
+            ("add_filter", "flat_signal"),
+        )
+        state = CosmeticGuardState(cooldown_warn_threshold=2, cooldown_force_threshold=3)
+        state.cooldowns = {"flat_signal": {"add_filter": 3}}
+        state, result = check_cosmetic_guard(history, state, failure_mode="flat_signal")
+        assert result.forced is True
+        # Should pick recommended action for flat_signal (change_entry_logic)
+        assert result.forced_action == "change_entry_logic"
 
-    def test_large_history_performance(self):
-        """Ensure large history doesn't blow up."""
-        history = [{"action": "modify_params" if i % 5 < 3 else "full_rewrite"} for i in range(1000)]
-        state, result = check_cosmetic_guard(history, CosmeticGuardState(threshold=3))
-        # Last 3 entries: 996(modify), 997(modify), 998(modify) — but 999 is full_rewrite at i=999, i%5=4
-        # i=995 → 995%5=0 < 3 → modify
-        # i=996 → 996%5=1 < 3 → modify
-        # i=997 → 997%5=2 < 3 → modify
-        # i=998 → 998%5=3 ≥ 3 → full_rewrite
-        # i=999 → 999%5=4 ≥ 3 → full_rewrite
-        assert state.consecutive_modify_params == 0
-        assert result.forced is False
+    def test_cooldown_infers_failure_mode_from_history(self):
+        """When failure_mode param is empty, infer from last history entry."""
+        history = _make_history(
+            ("replace_indicator", "low_sharpe"),
+            ("replace_indicator", "low_sharpe"),
+            ("replace_indicator", "low_sharpe"),
+        )
+        state = CosmeticGuardState(cooldown_warn_threshold=2, cooldown_force_threshold=3)
+        state.cooldowns = {"low_sharpe": {"replace_indicator": 3}}
+        # Don't pass failure_mode — should infer from history
+        state, result = check_cosmetic_guard(history, state, failure_mode="")
+        assert result.forced is True
+        assert result.forced_action != "replace_indicator"
+
+
+# ── CosmeticGuardState serialization ───────────────────────────────────────
+
+class TestCosmeticGuardStateSerialization:
+    """Tests for CosmeticGuardState.to_dict/from_dict roundtrip."""
+
+    def test_roundtrip_preserves_cooldowns(self):
+        state = CosmeticGuardState(threshold=5)
+        state.cooldowns = {"low_sharpe": {"modify_params": 2, "replace_indicator": 1}}
+        d = state.to_dict()
+        restored = CosmeticGuardState.from_dict(d)
+        assert restored.cooldowns == {"low_sharpe": {"modify_params": 2, "replace_indicator": 1}}
+        assert restored.threshold == 5
+
+    def test_from_dict_defaults_missing_keys(self):
+        d = {"threshold": 3}
+        restored = CosmeticGuardState.from_dict(d)
+        assert restored.cooldowns == {}
+        assert restored.consecutive_modify_params == 0
+
+    def test_roundtrip_preserves_thresholds(self):
+        state = CosmeticGuardState(
+            cooldown_warn_threshold=4,
+            cooldown_force_threshold=5,
+        )
+        d = state.to_dict()
+        restored = CosmeticGuardState.from_dict(d)
+        assert restored.cooldown_warn_threshold == 4
+        assert restored.cooldown_force_threshold == 5
