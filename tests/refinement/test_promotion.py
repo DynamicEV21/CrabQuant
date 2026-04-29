@@ -572,8 +572,8 @@ class TestFullValidationEdgeCases:
 
         with patch("crabquant.validation.rolling_walk_forward", return_value=mock_wf), \
              patch("crabquant.refinement.config.VALIDATION_CONFIG", {
-                 "regime_specific_wf_sharpe_factor": 0.6,
-                 "regime_specific_ct_sharpe_factor": 0.7,
+                 "regime_specific_wf_sharpe_factor": 0.5,
+                 "regime_specific_ct_sharpe_factor": 0.6,
                  "soft_promote_test_sharpe": 0.3,
              }):
             result = run_full_validation_check(

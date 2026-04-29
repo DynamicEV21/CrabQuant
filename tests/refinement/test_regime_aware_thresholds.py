@@ -102,7 +102,7 @@ class TestRegimeAwareThresholds:
             is_regime_specific=True,
         )
 
-        # Even relaxed: max(0.5 * 0.6, 0.3) = 0.3 — 0.15 < 0.3
+        # Even relaxed: max(0.5 * 0.5, 0.3) = 0.3 — 0.15 < 0.3
         assert result["passed"] is False
 
     def test_config_has_regime_threshold_keys(self):
@@ -110,7 +110,7 @@ class TestRegimeAwareThresholds:
         assert "regime_specific_wf_sharpe_factor" in VALIDATION_CONFIG
         assert "regime_specific_ct_sharpe_factor" in VALIDATION_CONFIG
         assert isinstance(VALIDATION_CONFIG["regime_specific_wf_sharpe_factor"], float)
-        assert VALIDATION_CONFIG["regime_specific_wf_sharpe_factor"] == 0.6
+        assert VALIDATION_CONFIG["regime_specific_wf_sharpe_factor"] == 0.5
 
     @patch("crabquant.validation.cross_ticker_validation")
     @patch("crabquant.validation.rolling_walk_forward")

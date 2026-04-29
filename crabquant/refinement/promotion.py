@@ -122,8 +122,8 @@ def run_full_validation_check(
         "train_window": "18mo",
         "test_window": "6mo",
         "step": "6mo",
-        "min_avg_test_sharpe": 0.5,
-        "min_windows_passed": 2,
+        "min_avg_test_sharpe": 0.3,
+        "min_windows_passed": 1,
     }
     rcfg.update(VALIDATION_CONFIG.get("rolling", {}))
     if rolling_config:
@@ -511,7 +511,7 @@ def soft_promote(
     validation: dict[str, Any],
     state: Any,  # RunState
     *,
-    min_sharpe: float = 0.5,
+    min_sharpe: float = 0.3,
     min_windows: int = 2,
     is_regime_specific: bool = False,
 ) -> dict[str, Any]:

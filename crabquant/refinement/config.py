@@ -192,8 +192,14 @@ VALIDATION_CONFIG: dict = {
     "train_window": "18mo",
     "test_window": "6mo",
     "step": "6mo",
-    "min_avg_test_sharpe": 0.5,
-    "min_windows_passed": 2,
+    "min_avg_test_sharpe": 0.3,
+    "min_windows_passed": 1,
+    # rolling sub-config (relaxed defaults matching validation/__init__.py)
+    "rolling": {
+        "min_avg_test_sharpe": 0.3,
+        "min_windows_passed": 1,
+    },
+    "use_rolling_wf": True,
     # legacy walk_forward_test() thresholds (still available, not default)
     "train_pct": 0.75,
     "min_train_bars": 252,
@@ -201,10 +207,10 @@ VALIDATION_CONFIG: dict = {
     "min_test_trades": 10,
     "max_degradation": 0.7,
     # cross-ticker validation
-    "min_cross_ticker_sharpe": 0.5,
+    "min_cross_ticker_sharpe": 0.3,
     # regime-specific strategy thresholds (lower bar — they excel in their regime)
-    "regime_specific_wf_sharpe_factor": 0.6,   # multiply min_walk_forward_sharpe by this
-    "regime_specific_ct_sharpe_factor": 0.7,   # multiply min_cross_ticker_sharpe by this
+    "regime_specific_wf_sharpe_factor": 0.5,   # multiply min_walk_forward_sharpe by this
+    "regime_specific_ct_sharpe_factor": 0.6,   # multiply min_cross_ticker_sharpe by this
     "soft_promote_test_sharpe": 0.3,            # below this, never promote even for regime-specific
 }
 

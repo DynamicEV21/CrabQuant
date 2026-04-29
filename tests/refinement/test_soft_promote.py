@@ -439,7 +439,7 @@ class TestSoftPromoteEdgeCases:
         }
         with patch("crabquant.refinement.promotion._get_candidates_dir", return_value=tmp_path):
             resp = soft_promote(strategy_code, strategy_module, result, validation, state)
-        assert resp["promoted"] is False  # 0.0 < 0.5
+        assert resp["promoted"] is False  # 0.0 < 0.3
 
     def test_walk_forward_missing_windows_passed_defaults_to_zero(self, strategy_code, strategy_module, result, state, tmp_path):
         """If windows_passed is missing, defaults to 0."""
