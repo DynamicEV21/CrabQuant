@@ -7,10 +7,13 @@ Includes strategy examples, catalogs, and delta computation.
 
 import inspect
 import json
+import logging
 import re
 from dataclasses import asdict
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from crabquant.strategies import STRATEGY_REGISTRY
 from crabquant.strategies._registry_compat import (
@@ -493,9 +496,13 @@ def build_llm_context(
             analyze_failure_patterns,
             format_failure_patterns_for_prompt,
         )
-        from crabquant.refinement.action_analytics import RUN_HISTORY_FILE
+        from crabquant.refinement.action_analytics import (
+            RUN_HISTORY_FILE,
+            load_run_history,
+        )
 
-        pattern_data = analyze_failure_patterns(RUN_HISTORY_FILE)
+        history = load_run_history(RUN_HISTORY_FILE)
+        pattern_data = analyze_failure_patterns(history)
         if pattern_data.get("total_failures", 0) > 0:
             failure_pattern_section = format_failure_patterns_for_prompt(pattern_data)
     except Exception:
@@ -522,22 +529,27 @@ def build_llm_context(
                 from crabquant.refinement.adaptive_prompts import (
                     build_adaptive_invention_prompt,
                 )
-                from crabquant.refinement.regime_tagger import detect_regime
+                from crabquant.regime import detect_regime as _detect_regime
+                from crabquant.data import load_data as _load_data
 
                 # Detect current regime from primary ticker
                 regime = "UNKNOWN"
                 try:
                     ticker = (mandate.get("tickers") or ["SPY"])[0]
-                    regime = detect_regime(ticker)
+                    period = mandate.get("period", "6mo")
+                    df = _load_data(ticker, period=period)
+                    if df is not None and len(df) >= 20:
+                        regime_enum, _regime_meta = _detect_regime(df)
+                        regime = regime_enum.name if hasattr(regime_enum, "name") else str(regime_enum)
+                        # Map RANGING-like regimes
+                        if regime == "MEAN_REVERSION":
+                            regime = "RANGING"
                 except Exception:
                     pass
 
                 # Compute portfolio gaps from registry
                 portfolio_gaps = {}
                 try:
-                    from crabquant.refinement.portfolio_correlation import (
-                        load_winners_equity_curves,
-                    )
                     # Use archetype coverage as a simple gap metric
                     from crabquant.refinement.archetypes import list_archetypes
                     from crabquant.strategies import STRATEGY_REGISTRY
@@ -567,7 +579,7 @@ def build_llm_context(
                 context["failure_pattern_section"] = failure_pattern_section
         except Exception:
             # If prompt building fails, let call_llm_inventor use its fallback
-            pass
+            logger.warning("Turn 1 prompt build failed, falling back to per-field prompt")
     else:
         # Turns 2+: Use build_refinement_prompt for targeted feedback
         try:
@@ -654,7 +666,7 @@ def build_llm_context(
             )
         except Exception:
             # If prompt building fails, let call_llm_inventor use its fallback
-            pass
+            logger.warning("Turn 2+ prompt build failed, falling back to per-field prompt")
 
     return context
 
