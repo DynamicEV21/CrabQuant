@@ -71,14 +71,27 @@ def _heartbeat_age(state: dict) -> float | None:
 
 
 def _get_system_info() -> dict:
-    """Get CPU, RAM, and disk info. Tries psutil first, falls back to /proc."""
+    """Get CPU, RAM, and disk info. Uses ResourceMonitor when available."""
+    try:
+        from crabquant.engine.resource_monitor import get_resource_snapshot
+        snap = get_resource_snapshot()
+        return {
+            "cpu_percent": snap.cpu_percent,
+            "ram_total_gb": round(snap.ram_total_mb / 1024, 2),
+            "ram_used_gb": round(snap.ram_used_mb / 1024, 2),
+            "ram_free_gb": round(snap.ram_available_mb / 1024, 2),
+            "disk_free_gb": round(snap.disk_free_gb, 2),
+        }
+    except Exception:
+        pass
+
+    # Fallback: inline implementation (no resource_monitor dependency)
     cpu_percent = 0.0
     ram_total_gb = 0.0
     ram_used_gb = 0.0
     ram_free_gb = 0.0
     disk_free_gb = 0.0
 
-    # --- RAM ---
     try:
         import psutil
         mem = psutil.virtual_memory()
@@ -101,7 +114,6 @@ def _get_system_info() -> dict:
         except (FileNotFoundError, OSError, ValueError):
             pass
 
-    # --- CPU ---
     try:
         import psutil
         cpu_percent = psutil.cpu_percent(interval=0.1)
@@ -114,7 +126,6 @@ def _get_system_info() -> dict:
         except (FileNotFoundError, OSError, ValueError):
             pass
 
-    # --- Disk ---
     try:
         stat = os.statvfs(str(BASE_DIR))
         disk_free_gb = (stat.f_bavail * stat.f_frsize) / (1024**3)
