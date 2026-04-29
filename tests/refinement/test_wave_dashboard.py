@@ -10,6 +10,7 @@ import pytest
 
 from crabquant.refinement.wave_dashboard import (
     DashboardSnapshot,
+    _load_all_states,
     collect_running_mandates,
     compute_convergence_rate,
     compute_wave_progress,
@@ -53,6 +54,72 @@ def make_runs_dir(states: list[dict]) -> str:
         run_dir.mkdir()
         run_dir.joinpath("state.json").write_text(json.dumps(state))
     return tmpdir
+
+
+# ── DashboardSnapshot ────────────────────────────────────────────────────────
+
+class TestDashboardSnapshot:
+
+    def test_auto_timestamp_on_creation(self):
+        snap = DashboardSnapshot()
+        assert snap.timestamp != ""
+        # Should be a valid ISO string
+        datetime.fromisoformat(snap.timestamp)
+
+    def test_custom_timestamp_preserved(self):
+        custom = "2025-06-01T12:00:00+00:00"
+        snap = DashboardSnapshot(timestamp=custom)
+        assert snap.timestamp == custom
+
+    def test_defaults(self):
+        snap = DashboardSnapshot()
+        assert snap.running_count == 0
+        assert snap.total_mandates == 0
+        assert snap.convergence_rate == 0.0
+        assert snap.wave_progress == 0.0
+        assert snap.best_strategies == []
+        assert snap.running_mandates == []
+
+
+# ── _load_all_states ─────────────────────────────────────────────────────────
+
+class TestLoadAllStates:
+
+    def test_loads_all_state_files(self):
+        states = [
+            make_run_state("m1", status="success"),
+            make_run_state("m2", status="failed"),
+        ]
+        tmpdir = make_runs_dir(states)
+        loaded = _load_all_states(tmpdir)
+        assert len(loaded) == 2
+
+    def test_skips_dirs_without_state_json(self):
+        tmpdir = tempfile.mkdtemp()
+        run_dir = Path(tmpdir) / "run_empty"
+        run_dir.mkdir()
+        # no state.json
+        loaded = _load_all_states(tmpdir)
+        assert loaded == []
+
+    def test_skips_corrupt_json(self):
+        tmpdir = tempfile.mkdtemp()
+        run_dir = Path(tmpdir) / "run_bad"
+        run_dir.mkdir()
+        (run_dir / "state.json").write_text("{{{invalid json")
+        loaded = _load_all_states(tmpdir)
+        assert loaded == []
+
+    def test_nonexistent_dir_returns_empty(self):
+        loaded = _load_all_states("/nonexistent/path/abc123")
+        assert loaded == []
+
+    def test_skips_non_directory_entries(self):
+        tmpdir = tempfile.mkdtemp()
+        # Place a stray file in runs_dir
+        (Path(tmpdir) / "readme.txt").write_text("hello")
+        loaded = _load_all_states(tmpdir)
+        assert loaded == []
 
 
 # ── collect_running_mandates ──────────────────────────────────────────────────
@@ -127,6 +194,23 @@ class TestComputeConvergenceRate:
         rate = compute_convergence_rate([])
         assert rate == 0.0
 
+    def test_only_running_and_pending(self):
+        states = [
+            make_run_state("m1", status="running"),
+            make_run_state("m2", status="pending"),
+        ]
+        rate = compute_convergence_rate(states)
+        assert rate == 0.0
+
+    def test_abandoned_counts_as_completed(self):
+        states = [
+            make_run_state("m1", status="abandoned"),
+            make_run_state("m2", status="success"),
+        ]
+        rate = compute_convergence_rate(states)
+        # 1 success out of 2 completed
+        assert rate == pytest.approx(0.5)
+
 
 # ── compute_wave_progress ─────────────────────────────────────────────────────
 
@@ -152,6 +236,39 @@ class TestComputeWaveProgress:
     def test_empty_states(self):
         progress = compute_wave_progress([])
         assert progress == 0.0
+
+    def test_pending_mandates_count_zero(self):
+        states = [
+            make_run_state("m1", status="pending", current_turn=0, max_turns=7),
+            make_run_state("m2", status="success"),
+        ]
+        progress = compute_wave_progress(states)
+        # 0% + 100% = avg 50%
+        assert progress == pytest.approx(0.5)
+
+    def test_max_turns_zero_running(self):
+        states = [
+            make_run_state("m1", status="running", current_turn=3, max_turns=0),
+        ]
+        progress = compute_wave_progress(states)
+        # max_turns == 0, so current/max = 0
+        assert progress == pytest.approx(0.0)
+
+    def test_abandoned_counts_as_complete(self):
+        states = [
+            make_run_state("m1", status="abandoned"),
+            make_run_state("m2", status="running", current_turn=5, max_turns=10),
+        ]
+        progress = compute_wave_progress(states)
+        # 100% + 50% = avg 75%
+        assert progress == pytest.approx(0.75)
+
+    def test_max_turns_exhausted_counts_as_complete(self):
+        states = [
+            make_run_state("m1", status="max_turns_exhausted"),
+        ]
+        progress = compute_wave_progress(states)
+        assert progress == 1.0
 
 
 # ── find_best_strategies ──────────────────────────────────────────────────────
@@ -182,6 +299,28 @@ class TestFindBestStrategies:
         states = [make_run_state(f"m{i}", best_sharpe=float(i)) for i in range(10)]
         best = find_best_strategies(states)
         assert len(best) == 5  # default
+
+    def test_top_n_greater_than_available(self):
+        states = [make_run_state("m1", best_sharpe=1.0)]
+        best = find_best_strategies(states, top_n=10)
+        assert len(best) == 1
+
+    def test_result_contains_expected_fields(self):
+        states = [make_run_state("m1", best_sharpe=2.0, current_turn=5)]
+        best = find_best_strategies(states, top_n=1)
+        assert "mandate_name" in best[0]
+        assert "best_sharpe" in best[0]
+        assert "best_turn" in best[0]
+        assert "status" in best[0]
+
+    def test_negative_sharpe_at_bottom(self):
+        states = [
+            make_run_state("m1", best_sharpe=-0.5),
+            make_run_state("m2", best_sharpe=1.0),
+        ]
+        best = find_best_strategies(states, top_n=2)
+        assert best[0]["mandate_name"] == "m2"
+        assert best[1]["mandate_name"] == "m1"
 
 
 # ── generate_dashboard ────────────────────────────────────────────────────────
@@ -215,6 +354,23 @@ class TestGenerateDashboard:
         assert len(snapshot.best_strategies) > 0
         assert snapshot.best_strategies[0]["mandate_name"] == "m1"
 
+    def test_includes_running_mandates_detail(self):
+        states = [
+            make_run_state("m1", status="running", best_sharpe=0.8, current_turn=4, max_turns=7),
+            make_run_state("m2", status="success", best_sharpe=2.0),
+        ]
+        tmpdir = make_runs_dir(states)
+        snapshot = generate_dashboard(tmpdir)
+        assert len(snapshot.running_mandates) == 1
+        assert snapshot.running_mandates[0]["mandate_name"] == "m1"
+        assert snapshot.running_mandates[0]["current_turn"] == 4
+
+    def test_nonexistent_dir(self):
+        snapshot = generate_dashboard("/nonexistent/abc123")
+        assert snapshot.running_count == 0
+        assert snapshot.total_mandates == 0
+        assert snapshot.convergence_rate == 0.0
+
 
 # ── snapshot_to_json ──────────────────────────────────────────────────────────
 
@@ -245,3 +401,21 @@ class TestSnapshotToJson:
         parsed = json.loads(json_str)
         assert parsed["running_count"] == 0
         assert parsed["total_mandates"] == 0
+
+    def test_kwargs_passed_to_dumps(self):
+        snapshot = DashboardSnapshot(running_count=1)
+        json_str = snapshot_to_json(snapshot, indent=4)
+        assert "    " in json_str  # 4-space indent
+
+    def test_roundtrip(self):
+        snapshot = DashboardSnapshot(
+            running_count=2,
+            total_mandates=8,
+            convergence_rate=0.5,
+            wave_progress=0.3,
+        )
+        json_str = snapshot_to_json(snapshot)
+        parsed = json.loads(json_str)
+        assert parsed["running_count"] == 2
+        assert parsed["convergence_rate"] == 0.5
+        assert parsed["wave_progress"] == 0.3
