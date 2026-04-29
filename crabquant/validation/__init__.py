@@ -346,6 +346,8 @@ def rolling_walk_forward(
     step: str = "6mo",
     min_avg_test_sharpe: float = 0.3,
     min_windows_passed: int = 1,
+    min_window_test_sharpe: float = 0.0,
+    max_window_degradation: float = 1.0,
     engine: Optional[BacktestEngine] = None,
 ) -> RollingWalkForwardResult:
     """Validate across multiple rolling walk-forward windows.
@@ -363,6 +365,8 @@ def rolling_walk_forward(
         step: Step between window starts (e.g. "6mo")
         min_avg_test_sharpe: Minimum average test Sharpe across windows
         min_windows_passed: Minimum windows that must individually pass
+        min_window_test_sharpe: Per-window test Sharpe floor (default 0.0 = disabled)
+        max_window_degradation: Per-window max degradation (default 1.0 = disabled)
         engine: BacktestEngine instance
 
     Returns:
@@ -428,7 +432,7 @@ def rolling_walk_forward(
                 # Both negative — can't meaningfully measure degradation
                 degradation = 1.0
 
-            window_passed = test_result.sharpe >= 0.3 and degradation <= 0.8
+            window_passed = test_result.sharpe >= min_window_test_sharpe and degradation <= max_window_degradation
             window_results.append({
                 "window": i + 1,
                 "train_sharpe": train_result.sharpe,

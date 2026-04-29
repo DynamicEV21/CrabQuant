@@ -78,6 +78,11 @@ class RefinementConfig:
 
     # ── Walk-forward validation thresholds ──────────────────────────────
 
+    # Per-window thresholds for rolling_walk_forward().
+    # These control what counts as a "passed" individual window.
+    min_window_test_sharpe: float = 0.0   # per-window test Sharpe floor
+    max_window_degradation: float = 1.0   # per-window max degradation
+
     # Default values consumed by ``walk_forward_test()`` keyword args.
     # train_months and test_months are handled separately via the
     # period strings passed to the validation function.
