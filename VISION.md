@@ -1,7 +1,7 @@
 # CrabQuant — Vision
 
 **Last Updated:** 2026-04-28
-**Current Phase:** Phase 5.6 — Invention Accelerators
+**Current Phase:** Phase 6 — Production Validation (prep)
 
 ---
 
@@ -46,13 +46,13 @@ Minutes between strategy discoveries, not hours. The refinement pipeline should 
 ### Research Engine (Refinement Pipeline)
 The core. An LLM-driven iterative refinement loop that takes a strategy mandate and loops up to 7 turns, using LLM intelligence to improve strategies until they hit a Sharpe target.
 
-31 components: orchestrator, LLM API, validation gates, backtest engine, circuit breaker, stagnation detection, action analytics, auto-promotion, wave manager, regime tagger, rolling walk-forward, cross-run learning, and more. All tested (972 tests passing).
+31 components: orchestrator, LLM API, validation gates, backtest engine, circuit breaker, stagnation detection, action analytics, auto-promotion, wave manager, regime tagger, rolling walk-forward, cross-run learning, feature importance, stagnation recovery, and more. All tested (1337 tests passing).
 
 ### Backtest Engine
 VectorBT-based with composite scoring, parallel execution across tickers, real OHLCV from Yahoo Finance with pickle caching (20hr TTL).
 
 ### Strategy Library
-25 strategies across archetypes (momentum, mean reversion, breakout, trend, volume). Mix of hand-crafted and LLM-invented.
+25+ strategies across archetypes (momentum, mean reversion, breakout, trend, volume). Mix of hand-crafted and LLM-invented.
 
 ### Validation
 Walk-forward validation (configurable train/test split), cross-ticker validation across 15+ tickers, overfitting detection, guardrails.
@@ -92,7 +92,7 @@ Everything else works. The LLM can write good strategies. The backtest engine is
 | Validation pass rate | >50% | 0% |
 | Strategies in registry (from invention) | 10+ | 0 |
 | Unattended runtime | 7+ days | ~1 day |
-| Test coverage | 100% of new code | 972 tests |
+| Test coverage | 100% of new code | 1337 tests |
 
 ---
 

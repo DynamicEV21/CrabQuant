@@ -275,7 +275,7 @@ Users pick a **mode preset** or configure individual **toggles** in mandates/con
 - [x] Composite score: sharpe × √(trades/20) × (1 - |dd|) for best-strategy tracking
 - [x] Stagnation recovery: 7 trap types, indicator diversity tracking
 - [x] Feature importance: 18 indicators, correlation-based analysis, LLM feedback loop
-- [x] Tests: 1335 passing (from 1033 baseline), 0 regressions
+- [x] Tests: 1337 passing (from 1033 baseline), 0 regressions
 
 ---
 
