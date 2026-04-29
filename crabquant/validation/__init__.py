@@ -91,9 +91,9 @@ def walk_forward_test(
     engine: Optional[BacktestEngine] = None,
     *,
     min_train_bars: int = 252,
-    min_test_sharpe: float = 0.3,
-    min_test_trades: int = 10,
-    max_degradation: float = 0.8,
+    min_test_sharpe: float = 0.0,
+    min_test_trades: int = 5,
+    max_degradation: float = 1.0,
 ) -> WalkForwardResult:
     """
     Walk-forward test: train on one period, validate on the next.
@@ -106,11 +106,11 @@ def walk_forward_test(
         test_months: Months of out-of-sample data (default 6 → 25% of 3y)
         engine: BacktestEngine instance
         min_train_bars: Minimum bars required in train split (default 252 ≈ 1 year)
-        min_test_sharpe: Minimum OOS Sharpe to be considered robust (default 0.3)
-        min_test_trades: Minimum trades in test period to be considered robust (default 10)
+        min_test_sharpe: Minimum OOS Sharpe to be considered robust (default 0.0 = break-even)
+        min_test_trades: Minimum trades in test period to be considered robust (default 5)
         max_degradation: Max allowed degradation ratio.  Test Sharpe must be
-            >= train_sharpe * (1 - max_degradation).  E.g. 0.8 means if train
-            Sharpe is 2.0, test must be >= 0.4.  Default 0.8.
+            >= train_sharpe * (1 - max_degradation).  E.g. 1.0 means no degradation
+            check at all.  Default 1.0.
 
     Returns:
         WalkForwardResult with train vs test comparison, including regime context

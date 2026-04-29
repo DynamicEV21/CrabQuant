@@ -1,9 +1,323 @@
 {
-  "running_count": 0,
-  "total_mandates": 0,
-  "convergence_rate": 0.0,
-  "wave_progress": 0.0,
-  "best_strategies": [],
-  "running_mandates": [],
-  "timestamp": "2026-04-29T10:13:59.153330+00:00"
+  "running_count": 47,
+  "total_mandates": 91,
+  "convergence_rate": 0.25,
+  "wave_progress": 0.6652537938252224,
+  "best_strategies": [
+    {
+      "mandate_name": "momentum_googl",
+      "best_sharpe": 2.188954944584191,
+      "best_turn": 2,
+      "status": "success"
+    },
+    {
+      "mandate_name": "e2e_test_momentum",
+      "best_sharpe": 1.8728166181760793,
+      "best_turn": 2,
+      "status": "max_turns_exhausted"
+    },
+    {
+      "mandate_name": "mean_reversion_nvda",
+      "best_sharpe": 1.7422784491824221,
+      "best_turn": 2,
+      "status": "success"
+    },
+    {
+      "mandate_name": "multi_rsi_googl",
+      "best_sharpe": 1.7059361666878445,
+      "best_turn": 4,
+      "status": "success"
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "best_sharpe": 1.6769364708542696,
+      "best_turn": 3,
+      "status": "success"
+    }
+  ],
+  "running_mandates": [
+    {
+      "mandate_name": "mean_reversion_nflx",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": 0.7747809964474104
+    },
+    {
+      "mandate_name": "volatility_tsla",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "breakout_aapl",
+      "current_turn": 4,
+      "max_turns": 7,
+      "best_sharpe": 0.8076142646520802
+    },
+    {
+      "mandate_name": "e2e_stress_test",
+      "current_turn": 3,
+      "max_turns": 5,
+      "best_sharpe": 0.7754615652256672
+    },
+    {
+      "mandate_name": "volatility_tsla",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "trend_msft",
+      "current_turn": 4,
+      "max_turns": 7,
+      "best_sharpe": 0.9643993871283334
+    },
+    {
+      "mandate_name": "momentum_msft",
+      "current_turn": 6,
+      "max_turns": 7,
+      "best_sharpe": 1.3456538908799218
+    },
+    {
+      "mandate_name": "trend_tsla",
+      "current_turn": 5,
+      "max_turns": 7,
+      "best_sharpe": 1.222522828393622
+    },
+    {
+      "mandate_name": "mean_reversion_nflx",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.6278160282217591
+    },
+    {
+      "mandate_name": "trend_tsla",
+      "current_turn": 0,
+      "max_turns": 7,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "momentum_msft",
+      "current_turn": 2,
+      "max_turns": 3,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "breakout_spy",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": -0.007327286449673106
+    },
+    {
+      "mandate_name": "momentum_googl",
+      "current_turn": 4,
+      "max_turns": 7,
+      "best_sharpe": 0.35646860736168795
+    },
+    {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 1,
+      "max_turns": 2,
+      "best_sharpe": 1.2307632985168413
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -0.05357475859742184
+    },
+    {
+      "mandate_name": "trend_msft",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 0.9632623740018211
+    },
+    {
+      "mandate_name": "mean_reversion_spy",
+      "current_turn": 4,
+      "max_turns": 7,
+      "best_sharpe": 1.164204704296117
+    },
+    {
+      "mandate_name": "volume_aapl",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "momentum_nvda",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -0.7819868909647687
+    },
+    {
+      "mandate_name": "e2e_stress_test",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 0.9021814176443552
+    },
+    {
+      "mandate_name": "trend_amzn",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 0.8375053135048341
+    },
+    {
+      "mandate_name": "momentum_spy",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 0.5077586405940994
+    },
+    {
+      "mandate_name": "volume_nvda",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": -0.8965252938610635
+    },
+    {
+      "mandate_name": "momentum_msft",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -0.2664194714254866
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 0,
+      "max_turns": 1,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "e2e_test_momentum",
+      "current_turn": 0,
+      "max_turns": 2,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "momentum_spy",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": -0.6649078423114424
+    },
+    {
+      "mandate_name": "breakout_amd",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.703084793928381
+    },
+    {
+      "mandate_name": "breakout_spy",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 0.4833610139102345
+    },
+    {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 7,
+      "max_turns": 10,
+      "best_sharpe": 1.3751681529605486
+    },
+    {
+      "mandate_name": "momentum_aapl",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.47789777174294523
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -0.05357475859742184
+    },
+    {
+      "mandate_name": "volume_nvda",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.0
+    },
+    {
+      "mandate_name": "momentum_spy",
+      "current_turn": 4,
+      "max_turns": 7,
+      "best_sharpe": 0.30367174762480287
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": 0.009294983310790754
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 5,
+      "max_turns": 7,
+      "best_sharpe": 1.4464992754715935
+    },
+    {
+      "mandate_name": "breakout_amd",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.7949918820130498
+    },
+    {
+      "mandate_name": "breakout_tsla",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -0.011125609689583467
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 0,
+      "max_turns": 2,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 5,
+      "max_turns": 10,
+      "best_sharpe": 1.1575047878253522
+    },
+    {
+      "mandate_name": "mean_reversion_nflx",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.6505920723491151
+    },
+    {
+      "mandate_name": "volatility_spy",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 1.0382451034071305
+    },
+    {
+      "mandate_name": "momentum_msft",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 0.538969514478309
+    },
+    {
+      "mandate_name": "breakout_aapl",
+      "current_turn": 4,
+      "max_turns": 7,
+      "best_sharpe": 0.9198784588303709
+    },
+    {
+      "mandate_name": "mean_reversion_spy",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.5491819416343808
+    },
+    {
+      "mandate_name": "e2e_stress_test",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": 0.04050369591743596
+    },
+    {
+      "mandate_name": "mean_reversion_nvda",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 1.0504761504747684
+    }
+  ],
+  "timestamp": "2026-04-29T10:20:16.420884+00:00"
 }
