@@ -503,6 +503,24 @@ def build_llm_context(
             if context.get("feature_importance_section"):
                 tier1["feature_importance_section"] = context["feature_importance_section"]
 
+            # Phase 6: Compute action effectiveness for the current failure mode
+            action_effectiveness_section = ""
+            try:
+                from crabquant.refinement.action_effectiveness import (
+                    analyze_action_effectiveness,
+                    format_action_effectiveness_for_prompt,
+                )
+                from crabquant.refinement.action_analytics import RUN_HISTORY_FILE
+
+                eff_data = analyze_action_effectiveness(RUN_HISTORY_FILE)
+                fm = tier1.get("failure_mode", "")
+                if eff_data.get("by_failure_mode") and fm:
+                    action_effectiveness_section = format_action_effectiveness_for_prompt(
+                        eff_data, fm
+                    )
+            except Exception:
+                pass  # Non-critical — don't block prompt building
+
             # Build stagnation suffix from state
             history = getattr(state, "history", [])
             prev_sharpes = [h.get("sharpe", 0.0) for h in history[-5:]]
@@ -529,6 +547,7 @@ def build_llm_context(
                 archetype_section=context.get("archetype_section"),
                 indicator_reference=indicator_ref,
                 indicator_quick_ref=indicator_qr,
+                action_effectiveness_section=action_effectiveness_section,
             )
         except Exception:
             # If prompt building fails, let call_llm_inventor use its fallback

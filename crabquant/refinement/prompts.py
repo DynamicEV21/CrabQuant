@@ -212,7 +212,7 @@ Current params: {current_params}
 - Details: {failure_details}
 
 {failure_guidance}
-
+{action_effectiveness_section}
 ### Sharpe by Year
 {sharpe_by_year}
 {tier2_section}
@@ -1014,6 +1014,7 @@ def build_refinement_prompt(
     archetype_section: str | None = None,
     indicator_reference: str = "",
     indicator_quick_ref: str = "",
+    action_effectiveness_section: str = "",
 ) -> str:
     """Build the complete refinement prompt for turns 2+.
 
@@ -1029,6 +1030,8 @@ def build_refinement_prompt(
         winner_examples: Optional list of proven winner strategy dicts (cross-run learning).
         indicator_reference: Full indicator API reference text.
         indicator_quick_ref: Quick reference card (section 7) for user message.
+        action_effectiveness_section: Pre-formatted action effectiveness data for
+            the current failure mode.
 
     Returns:
         Complete prompt string for the LLM.
@@ -1127,6 +1130,7 @@ def build_refinement_prompt(
         strategy_examples=examples_text,
         winner_examples_section=winner_section,
         indicator_quick_ref=indicator_quick_ref,
+        action_effectiveness_section=action_effectiveness_section,
     )
 
 
