@@ -23,6 +23,7 @@ from crabquant.production.promoter import (
     _extract_slippage_results,
     _extract_period_results,
     get_promotion_metrics,
+    batch_promote_refinement_winners,
     promote_strategy,
 )
 
@@ -885,3 +886,325 @@ class TestPromoteStrategy:
                     strategy_name="test", ticker="SPY", params={"a": 1},
                     vbt_result={}, confirm_result=confirm,
                 )
+
+
+class TestBatchPromoteRefinementWinners:
+    """Tests for batch_promote_refinement_winners()."""
+
+    def _make_winners_file(self, tmp_path, winners):
+        """Helper to write a winners.json in tmp_path."""
+        winners_file = tmp_path / "winners.json"
+        winners_file.write_text(json.dumps(winners))
+        return winners_file
+
+    def _make_strategy_file(self, tmp_path, name):
+        """Helper to create a dummy strategy .py file. Returns strategy_dir."""
+        strategy_dir = tmp_path / "strategies"
+        strategy_dir.mkdir(parents=True, exist_ok=True)
+        (strategy_dir / f"{name}.py").write_text("# dummy")
+        return strategy_dir
+
+    def _promote(self, tmp_path, winners_file, strategy_dir, dry_run=False):
+        """Helper to call batch_promote_refinement_winners with mocked paths."""
+        with patch("crabquant.production.promoter.REGISTRY_FILE",
+                    tmp_path / "registry.json"):
+            with patch("crabquant.production.promoter.PRODUCTION_DIR",
+                        tmp_path / "production"):
+                return batch_promote_refinement_winners(
+                    winners_file, dry_run=dry_run, strategy_dir=strategy_dir)
+
+    def test_empty_winners_file(self, tmp_path):
+        """Empty winners file returns zero counts."""
+        winners_file = self._make_winners_file(tmp_path, [])
+        result = batch_promote_refinement_winners(winners_file)
+        assert result["total_candidates"] == 0
+        assert result["newly_promoted"] == 0
+
+    def test_no_promoted_entries(self, tmp_path):
+        """Winners without validation_status=promoted are skipped."""
+        winners = [
+            {"strategy": "test", "ticker": "SPY", "sharpe": 1.0,
+             "validation_status": "backtest_only"},
+        ]
+        winners_file = self._make_winners_file(tmp_path, winners)
+        result = batch_promote_refinement_winners(winners_file)
+        assert result["total_candidates"] == 0
+        assert result["newly_promoted"] == 0
+
+    def test_missing_file_returns_empty(self, tmp_path):
+        """Non-existent winners file returns zero counts."""
+        result = batch_promote_refinement_winners(tmp_path / "nonexistent.json")
+        assert result["total_candidates"] == 0
+        assert result["newly_promoted"] == 0
+
+    def test_single_promotion(self, tmp_path):
+        """A single promoted winner gets added to registry."""
+        sdir = self._make_strategy_file(tmp_path, "test_strat")
+        winners = [
+            {
+                "strategy": "test_strat",
+                "ticker": "SPY",
+                "sharpe": 1.5,
+                "return": 0.1,
+                "max_drawdown": -0.05,
+                "trades": 20,
+                "params": {"fast": 10, "slow": 20},
+                "validation_status": "promoted",
+                "promoted_at": "2026-04-29T00:00:00",
+                "validation": {
+                    "passed": True,
+                    "walk_forward_robust": True,
+                    "cross_ticker_robust": True,
+                    "walk_forward": {
+                        "test_sharpe": 1.2,
+                        "train_sharpe": 1.5,
+                        "degradation": 0.2,
+                    },
+                },
+            }
+        ]
+        winners_file = self._make_winners_file(tmp_path, winners)
+        result = self._promote(tmp_path, winners_file, sdir)
+
+        assert result["total_candidates"] == 1
+        assert result["newly_promoted"] == 1
+        assert result["already_in_registry"] == 0
+        assert result["skipped_no_strategy_file"] == 0
+
+    def test_dry_run_does_not_write(self, tmp_path):
+        """Dry run reports counts without writing to registry."""
+        sdir = self._make_strategy_file(tmp_path, "test_strat")
+        winners = [
+            {
+                "strategy": "test_strat",
+                "ticker": "SPY",
+                "sharpe": 1.5,
+                "params": {},
+                "validation_status": "promoted",
+                "validation": {"walk_forward_robust": True, "cross_ticker_robust": True},
+            }
+        ]
+        winners_file = self._make_winners_file(tmp_path, winners)
+        result = self._promote(tmp_path, winners_file, sdir, dry_run=True)
+
+        assert result["newly_promoted"] == 1
+        assert "dry_run_entries" in result
+        assert len(result["dry_run_entries"]) == 1
+        # Registry file should NOT exist
+        assert not (tmp_path / "registry.json").exists()
+
+    def test_skip_no_strategy_file(self, tmp_path):
+        """Winners without matching .py files are skipped."""
+        winners = [
+            {
+                "strategy": "nonexistent_strategy",
+                "ticker": "SPY",
+                "sharpe": 1.5,
+                "params": {},
+                "validation_status": "promoted",
+            }
+        ]
+        winners_file = self._make_winners_file(tmp_path, winners)
+        result = self._promote(tmp_path, winners_file, tmp_path / "strategies")
+
+        assert result["skipped_no_strategy_file"] == 1
+        assert result["newly_promoted"] == 0
+
+    def test_skip_already_in_registry(self, tmp_path):
+        """Entries already in registry are skipped."""
+        sdir = self._make_strategy_file(tmp_path, "test_strat")
+        winners = [
+            {
+                "strategy": "test_strat",
+                "ticker": "SPY",
+                "sharpe": 1.5,
+                "params": {"fast": 10},
+                "validation_status": "promoted",
+            }
+        ]
+        winners_file = self._make_winners_file(tmp_path, winners)
+
+        # Pre-populate registry with the same entry
+        existing_key = f"test_strat|SPY|{_params_hash({'fast': 10})}"
+        registry_file = tmp_path / "registry.json"
+        registry_file.write_text(json.dumps([{
+            "key": existing_key,
+            "strategy_name": "test_strat",
+            "ticker": "SPY",
+            "params_hash": _params_hash({"fast": 10}),
+            "params": {"fast": 10},
+            "promoted_at": "2026-04-28",
+            "verdict": "ROBUST",
+            "report_file": "test_strat_SPY.md",
+        }]))
+
+        with patch("crabquant.production.promoter.REGISTRY_FILE", registry_file):
+            with patch("crabquant.production.promoter.PRODUCTION_DIR",
+                        tmp_path / "production"):
+                result = batch_promote_refinement_winners(
+                    winners_file, strategy_dir=sdir)
+
+        assert result["already_in_registry"] == 1
+        assert result["newly_promoted"] == 0
+
+    def test_missing_strategy_or_ticker(self, tmp_path):
+        """Entries missing strategy or ticker are errors."""
+        winners = [
+            {
+                "strategy": "",
+                "ticker": "SPY",
+                "validation_status": "promoted",
+            },
+            {
+                "strategy": "test",
+                "ticker": "",
+                "validation_status": "promoted",
+            },
+        ]
+        winners_file = self._make_winners_file(tmp_path, winners)
+        result = self._promote(tmp_path, winners_file, tmp_path / "strategies")
+
+        assert result["total_candidates"] == 2
+        assert len(result["errors"]) == 2
+        assert result["newly_promoted"] == 0
+
+    def test_registry_entry_has_required_fields(self, tmp_path):
+        """Promoted entries have all required fields in registry."""
+        sdir = self._make_strategy_file(tmp_path, "my_strat")
+        winners = [
+            {
+                "strategy": "my_strat",
+                "ticker": "AAPL",
+                "sharpe": 2.0,
+                "return": 0.15,
+                "max_drawdown": -0.03,
+                "trades": 30,
+                "params": {"period": 14},
+                "validation_status": "promoted",
+                "promoted_at": "2026-04-29T12:00:00",
+                "refinement_run": "test_run_001",
+                "refinement_turns": 3,
+                "validation": {
+                    "walk_forward_robust": True,
+                    "cross_ticker_robust": True,
+                    "walk_forward": {
+                        "test_sharpe": 1.8,
+                        "train_sharpe": 2.1,
+                        "degradation": 0.14,
+                    },
+                },
+            }
+        ]
+        winners_file = self._make_winners_file(tmp_path, winners)
+        registry_file = tmp_path / "registry.json"
+
+        with patch("crabquant.production.promoter.REGISTRY_FILE", registry_file):
+            with patch("crabquant.production.promoter.PRODUCTION_DIR",
+                        tmp_path / "production"):
+                result = batch_promote_refinement_winners(
+                    winners_file, strategy_dir=sdir)
+
+        assert result["newly_promoted"] == 1
+        registry = json.loads(registry_file.read_text())
+        assert len(registry) == 1
+        entry = registry[0]
+        assert entry["strategy_name"] == "my_strat"
+        assert entry["ticker"] == "AAPL"
+        assert entry["verdict"] == "ROBUST"
+        assert entry["source"] == "refinement_pipeline"
+        assert entry["sharpe"] == 2.0
+        assert entry["walk_forward_robust"] is True
+        assert entry["cross_ticker_robust"] is True
+        assert entry["walk_forward_test_sharpe"] == 1.8
+        assert entry["report_file"] == "my_strat_AAPL.md"
+
+    def test_markdown_report_written(self, tmp_path):
+        """A markdown report file is created for each promoted entry."""
+        sdir = self._make_strategy_file(tmp_path, "report_test")
+        winners = [
+            {
+                "strategy": "report_test",
+                "ticker": "MSFT",
+                "sharpe": 1.8,
+                "params": {"len": 20},
+                "validation_status": "promoted",
+                "validation": {
+                    "walk_forward_robust": True,
+                    "cross_ticker_robust": True,
+                    "walk_forward": {
+                        "test_sharpe": 1.5,
+                        "train_sharpe": 1.9,
+                        "degradation": 0.21,
+                    },
+                },
+            }
+        ]
+        winners_file = self._make_winners_file(tmp_path, winners)
+        production_dir = tmp_path / "production"
+
+        with patch("crabquant.production.promoter.REGISTRY_FILE",
+                    tmp_path / "registry.json"):
+            with patch("crabquant.production.promoter.PRODUCTION_DIR",
+                        production_dir):
+                result = batch_promote_refinement_winners(
+                    winners_file, strategy_dir=sdir)
+
+        report_path = production_dir / "report_test_MSFT.md"
+        assert report_path.exists()
+        content = report_path.read_text()
+        assert "report_test" in content
+        assert "MSFT" in content
+        assert "ROBUST" in content
+        assert "1.8000" in content
+
+    def test_dedup_same_strategy_different_params(self, tmp_path):
+        """Same strategy with different params creates separate entries."""
+        sdir = self._make_strategy_file(tmp_path, "dup_test")
+        winners = [
+            {
+                "strategy": "dup_test",
+                "ticker": "SPY",
+                "sharpe": 1.5,
+                "params": {"fast": 5},
+                "validation_status": "promoted",
+            },
+            {
+                "strategy": "dup_test",
+                "ticker": "SPY",
+                "sharpe": 1.8,
+                "params": {"fast": 10},
+                "validation_status": "promoted",
+            },
+        ]
+        winners_file = self._make_winners_file(tmp_path, winners)
+        registry_file = tmp_path / "registry.json"
+
+        with patch("crabquant.production.promoter.REGISTRY_FILE", registry_file):
+            with patch("crabquant.production.promoter.PRODUCTION_DIR",
+                        tmp_path / "production"):
+                result = batch_promote_refinement_winners(
+                    winners_file, strategy_dir=sdir)
+
+        assert result["newly_promoted"] == 2
+        registry = json.loads(registry_file.read_text())
+        assert len(registry) == 2
+        keys = {e["key"] for e in registry}
+        assert len(keys) == 2
+
+    def test_mixed_promoted_and_non_promoted(self, tmp_path):
+        """Only promoted entries are processed."""
+        sdir_a = self._make_strategy_file(tmp_path, "strat_a")
+        sdir_b = self._make_strategy_file(tmp_path, "strat_b")
+        winners = [
+            {"strategy": "strat_a", "ticker": "SPY", "sharpe": 1.5,
+             "params": {}, "validation_status": "promoted"},
+            {"strategy": "strat_b", "ticker": "SPY", "sharpe": 0.5,
+             "params": {}, "validation_status": "backtest_only"},
+            {"strategy": "strat_a", "ticker": "QQQ", "sharpe": 1.2,
+             "params": {}, "validation_status": "promoted"},
+        ]
+        winners_file = self._make_winners_file(tmp_path, winners)
+        result = self._promote(tmp_path, winners_file, sdir_a)
+
+        assert result["total_candidates"] == 2
+        assert result["newly_promoted"] == 2
