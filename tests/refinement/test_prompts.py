@@ -399,6 +399,110 @@ class TestBuildFailureGuidance:
         assert "20-100 trades" in result
 
 
+# ─── Recommended action lines in failure guidance ───────────────────────────
+
+
+class TestRecommendedActionLines:
+    """Every failure mode guidance should include a 'Recommended action' line."""
+
+    def test_too_few_trades_for_validation_has_recommended_action(self):
+        result = build_failure_guidance("too_few_trades_for_validation", total_trades=3)
+        assert "**Recommended action:** `change_entry_logic`" in result
+        assert "widen thresholds" in result.lower()
+
+    def test_validation_failed_has_recommended_action(self):
+        result = build_failure_guidance("validation_failed", total_trades=30)
+        assert "**Recommended action:** `full_rewrite`" in result
+        assert "simpler strategy" in result.lower()
+
+    def test_regime_fragility_has_recommended_action(self):
+        result = build_failure_guidance("regime_fragility", total_trades=40)
+        assert "**Recommended action:** `add_regime_filter`" in result
+
+    def test_low_sharpe_default_recommended_action(self):
+        """low_sharpe with no special metrics → default replace_indicator."""
+        result = build_failure_guidance(
+            "low_sharpe", total_trades=50,
+            sharpe_ratio=0.8, sharpe_target=1.5,
+            win_rate=0.50, profit_factor=1.5,
+        )
+        assert "**Recommended action:** `replace_indicator`" in result
+
+    def test_low_sharpe_low_win_rate_recommends_filter(self):
+        """low_sharpe with win_rate < 0.35 → add_filter (trend filter)."""
+        result = build_failure_guidance(
+            "low_sharpe", total_trades=50,
+            sharpe_ratio=0.5, sharpe_target=1.5,
+            win_rate=0.25, profit_factor=1.2,
+        )
+        assert "**Recommended action:** `add_filter`" in result
+        assert "trend filter" in result.lower()
+
+    def test_low_sharpe_low_profit_factor_recommends_exit_logic(self):
+        """low_sharpe with profit_factor < 1.0 → change_exit_logic (stop loss)."""
+        result = build_failure_guidance(
+            "low_sharpe", total_trades=50,
+            sharpe_ratio=0.5, sharpe_target=1.5,
+            win_rate=0.50, profit_factor=0.8,
+        )
+        assert "**Recommended action:** `change_exit_logic`" in result
+        assert "stop loss" in result.lower()
+
+    def test_low_sharpe_large_gap_recommends_full_rewrite(self):
+        """low_sharpe with sharpe_gap > 1.0 → full_rewrite."""
+        result = build_failure_guidance(
+            "low_sharpe", total_trades=50,
+            sharpe_ratio=0.2, sharpe_target=1.5,
+            win_rate=0.50, profit_factor=1.5,
+        )
+        assert "**Recommended action:** `full_rewrite`" in result
+        assert "large sharpe gap" in result.lower()
+
+    def test_low_sharpe_small_gap_recommends_modify_params(self):
+        """low_sharpe with sharpe_gap < 0.3 → modify_params."""
+        result = build_failure_guidance(
+            "low_sharpe", total_trades=50,
+            sharpe_ratio=1.3, sharpe_target=1.5,
+            win_rate=0.50, profit_factor=1.5,
+        )
+        assert "**Recommended action:** `modify_params`" in result
+        assert "small parameter tweaks" in result.lower()
+
+    def test_too_few_trades_has_recommended_action(self):
+        result = build_failure_guidance("too_few_trades", total_trades=3)
+        assert "**Recommended action:** `change_entry_logic`" in result
+        assert "loosen" in result.lower()
+
+    def test_excessive_drawdown_has_recommended_action(self):
+        result = build_failure_guidance("excessive_drawdown", total_trades=30)
+        assert "**Recommended action:** `add_filter`" in result
+        assert "risk management" in result.lower()
+
+    def test_flat_signal_has_recommended_action(self):
+        result = build_failure_guidance("flat_signal", total_trades=0)
+        assert "**Recommended action:** `change_entry_logic`" in result
+        assert "fix signal" in result.lower()
+
+    def test_overtrading_has_recommended_action(self):
+        result = build_failure_guidance("overtrading", total_trades=500)
+        assert "**Recommended action:** `add_filter`" in result
+        assert "cooldown" in result.lower()
+
+    def test_backtest_crash_has_recommended_action(self):
+        result = build_failure_guidance("backtest_crash", total_trades=0)
+        assert "**Recommended action:** `novel`" in result
+        assert "runtime bug" in result.lower()
+
+    def test_module_load_failed_has_recommended_action(self):
+        result = build_failure_guidance("module_load_failed", total_trades=0)
+        assert "**Recommended action:** `novel`" in result
+        assert "import" in result.lower()
+
+    def test_unknown_mode_has_no_recommended_action(self):
+        result = build_failure_guidance("nonexistent_mode", total_trades=30)
+        assert "**Recommended action:**" not in result
+
+
 # ─── format_previous_attempts_section (failure-mode-specific notes) ──────────
 
 

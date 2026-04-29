@@ -36,6 +36,22 @@ VALID_ACTIONS = [
     "novel",
 ]
 
+# ── Recommended Actions per Failure Mode ────────────────────────────────────
+# Maps failure_mode → (primary_action, reason)
+# For low_sharpe, a dynamic lookup is used based on diagnosis metrics.
+RECOMMENDED_ACTIONS: dict[str, tuple[str, str]] = {
+    "too_few_trades_for_validation": ("change_entry_logic", "widen thresholds to increase trade frequency"),
+    "validation_failed": ("full_rewrite", "simpler strategy that generalizes better"),
+    "regime_fragility": ("add_regime_filter", "detect and adapt to market regime changes"),
+    "low_sharpe": ("replace_indicator", "diagnosis-dependent — see low_sharpe overrides"),
+    "too_few_trades": ("change_entry_logic", "loosen entry conditions for more signals"),
+    "excessive_drawdown": ("add_filter", "add risk management (stop loss / volatility filter)"),
+    "flat_signal": ("change_entry_logic", "fix signal logic so trades actually fire"),
+    "overtrading": ("add_filter", "add cooldown between trades to reduce frequency"),
+    "backtest_crash": ("novel", "rewrite strategy to fix the runtime bug"),
+    "module_load_failed": ("novel", "rewrite strategy to fix the import/syntax error"),
+}
+
 # ── System Prompt (shared) ──────────────────────────────────────────────────
 
 SYSTEM_PROMPT = """\
@@ -837,13 +853,41 @@ def build_failure_guidance(
                 "conditions match), but accept fewer trades"
             )
 
-    return template.format(
+    # ── Determine recommended action ────────────────────────────────────────
+    recommended_action_line = ""
+    if failure_mode in RECOMMENDED_ACTIONS:
+        action, reason = RECOMMENDED_ACTIONS[failure_mode]
+
+        # Dynamic override for low_sharpe based on diagnosis metrics
+        if failure_mode == "low_sharpe":
+            sharpe_gap = sharpe_target - sharpe_ratio
+            if win_rate < 0.35:
+                action = "add_filter"
+                reason = "add trend filter — low win rate suggests fighting the trend"
+            elif profit_factor < 1.0:
+                action = "change_exit_logic"
+                reason = "add stop loss — losing more per trade than winning"
+            elif sharpe_gap > 1.0:
+                action = "full_rewrite"
+                reason = "large Sharpe gap — current approach is far from viable"
+            elif sharpe_gap < 0.3:
+                action = "modify_params"
+                reason = "close to target — small parameter tweaks may suffice"
+            # else keep default: replace_indicator
+
+        recommended_action_line = (
+            f"\n\n**Recommended action:** `{action}` — {reason}"
+        )
+
+    formatted = template.format(
         trades=total_trades,
         window_breakdown=window_breakdown,
         curve_fit_warning=curve_fit_warning,
         sharpe_diagnosis=sharpe_diagnosis,
         regime_diagnosis=regime_diagnosis,
     )
+
+    return formatted + recommended_action_line
 
 
 def build_turn1_prompt(
