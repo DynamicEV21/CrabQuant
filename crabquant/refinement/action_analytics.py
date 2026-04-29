@@ -64,6 +64,7 @@ def track_action_result(
     success: bool,
     failure_mode: str = "",
     path: str | None = None,
+    error_info: dict | None = None,
 ) -> None:
     """Append an action result entry to the run history JSONL file.
 
@@ -75,6 +76,8 @@ def track_action_result(
         success: Whether the turn met the Sharpe target.
         failure_mode: Failure classification (empty if success).
         path: Path to the JSONL file. Defaults to RUN_HISTORY_FILE.
+        error_info: Optional dict with error_type, error_message, error_traceback
+                    for backtest_crash and module_load_failed failures.
     """
     path = path or RUN_HISTORY_FILE
     entry = {
@@ -86,6 +89,10 @@ def track_action_result(
         "failure_mode": failure_mode,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+    if error_info is not None:
+        entry["error_type"] = error_info.get("error_type", "unknown")
+        entry["error_message"] = str(error_info.get("error_message", ""))[:500]
+        entry["error_traceback"] = str(error_info.get("error_traceback", ""))[:1000]
 
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)

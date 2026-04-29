@@ -738,6 +738,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 success=False,
                 failure_mode="module_load_failed",
                 path=str(results_dir / "run_history.jsonl"),
+                error_info=error_detail,
             )
             state.history.append({
                 "turn": turn,
@@ -779,6 +780,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                 success=False,
                 failure_mode="backtest_crash",
                 path=str(results_dir / "run_history.jsonl"),
+                error_info=error_detail,
             )
             state.history.append({
                 "turn": turn, "status": "backtest_crash",

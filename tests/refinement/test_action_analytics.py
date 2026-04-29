@@ -410,3 +410,118 @@ class TestConstants:
         assert ActionStats is dict
 
 
+# ── Error info capture (Phase 6) ──────────────────────────────────────
+
+
+class TestErrorInfoCapture:
+    """Test that track_action_result captures error details for crashes."""
+
+    def test_error_info_fields_written(self, tmp_path):
+        """error_info dict produces error_type, error_message, error_traceback in JSONL."""
+        hist_file = str(tmp_path / "history.jsonl")
+        error_info = {
+            "error_type": "ValueError",
+            "error_message": "lengths must match",
+            "error_traceback": "Traceback (most recent call last):\n  File ...",
+        }
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=0.0,
+            success=False,
+            failure_mode="backtest_crash",
+            path=hist_file,
+            error_info=error_info,
+        )
+        entries = load_run_history(hist_file)
+        assert len(entries) == 1
+        assert entries[0]["error_type"] == "ValueError"
+        assert entries[0]["error_message"] == "lengths must match"
+        assert "Traceback" in entries[0]["error_traceback"]
+
+    def test_no_error_info_when_none(self, tmp_path):
+        """Without error_info, no error fields appear in the entry."""
+        hist_file = str(tmp_path / "history.jsonl")
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=0.0,
+            success=False,
+            failure_mode="low_sharpe",
+            path=hist_file,
+        )
+        entries = load_run_history(hist_file)
+        assert len(entries) == 1
+        assert "error_type" not in entries[0]
+        assert "error_message" not in entries[0]
+
+    def test_error_message_truncated_at_500(self, tmp_path):
+        """Long error messages are truncated to 500 chars."""
+        hist_file = str(tmp_path / "history.jsonl")
+        long_msg = "x" * 1000
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=0.0,
+            success=False,
+            failure_mode="module_load_failed",
+            path=hist_file,
+            error_info={"error_type": "ImportError", "error_message": long_msg},
+        )
+        entries = load_run_history(hist_file)
+        assert len(entries[0]["error_message"]) == 500
+
+    def test_error_traceback_truncated_at_1000(self, tmp_path):
+        """Long error tracebacks are truncated to 1000 chars."""
+        hist_file = str(tmp_path / "history.jsonl")
+        long_tb = "x" * 2000
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=0.0,
+            success=False,
+            failure_mode="backtest_crash",
+            path=hist_file,
+            error_info={"error_type": "RuntimeError", "error_message": "err", "error_traceback": long_tb},
+        )
+        entries = load_run_history(hist_file)
+        assert len(entries[0]["error_traceback"]) == 1000
+
+    def test_error_info_missing_keys_use_defaults(self, tmp_path):
+        """Partial error_info dicts use 'unknown' and empty string defaults."""
+        hist_file = str(tmp_path / "history.jsonl")
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=0.0,
+            success=False,
+            failure_mode="backtest_crash",
+            path=hist_file,
+            error_info={},
+        )
+        entries = load_run_history(hist_file)
+        assert entries[0]["error_type"] == "unknown"
+        assert entries[0]["error_message"] == ""
+        assert entries[0]["error_traceback"] == ""
+
+    def test_error_info_added_regardless_of_success(self, tmp_path):
+        """error_info fields are added when provided, even for success entries (for diagnostics)."""
+        hist_file = str(tmp_path / "history.jsonl")
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=1.5,
+            success=True,
+            failure_mode="",
+            path=hist_file,
+            error_info={"error_type": "Error", "error_message": "should appear"},
+        )
+        entries = load_run_history(hist_file)
+        assert entries[0]["error_type"] == "Error"
+
