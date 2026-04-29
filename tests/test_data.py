@@ -278,3 +278,303 @@ class TestCacheDir:
         load_data("SPY", period="1y")
         pkl_files = list(CACHE_DIR.glob("SPY_*.pkl"))
         assert len(pkl_files) >= 1
+
+
+# ── Cache expiry and freshness ────────────────────────────────────────────
+
+class TestCacheExpiry:
+    @patch("crabquant.data.pickle.load")
+    @patch("crabquant.data.Path.exists", return_value=True)
+    @patch("crabquant.data.Path.stat")
+    def test_stale_cache_fetches_fresh(self, mock_stat, mock_exists, mock_pickle_load):
+        """Cache older than 20 hours should be treated as stale and re-fetched."""
+        from crabquant.data import load_data
+
+        cached_df = pd.DataFrame({
+            "open": [1.0], "high": [2.0], "low": [0.5], "close": [1.5], "volume": [1000],
+        }, index=pd.DatetimeIndex(["2024-01-01"]))
+        mock_pickle_load.return_value = cached_df
+
+        import time
+        # Set mtime to 25 hours ago (stale)
+        mock_stat.return_value.st_mtime = time.time() - 25 * 3600
+
+        mock_yf_df = pd.DataFrame({
+            "Open": [150.0], "High": [155.0], "Low": [149.0],
+            "Close": [152.0], "Volume": [1000000],
+        }, index=pd.DatetimeIndex(["2024-01-01"], tz="UTC"))
+        mock_ticker = MagicMock()
+        mock_ticker.history.return_value = mock_yf_df
+
+        with patch.dict("sys.modules", {"yfinance": MagicMock(Ticker=lambda t: mock_ticker)}):
+            df = load_data("STALE", period="1y", use_cache=True)
+
+        # Should have fetched from yfinance (mock_ticker.history called)
+        mock_ticker.history.assert_called_once()
+        assert isinstance(df, pd.DataFrame)
+
+    @patch("crabquant.data.pickle.load")
+    @patch("builtins.open", create=True)
+    @patch("crabquant.data.Path.exists", return_value=True)
+    @patch("crabquant.data.Path.stat")
+    def test_fresh_cache_under_20h(self, mock_stat, mock_exists, mock_open, mock_pickle_load):
+        """Cache under 20 hours old should be returned directly."""
+        from crabquant.data import load_data
+
+        cached_df = pd.DataFrame({
+            "open": [1.0], "high": [2.0], "low": [0.5], "close": [1.5], "volume": [1000],
+        }, index=pd.DatetimeIndex(["2024-01-01"]))
+        mock_pickle_load.return_value = cached_df
+        mock_open.return_value.__enter__ = MagicMock(return_value=MagicMock())
+        mock_open.return_value.__exit__ = MagicMock(return_value=False)
+
+        import time
+        mock_stat.return_value.st_mtime = time.time() - 5 * 3600  # 5 hours old
+
+        df = load_data("FRESH", period="1y", use_cache=True)
+        assert len(df) == 1
+
+    @patch("crabquant.data.pickle.load")
+    @patch("builtins.open", create=True)
+    @patch("crabquant.data.Path.exists", return_value=True)
+    @patch("crabquant.data.Path.stat")
+    def test_boundary_20h_cache(self, mock_stat, mock_exists, mock_open, mock_pickle_load):
+        """Cache exactly at 20 hours should still be considered fresh."""
+        from crabquant.data import load_data
+
+        cached_df = pd.DataFrame({
+            "open": [1.0], "high": [2.0], "low": [0.5], "close": [1.5], "volume": [1000],
+        }, index=pd.DatetimeIndex(["2024-01-01"]))
+        mock_pickle_load.return_value = cached_df
+        mock_open.return_value.__enter__ = MagicMock(return_value=MagicMock())
+        mock_open.return_value.__exit__ = MagicMock(return_value=False)
+
+        import time
+        mock_stat.return_value.st_mtime = time.time() - 19.9 * 3600  # just under 20h
+
+        df = load_data("BOUNDARY", period="1y", use_cache=True)
+        assert len(df) == 1
+        mock_pickle_load.assert_called_once()
+
+
+# ── Data integrity and edge cases ─────────────────────────────────────────
+
+class TestDataIntegrity:
+    def test_high_ge_low(self):
+        """High price should always be >= low price."""
+        from crabquant.data import load_data
+
+        df = load_data("AAPL", period="1y")
+        assert (df["high"] >= df["low"]).all()
+
+    def test_high_ge_open_close(self):
+        """High should be >= open and close."""
+        from crabquant.data import load_data
+
+        df = load_data("AAPL", period="1y")
+        assert (df["high"] >= df["open"]).all()
+        assert (df["high"] >= df["close"]).all()
+
+    def test_low_le_open_close(self):
+        """Low should be <= open and close."""
+        from crabquant.data import load_data
+
+        df = load_data("AAPL", period="1y")
+        assert (df["low"] <= df["open"]).all()
+        assert (df["low"] <= df["close"]).all()
+
+    def test_volume_non_negative(self):
+        """Volume should never be negative."""
+        from crabquant.data import load_data
+
+        df = load_data("AAPL", period="1y")
+        assert (df["volume"] >= 0).all()
+
+    def test_index_is_sorted(self):
+        """DataFrame index should be sorted ascending."""
+        from crabquant.data import load_data
+
+        df = load_data("AAPL", period="1y")
+        assert df.index.is_monotonic_increasing
+
+    def test_all_prices_positive(self):
+        """All OHLC prices should be positive."""
+        from crabquant.data import load_data
+
+        df = load_data("AAPL", period="1y")
+        for col in ["open", "high", "low", "close"]:
+            assert (df[col] > 0).all(), f"Found non-positive values in {col}"
+
+
+# ── Extra column handling ─────────────────────────────────────────────────
+
+class TestExtraColumns:
+    def test_extraneous_columns_dropped(self):
+        """yfinance extra columns (Dividends, Stock Splits) should be dropped."""
+        from crabquant.data import load_data
+
+        mock_df = pd.DataFrame({
+            "Open": [150.0], "High": [155.0], "Low": [149.0],
+            "Close": [152.0], "Volume": [1000000],
+            "Dividends": [0.5], "Stock Splits": [0],
+        }, index=pd.DatetimeIndex(["2024-01-01"], tz="UTC"))
+        mock_ticker = MagicMock()
+        mock_ticker.history.return_value = mock_df
+
+        with patch("crabquant.data.Path.exists", return_value=False):
+            with patch.dict("sys.modules", {"yfinance": MagicMock(Ticker=lambda t: mock_ticker)}):
+                df = load_data("TEST", period="1y", use_cache=False)
+
+        assert "Dividends" not in df.columns
+        assert "Stock Splits" not in df.columns
+        assert list(df.columns) == ["open", "high", "low", "close", "volume"]
+
+
+# ── clear_cache edge cases ────────────────────────────────────────────────
+
+class TestClearCacheEdgeCases:
+    def test_clear_nonexistent_ticker_no_error(self, tmp_path):
+        """Clearing cache for a ticker with no files should not error."""
+        from crabquant.data import clear_cache
+
+        (tmp_path / "AAPL_2y.pkl").touch()
+
+        with patch("crabquant.data.CACHE_DIR", tmp_path):
+            clear_cache("NONEXISTENT")  # Should not raise
+
+        # AAPL file should still be there
+        assert (tmp_path / "AAPL_2y.pkl").exists()
+
+    def test_clear_empty_cache_dir(self, tmp_path):
+        """Clearing cache from an empty directory should not error."""
+        from crabquant.data import clear_cache
+
+        with patch("crabquant.data.CACHE_DIR", tmp_path):
+            clear_cache()  # Should not raise
+        assert len(list(tmp_path.glob("*.pkl"))) == 0
+
+    def test_clear_cache_no_txt_files(self, tmp_path):
+        """clear_cache() should only remove .pkl files."""
+        from crabquant.data import clear_cache
+
+        (tmp_path / "AAPL_2y.pkl").touch()
+        (tmp_path / "notes.txt").touch()
+        (tmp_path / "data.csv").touch()
+        (tmp_path / "script.py").touch()
+
+        with patch("crabquant.data.CACHE_DIR", tmp_path):
+            clear_cache()
+
+        assert len(list(tmp_path.glob("*.pkl"))) == 0
+        assert (tmp_path / "notes.txt").exists()
+        assert (tmp_path / "data.csv").exists()
+        assert (tmp_path / "script.py").exists()
+
+
+# ── load_data caching behavior ────────────────────────────────────────────
+
+class TestCacheFileWrite:
+    def test_cache_written_after_fetch(self):
+        """After fetching from yfinance, data should be written to cache."""
+        from crabquant.data import load_data
+
+        mock_df = pd.DataFrame({
+            "Open": [150.0], "High": [155.0], "Low": [149.0],
+            "Close": [152.0], "Volume": [1000000],
+        }, index=pd.DatetimeIndex(["2024-01-01"], tz="UTC"))
+        mock_ticker = MagicMock()
+        mock_ticker.history.return_value = mock_df
+
+        tmp_cache = Path(tempfile.mkdtemp())
+        try:
+            with patch("crabquant.data.Path.exists", return_value=False):
+                with patch("crabquant.data.CACHE_DIR", tmp_cache):
+                    with patch.dict("sys.modules", {"yfinance": MagicMock(Ticker=lambda t: mock_ticker)}):
+                        df = load_data("WRITE_TEST", period="1y", use_cache=True)
+
+            pkl_files = list(tmp_cache.glob("WRITE_TEST_*.pkl"))
+            assert len(pkl_files) == 1
+        finally:
+            import shutil
+            shutil.rmtree(tmp_cache, ignore_errors=True)
+
+    def test_cache_not_written_when_use_cache_false(self):
+        """When use_cache=False, no cache file should be written."""
+        from crabquant.data import load_data
+
+        mock_df = pd.DataFrame({
+            "Open": [150.0], "High": [155.0], "Low": [149.0],
+            "Close": [152.0], "Volume": [1000000],
+        }, index=pd.DatetimeIndex(["2024-01-01"], tz="UTC"))
+        mock_ticker = MagicMock()
+        mock_ticker.history.return_value = mock_df
+
+        tmp_cache = Path(tempfile.mkdtemp())
+        try:
+            with patch("crabquant.data.Path.exists", return_value=False):
+                with patch("crabquant.data.CACHE_DIR", tmp_cache):
+                    with patch.dict("sys.modules", {"yfinance": MagicMock(Ticker=lambda t: mock_ticker)}):
+                        df = load_data("NO_WRITE", period="1y", use_cache=False)
+
+            pkl_files = list(tmp_cache.glob("NO_WRITE_*.pkl"))
+            assert len(pkl_files) == 0
+        finally:
+            import shutil
+            shutil.rmtree(tmp_cache, ignore_errors=True)
+
+
+# ── load_multi additional coverage ────────────────────────────────────────
+
+class TestLoadMultiExtended:
+    @patch("crabquant.data.load_data")
+    def test_single_ticker(self, mock_load):
+        """load_multi with a single ticker should work."""
+        from crabquant.data import load_multi
+
+        mock_load.return_value = pd.DataFrame({
+            "open": [1.0], "high": [2.0], "low": [0.5], "close": [1.5], "volume": [1000],
+        }, index=pd.DatetimeIndex(["2024-01-01"]))
+
+        result = load_multi(["AAPL"], period="1y")
+        assert len(result) == 1
+        assert "AAPL" in result
+        mock_load.assert_called_once_with("AAPL", "1y", True)
+
+    @patch("crabquant.data.load_data")
+    def test_duplicate_tickers(self, mock_load):
+        """load_multi with duplicate tickers should call load_data for each."""
+        from crabquant.data import load_multi
+
+        good_df = pd.DataFrame({
+            "open": [1.0], "high": [2.0], "low": [0.5], "close": [1.5], "volume": [1000],
+        }, index=pd.DatetimeIndex(["2024-01-01"]))
+        mock_load.return_value = good_df
+
+        result = load_multi(["AAPL", "AAPL"], period="1y")
+        # Dict keys are unique, so only 1 entry, but load_data called twice
+        assert len(result) == 1  # dict deduplicates
+        assert mock_load.call_count == 2
+
+    @patch("crabquant.data.load_data")
+    def test_exception_other_than_valueerror_caught(self, mock_load):
+        """Non-ValueError exceptions should also be caught gracefully."""
+        from crabquant.data import load_multi
+
+        mock_load.side_effect = RuntimeError("network error")
+        result = load_multi(["BAD"], period="1y")
+        assert result == {}
+
+    @patch("crabquant.data.load_data")
+    def test_returns_dict_preserves_keys(self, mock_load):
+        """Returned dict keys should match input ticker list (for successful ones)."""
+        from crabquant.data import load_multi
+
+        good_df = pd.DataFrame({
+            "open": [1.0], "high": [2.0], "low": [0.5], "close": [1.5], "volume": [1000],
+        }, index=pd.DatetimeIndex(["2024-01-01"]))
+
+        tickers = ["Z", "A", "M"]
+        mock_load.return_value = good_df
+
+        result = load_multi(tickers, period="1y")
+        assert set(result.keys()) == set(tickers)
