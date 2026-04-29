@@ -549,18 +549,26 @@ def build_llm_context(
             except Exception:
                 pass  # Non-critical — don't block prompt building
 
-            # Build stagnation suffix from state
-            history = getattr(state, "history", [])
-            prev_sharpes = [h.get("sharpe", 0.0) for h in history[-5:]]
+            # Build stagnation suffix from state using proper call chain:
+            # compute_stagnation → get_stagnation_response → format_stagnation_suffix
             stag_suffix = ""
             try:
-                stag_suffix = format_stagnation_suffix(
-                    current_turn_num,
-                    prev_sharpes,
-                    getattr(state, "stagnation_trend", "improving"),
+                from crabquant.refinement.stagnation import (
+                    compute_stagnation,
+                    get_stagnation_response,
                 )
+                history = getattr(state, "history", [])
+                if len(history) >= 2:
+                    stag_score, _ = compute_stagnation(history)
+                    stag_response = get_stagnation_response(
+                        current_turn_num, stag_score
+                    )
+                    stag_suffix = format_stagnation_suffix(
+                        stag_response.get("constraint"),
+                        stag_response.get("prompt_suffix"),
+                    )
             except Exception:
-                pass
+                pass  # Non-critical — _build_stagnation_recovery_section provides fallback
 
             context["prompt"] = build_refinement_prompt(
                 tier1_report=tier1,
