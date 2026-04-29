@@ -107,6 +107,12 @@ class BacktestReport:
     current_params: dict
     previous_attempts: list
 
+    # ── Multi-ticker backtest (Phase 5.6) ─────────────────────────────────
+    multi_ticker_results: dict | None = None  # From run_multi_ticker_backtest()
+
+    # ── Feature importance (Phase 5.6) ────────────────────────────────────
+    feature_importance: dict | None = None  # From compute_feature_importance()
+
     # ── serialisation ──────────────────────────────────────────────────────
 
     def to_dict(self) -> dict:
@@ -146,6 +152,8 @@ class BacktestReport:
         portfolio_correlation: float | None = None,
         benchmark_return_pct: float | None = None,
         market_regime: str | None = None,
+        multi_ticker_results: dict | None = None,
+        feature_importance: dict | None = None,
     ) -> "BacktestReport":
         """Build a BacktestReport from a BacktestResult, mapping renamed fields."""
         return cls(
@@ -178,6 +186,8 @@ class BacktestReport:
             current_strategy_code=current_strategy_code,
             current_params=current_params,
             previous_attempts=previous_attempts,
+            multi_ticker_results=multi_ticker_results,
+            feature_importance=feature_importance,
         )
 
 

@@ -197,6 +197,7 @@ Current params: {current_params}
 ### Sharpe by Year
 {sharpe_by_year}
 {tier2_section}
+{feature_importance_section}
 ### Previous Attempts
 {previous_attempts_section}
 ### Stagnation
@@ -898,6 +899,7 @@ def build_refinement_prompt(
         failure_details=tier1_report.get("failure_details", "N/A"),
         failure_guidance=failure_guidance,
         sharpe_by_year=sby_text,
+        feature_importance_section=tier1_report.get("feature_importance_section", ""),
         tier2_section=tier2_formatted,
         previous_attempts_section=prev_section,
         stagnation_score=tier1_report.get("stagnation_score", 0.0),

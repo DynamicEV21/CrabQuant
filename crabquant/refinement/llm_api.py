@@ -356,6 +356,10 @@ def call_llm_inventor(
         if context.get("stagnation_recovery"):
             user_parts.append(f"{context['stagnation_recovery']}\n")
 
+        # Phase 5.6: Inject multi-ticker backtest feedback if available
+        if context.get("multi_ticker_feedback"):
+            user_parts.append(f"{context['multi_ticker_feedback']}\n")
+
     user_content = "\n".join(user_parts)
 
     # Inject parallel variant bias if present in context (Phase 5.6.2)

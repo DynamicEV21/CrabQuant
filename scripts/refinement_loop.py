@@ -34,7 +34,8 @@ from crabquant.refinement.config import RefinementConfig
 from crabquant.refinement.module_loader import load_strategy_module
 from crabquant.refinement.validation_gates import run_validation_gates
 from crabquant.refinement.diagnostics import (
-    run_backtest_safely, compute_sharpe_by_year, compute_strategy_hash
+    run_backtest_safely, compute_sharpe_by_year, compute_strategy_hash,
+    run_multi_ticker_backtest,
 )
 from crabquant.refinement.classifier import classify_failure
 from crabquant.refinement.context_builder import build_llm_context
@@ -518,6 +519,10 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             config.soft_promote_sharpe = toggles["soft_promote_min_sharpe"]
         if "soft_promote_min_windows" in toggles:
             config.soft_promote_min_windows = toggles["soft_promote_min_windows"]
+        if "multi_ticker_backtest" in toggles:
+            config.multi_ticker_backtest = toggles["multi_ticker_backtest"]
+        if "multi_ticker_min_pass" in toggles:
+            config.multi_ticker_min_pass = toggles["multi_ticker_min_pass"]
     
     # Also pass toggle values through to mandate for context_builder
     mandate.setdefault("cross_run_learning", config.cross_run_learning)
@@ -746,6 +751,56 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         
         result, df, portfolio = backtest_output
         
+        # ── Multi-ticker backtest (Phase 5.6) ────────────────────────────
+        # If enabled, backtest on secondary tickers to detect single-ticker overfit.
+        multi_ticker_results = None
+        if config.multi_ticker_backtest:
+            # Determine which tickers to test (exclude primary, already tested)
+            secondary_tickers = list(
+                set(state.tickers) - {primary_ticker}
+            )
+            if config.multi_ticker_extra:
+                # Explicit extra tickers take precedence
+                secondary_tickers = [
+                    t for t in config.multi_ticker_extra if t != primary_ticker
+                ]
+            if secondary_tickers:
+                mt_start = time.time()
+                multi_ticker_results = run_multi_ticker_backtest(
+                    strategy_module, secondary_tickers, state.period,
+                    sharpe_target=sharpe_target,
+                )
+                mt_elapsed = time.time() - mt_start
+                print(f"  Multi-ticker backtest ({len(secondary_tickers)} tickers, "
+                      f"{mt_elapsed:.1f}s): "
+                      f"{multi_ticker_results['tickers_passed']}/"
+                      f"{multi_ticker_results['tickers_tested']} passed, "
+                      f"avg Sharpe={multi_ticker_results['avg_sharpe']:.2f}",
+                      flush=True)
+        
+        # ── Feature importance analysis (Phase 5.6) ────────────────────────
+        # Analyze which indicators actually contribute to returns.
+        # This gives the LLM concrete data about indicator quality.
+        feature_importance = None
+        if config.feature_importance and strategy_code:
+            try:
+                from crabquant.refinement.feature_importance import compute_feature_importance
+                fi_start = time.time()
+                feature_importance = compute_feature_importance(
+                    strategy_code, primary_ticker, state.period
+                )
+                fi_elapsed = time.time() - fi_start
+                if feature_importance.get("indicators"):
+                    dominant = feature_importance.get("dominant_indicator", "")
+                    weakest = feature_importance.get("weakest_indicator", "")
+                    print(f"  Feature importance ({fi_elapsed:.1f}s): "
+                          f"{len(feature_importance['indicators'])} indicators, "
+                          f"driver={dominant or 'none'}, "
+                          f"weakest={weakest or 'none'}",
+                          flush=True)
+            except Exception as e:
+                print(f"  ⚠️ Feature importance error: {e}", flush=True)
+        
         # 5. Compute diagnostics + classify failure
         if portfolio is not None:
             sharpe_by_year = compute_sharpe_by_year(portfolio)
@@ -800,6 +855,8 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             current_strategy_code=current_code,
             current_params=result.params if result.params else strategy_module.DEFAULT_PARAMS.copy(),
             previous_attempts=state.history[-3:],
+            multi_ticker_results=multi_ticker_results,
+            feature_importance=feature_importance,
         )
         
         save_report(run_dir, turn, report)
@@ -865,6 +922,43 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             if guardrail_warnings:
                 for w in guardrail_warnings:
                     print(f"    - {w}")
+
+            # ── Multi-ticker gate (Phase 5.6) ────────────────────────────
+            # If multi-ticker backtest ran, check that enough tickers passed.
+            # This catches single-ticker overfit before expensive walk-forward.
+            if multi_ticker_results is not None:
+                min_pass = config.multi_ticker_min_pass
+                if multi_ticker_results["tickers_passed"] < min_pass:
+                    print(f"  🏆 Sharpe hit on primary, but multi-ticker gate FAILED: "
+                          f"only {multi_ticker_results['tickers_passed']}/"
+                          f"{multi_ticker_results['tickers_tested']} tickers passed "
+                          f"(need >= {min_pass})")
+                    failure_mode = "multi_ticker_gate_failed"
+                    # Feed back to LLM — record in history with multi-ticker context
+                    state.history.append({
+                        "turn": turn, "sharpe": result.sharpe,
+                        "failure_mode": failure_mode,
+                        "action": modification.action,
+                        "hypothesis": modification.hypothesis,
+                        "code_path": str(strategy_path),
+                        "num_trades": result.num_trades,
+                        "composite_score": compute_composite_score(
+                            result.sharpe, result.num_trades, result.max_drawdown
+                        ),
+                        "params_used": result.params if result.params else strategy_module.DEFAULT_PARAMS.copy(),
+                        "strategy_hash": compute_strategy_hash(strategy_code),
+                        "delta_from_prev": (f"Sharpe hit but multi-ticker gate failed: "
+                                            f"{multi_ticker_results['tickers_passed']}/"
+                                            f"{multi_ticker_results['tickers_tested']} tickers passed"),
+                        "multi_ticker_results": multi_ticker_results,
+                    })
+                    save_state(run_dir, state)
+                    continue  # LLM gets feedback, tries again
+                else:
+                    print(f"  ✅ Multi-ticker gate passed: "
+                          f"{multi_ticker_results['tickers_passed']}/"
+                          f"{multi_ticker_results['tickers_tested']} tickers >= "
+                          f"{min_pass} required")
 
             # Phase 3: Run full validation check (walk-forward + cross-ticker)
             validation = {"status": "ok", "passed": False}

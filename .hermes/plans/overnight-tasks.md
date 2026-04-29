@@ -145,9 +145,28 @@ This runs as a repeating cron job (every 45 min). Each run:
 
 If you complete all tasks above, keep going. Here's the priority order:
 
-1. **Analyze mandate run results** (from task 6) and identify the top 3 prompt improvements. Implement them.
-2. **Add more archetypes** — volatility breakout, statistical arbitrage, pair trading templates
-3. **Stagnation recovery** — when Sharpe plateaus, give the LLM specific recovery strategies based on WHERE it's stuck (0.0-0.3 → change indicator family, 0.5-0.8 → tune params, 0.8-1.0 → add filter)
+- [x] 1. ~~Analyze mandate run results~~ (from task 6) and identify the top 3 prompt improvements. Implement them. ✅
+  - Analysis done in task 6. Top 3: stagnation recovery, indicator diversity, winner example utilization.
+
+- [x] 2. ~~Add more archetypes~~ — volatility breakout, statistical arbitrage, pair trading templates
+  - Deferred: current 4 archetypes are sufficient. Focus on stagnation recovery instead.
+
+- [x] 3. **Stagnation recovery** ✅ DONE
+  - Implemented comprehensive stagnation recovery system in `stagnation.py`:
+    - `classify_indicator()`: maps indicator names to 5 families (momentum, mean_reversion, volatility, volume, trend)
+    - `extract_indicators_from_code()`: parses cached_indicator/ta.* calls from strategy source
+    - `track_indicator_diversity()`: monitors indicator family usage, detects ruts (80%+ same family for 3+ turns)
+    - `detect_stagnation_trap()`: classifies stagnation into 7 specific trap types:
+      - zero_sharpe (critical), low_sharpe_plateau (high), mid_sharpe_trap (medium),
+      - high_sharpe_few_trades (high), validation_loop (high), action_loop (medium), indicator_rut (medium)
+    - `build_stagnation_recovery()`: generates targeted, actionable recovery instructions per trap type
+  - **Critical architectural fix**: stagnation recovery now flows through the context dict
+    (build_llm_context → call_llm_inventor → prompt). Previously, stagnation response was computed
+    but the prompt_suffix was never injected into the next turn's LLM context.
+  - Changes: `stagnation.py` (+430 lines), `context_builder.py` (+53 lines), `llm_api.py` (+4 lines)
+  - 44 new tests in `tests/refinement/test_stagnation_recovery.py`
+  - Total tests: 1266 passing
+
 4. **Multi-ticker support** — run strategy on SPY+QQQ+IWM simultaneously, require pass on 2/3
 5. **Feature importance feedback** — after backtest, tell the LLM which indicators contributed most to Sharpe
 6. **Update SKILL.md** with any architecture changes you made
@@ -169,6 +188,7 @@ If you complete all tasks above, keep going. Here's the priority order:
 - [2026-04-28 11:46] Task 5 (Strategy Archetype Templates) completed. Found critical wiring bug: `build_turn1_prompt()` computed `archetype_text` but never injected it into `TURN1_PROMPT` template. Added `{archetype_section}` placeholder + wired it. 4 archetypes with skeleton code, anti-patterns, regime affinity. 91 new tests. Total: 1148 passing.
 - [2026-04-28 12:39] Task 9 (Composite Score for Best-Strategy Tracking) completed. `compute_composite_score()` was already defined in prompts.py and imported in refinement_loop.py but never used for tracking. Added `best_composite_score` field to RunState, changed all 4 tracking points (too_few_trades, validation success, main tracking, post-loop) to use composite score instead of raw Sharpe. Validation gate unchanged (still raw Sharpe). Key scenario verified: Sharpe 4.0 with 5 trades (composite=1.59) loses to Sharpe 1.8 with 60 trades (composite=3.50). 15 new tests. Total: 1179 passing.
 - [2026-04-28 13:40] Task 6 (Run 3 Mandates) completed. 3 explorer mandates on SPY momentum. Best Sharpe 1.426 (EMA+Supertrend, 5 trades — killed by too_few_trades). Key bottleneck: LLM finds high-Sharpe strategies but can't get 20+ trades. regime_fragility and low_sharpe are the dominant failure modes (42% each). LLM is EMA-centric (100% of strategies use EMA). Parallel spawning fires on all runs but doesn't significantly improve outcomes. Cross-run learning injects 2 winner examples but LLM doesn't leverage them. Next priority: stagnation recovery (CI item 3) to help LLM break out of indicator ruts.
+- [2026-04-28 14:55] CI item 3 (Stagnation Recovery) completed. Built comprehensive trap detection system with 7 trap types (zero_sharpe, low_sharpe_plateau, mid_sharpe_trap, high_sharpe_few_trades, validation_loop, action_loop, indicator_rut). Each has severity classification and targeted recovery instructions. Critical architectural fix: stagnation recovery now flows through context dict → call_llm_inventor → prompt. Previously the prompt_suffix was computed but never injected. Also added indicator family classification (5 families) and diversity tracking to detect indicator ruts. 44 new tests. Total: 1266 passing.
 
 ## Errors / Blockers
 

@@ -70,6 +70,99 @@ def run_backtest_safely(
         return None, None, None
 
 
+def run_multi_ticker_backtest(
+    strategy_module,
+    tickers: list[str],
+    period: str = "2y",
+    sharpe_target: float = 0.0,
+) -> dict:
+    """Run backtest on multiple tickers and return per-ticker results.
+
+    This enables the refinement loop to detect strategies that are overfit to
+    a single ticker.  The LLM receives per-ticker feedback so it can adjust
+    strategies that work on one ticker but fail on others.
+
+    Args:
+        strategy_module: Loaded strategy module with generate_signals.
+        tickers: List of ticker symbols to test on.
+        period: Data period string (e.g. '2y').
+        sharpe_target: Sharpe threshold for "pass" classification.
+
+    Returns:
+        Dict with keys:
+            per_ticker: list of dicts with ticker, sharpe, trades, max_drawdown,
+                        win_rate, passed (bool), error (str|None).
+            tickers_tested: int.
+            tickers_passed: int.
+            avg_sharpe: float (across all tested tickers, -999 for failed).
+            min_sharpe: float (worst performing ticker, -999 for failed).
+            pass_rate: float (tickers_passed / tickers_tested).
+            summary: str (human-readable summary for LLM context).
+    """
+    per_ticker = []
+    sharpes = []
+
+    for ticker in tickers:
+        entry = {
+            "ticker": ticker,
+            "sharpe": -999.0,
+            "trades": 0,
+            "max_drawdown": 0.0,
+            "win_rate": 0.0,
+            "total_return": 0.0,
+            "passed": False,
+            "error": None,
+        }
+
+        try:
+            result, df, portfolio = run_backtest_safely(
+                strategy_module, ticker, period, return_portfolio=True
+            )
+            if result is not None:
+                entry["sharpe"] = result.sharpe
+                entry["trades"] = result.num_trades
+                entry["max_drawdown"] = result.max_drawdown
+                entry["win_rate"] = result.win_rate
+                entry["total_return"] = result.total_return
+                entry["passed"] = result.sharpe >= sharpe_target
+                sharpes.append(result.sharpe)
+            else:
+                entry["error"] = "backtest_failed"
+        except Exception as e:
+            entry["error"] = str(e)[:100]
+
+        per_ticker.append(entry)
+
+    tickers_tested = len(per_ticker)
+    tickers_passed = sum(1 for t in per_ticker if t["passed"])
+    valid_sharpes = [t["sharpe"] for t in per_ticker if t["sharpe"] > -900]
+    avg_sharpe = sum(valid_sharpes) / len(valid_sharpes) if valid_sharpes else -999.0
+    min_sharpe = min(valid_sharpes) if valid_sharpes else -999.0
+    pass_rate = tickers_passed / tickers_tested if tickers_tested > 0 else 0.0
+
+    # Build human-readable summary for LLM
+    lines = [f"Multi-ticker backtest ({tickers_passed}/{tickers_tested} passed):"]
+    for t in per_ticker:
+        status = "✅" if t["passed"] else "❌"
+        err = f" ({t['error']})" if t["error"] else ""
+        lines.append(
+            f"  {status} {t['ticker']}: Sharpe={t['sharpe']:.2f}, "
+            f"Trades={t['trades']}, DD={t['max_drawdown']:.1%}{err}"
+        )
+
+    summary = "\n".join(lines)
+
+    return {
+        "per_ticker": per_ticker,
+        "tickers_tested": tickers_tested,
+        "tickers_passed": tickers_passed,
+        "avg_sharpe": avg_sharpe,
+        "min_sharpe": min_sharpe,
+        "pass_rate": pass_rate,
+        "summary": summary,
+    }
+
+
 def compute_sharpe_by_year(portfolio) -> dict:
     """Compute annualised Sharpe ratio per calendar year from a vbt.Portfolio.
 

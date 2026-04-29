@@ -53,6 +53,19 @@ class RefinementConfig:
     soft_promote_sharpe: float = 0.5     # Min avg test Sharpe for soft promote
     soft_promote_min_windows: int = 2    # Min windows passing for soft promote
 
+    # ── Multi-ticker backtest (Phase 5.6) ───────────────────────────────
+    # Run strategy on multiple tickers during refinement, not just primary.
+    # Helps catch overfitting to a single ticker early.
+    multi_ticker_backtest: bool = False  # Enable multi-ticker backtesting
+    multi_ticker_min_pass: int = 2       # Min tickers that must pass (Sharpe >= target)
+    # Additional tickers beyond primary — if empty, uses mandate tickers minus primary
+    multi_ticker_extra: list = field(default_factory=list)
+
+    # Feature importance analysis during refinement.
+    # Analyzes which indicators contribute to returns and feeds this
+    # back to the LLM so it can make data-driven code changes.
+    feature_importance: bool = True
+
     # Timeouts
     per_strategy_timeout_minutes: int = 15
     backtest_timeout_seconds: int = 60

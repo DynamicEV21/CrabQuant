@@ -423,6 +423,17 @@ def build_llm_context(
         # Include current strategy code so LLM can modify it
         context["current_strategy_code"] = getattr(report, "current_strategy_code", None)
         context["current_params"] = getattr(report, "current_params", None)
+        
+        # Phase 5.6: Multi-ticker backtest feedback
+        mt_results = getattr(report, "multi_ticker_results", None)
+        if mt_results is not None:
+            context["multi_ticker_feedback"] = _format_multi_ticker_feedback(mt_results)
+
+        # Phase 5.6: Feature importance feedback
+        fi = getattr(report, "feature_importance", None)
+        if fi is not None and fi.get("indicators"):
+            from crabquant.refinement.feature_importance import format_feature_importance_for_prompt
+            context["feature_importance_section"] = format_feature_importance_for_prompt(fi)
 
     # Phase 5.6: Stagnation recovery — detect trap type and inject recovery guidance
     stagnation_recovery = _build_stagnation_recovery_section(state)
@@ -430,6 +441,50 @@ def build_llm_context(
         context["stagnation_recovery"] = stagnation_recovery
 
     return context
+
+
+def _format_multi_ticker_feedback(mt_results: dict) -> str:
+    """Format multi-ticker backtest results for LLM context injection.
+    
+    Produces a concise summary that tells the LLM which tickers the strategy
+    passed/failed on, so it can generalize better.
+    
+    Args:
+        mt_results: Dict from run_multi_ticker_backtest() with keys:
+            tickers_tested, tickers_passed, avg_sharpe, min_sharpe,
+            pass_rate, per_ticker (per-ticker list).
+    
+    Returns:
+        Formatted string for prompt injection.
+    """
+    lines = [
+        "## Multi-Ticker Validation Results",
+        f"Tested on {mt_results['tickers_tested']} secondary tickers: "
+        f"{mt_results['tickers_passed']} passed (Sharpe >= target).",
+        f"Average Sharpe: {mt_results['avg_sharpe']:.2f}, "
+        f"Range: [{mt_results['min_sharpe']:.2f}], "
+        f"Pass rate: {mt_results['pass_rate']:.0%}",
+        "",
+        "Per-ticker breakdown:",
+    ]
+    for r in mt_results.get("per_ticker", []):
+        status = "✅ PASS" if r.get("passed") else "❌ FAIL"
+        lines.append(
+            f"  {status} {r['ticker']}: Sharpe={r['sharpe']:.2f}, "
+            f"Trades={r['trades']}, MaxDD={r.get('max_drawdown', 0):.1%}"
+        )
+    
+    # Add actionable guidance
+    failed = [r for r in mt_results.get("per_ticker", []) if not r.get("passed")]
+    if failed:
+        lines.append("")
+        lines.append("The strategy is overfit to the primary ticker. Consider:")
+        lines.append("- Simplifying logic (fewer conditions = more generalizable)")
+        lines.append("- Using more universal signals (trend, momentum, volatility)")
+        lines.append("- Avoiding ticker-specific parameter tuning")
+        lines.append("- Reducing the number of combined indicators")
+    
+    return "\n".join(lines)
 
 
 def _build_stagnation_recovery_section(state) -> str:
