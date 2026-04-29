@@ -213,6 +213,7 @@ VALIDATION_CONFIG: dict = {
     "max_degradation": 0.7,
     # cross-ticker validation
     "min_cross_ticker_sharpe": 0.3,
+    "min_ct_profitable_pct": 0.3,  # min fraction of tickers profitable for robust=True
     # regime-specific strategy thresholds (lower bar — they excel in their regime)
     "regime_specific_wf_sharpe_factor": 0.5,   # multiply min_walk_forward_sharpe by this
     "regime_specific_ct_sharpe_factor": 0.6,   # multiply min_cross_ticker_sharpe by this

@@ -226,6 +226,9 @@ def cross_ticker_validation(
     params: dict,
     tickers: list[str],
     engine: Optional[BacktestEngine] = None,
+    *,
+    min_avg_sharpe: float = 0.3,
+    min_profitable_pct: float = 0.3,
 ) -> CrossTickerResult:
     """
     Test a strategy across multiple tickers to check generalization.
@@ -235,6 +238,9 @@ def cross_ticker_validation(
         params: Strategy parameters
         tickers: List of tickers to test
         engine: BacktestEngine instance
+        min_avg_sharpe: Minimum avg Sharpe for robust=True (default 0.3).
+        min_profitable_pct: Min fraction of tickers that must be profitable
+            for robust=True (default 0.3).
 
     Returns:
         CrossTickerResult with aggregate statistics
@@ -277,8 +283,8 @@ def cross_ticker_validation(
     avg_return = sum(returns) / len(returns)
     avg_max_dd = sum(max_dds) / len(max_dds)
 
-    # Robust if >40% of tickers are profitable and avg Sharpe > 0.5
-    robust = (profitable / len(results) > 0.4) and avg_sharpe > 0.5
+    # Robust if >min_profitable_pct of tickers are profitable and avg Sharpe > min_avg_sharpe
+    robust = (len(results) > 0 and profitable / len(results) > min_profitable_pct) and avg_sharpe > min_avg_sharpe
 
     notes_parts = [
         f"Tested {len(results)}/{len(tickers)} tickers",

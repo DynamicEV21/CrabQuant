@@ -185,7 +185,11 @@ def run_full_validation_check(
         # Cross-ticker (exclude discovery ticker from OOS set)
         oos_tickers = [t for t in validation_tickers if t != discovery_ticker]
         if oos_tickers:
-            ct = cross_ticker_validation(strategy_fn, params, oos_tickers)
+            ct = cross_ticker_validation(
+                strategy_fn, params, oos_tickers,
+                min_avg_sharpe=min_cross_ticker_sharpe,
+                min_profitable_pct=VALIDATION_CONFIG.get("min_ct_profitable_pct", 0.3),
+            )
             result["cross_ticker"] = {
                 "avg_sharpe": ct.avg_sharpe,
                 "median_sharpe": ct.median_sharpe,
