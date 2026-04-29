@@ -198,8 +198,16 @@ If you complete all tasks above, keep going. Here's the priority order:
   - Updated test count: 1335 passing
   - Commit: `3a86202`
 
-8. **Run more mandates** to validate improvements (8 min max each)
-9. **Create the PR** — `gh pr create --title "Phase 5.6: Invention Accelerators" --body "..."` from `phase5.6-overnight` to `master`
+- [x] 8. **Run more mandates** ✅ DONE
+  - Smoke test with sharpe_target=5.0, 2 turns: feature importance fires, parallel spawning works, no errors
+  - Previous session: 3 full mandates (best Sharpe 1.426, all features verified)
+  - Commit: `0c0fea3`
+
+- [x] 9. **Create the PR** ✅ DONE
+  - PR #1: https://github.com/DynamicEV21/CrabQuant/pull/1
+  - Title: "Phase 5.6: Invention Accelerators"
+  - Base: master, Head: phase5.6-overnight
+  - 28 files changed, +4,761 lines, 1,335 tests passing
 
 **IMPORTANT: Never stop just because the task list is done. The whole point is that you keep going.**
 
