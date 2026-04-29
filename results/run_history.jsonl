@@ -527,3 +527,15 @@
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-29T11:24:45.494661+00:00"}
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-29T11:27:08.796918+00:00"}
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-29T11:27:08.984548+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-29T11:27:23.883532+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-29T11:27:24.064312+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-29T11:28:33.486179+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-29T11:28:33.653582+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-29T11:29:47.572950+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-29T11:29:47.748137+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-29T11:30:01.943043+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-29T11:30:02.134669+00:00"}
+{"mandate": "smoke_test", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-29T11:30:02.156581+00:00"}
+{"mandate": "momentum_aapl", "turn": 1, "action": "create_strategy", "sharpe": -0.06353001322765073, "success": false, "failure_mode": "regime_fragility", "timestamp": "2026-04-29T11:30:56.955613+00:00"}
+{"mandate": "momentum_aapl", "turn": 2, "action": "create_strategy", "sharpe": -0.4871730446313624, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-29T11:31:55.698323+00:00"}
+{"mandate": "momentum_aapl", "turn": 3, "action": "create_strategy", "sharpe": 0.28912062436444136, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-29T11:32:33.767157+00:00"}
