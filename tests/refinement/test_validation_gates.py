@@ -478,6 +478,160 @@ def generate_signals(df, params=None):
         assert ok is True
         assert errors == []
 
+    # ── Signature validation tests ─────────────────────────────────────────
+
+    def test_correct_signature_df_params_passes(self):
+        """generate_signals(df, params) should pass."""
+        code = """\
+import pandas as pd
+
+DEFAULT_PARAMS = {}
+DESCRIPTION = "Correct signature."
+
+def generate_signals(df, params):
+    return pd.Series(False, index=df.index, dtype=bool), pd.Series(False, index=df.index, dtype=bool)
+"""
+        ok, errors = gate_syntax(code)
+        assert ok is True
+        assert errors == []
+
+    def test_correct_signature_with_defaults_passes(self):
+        """generate_signals(df, params=None) should pass — 2 args: df, params."""
+        code = """\
+import pandas as pd
+
+DEFAULT_PARAMS = {}
+DESCRIPTION = "Correct signature with default."
+
+def generate_signals(df, params=None):
+    return pd.Series(False, index=df.index, dtype=bool), pd.Series(False, index=df.index, dtype=bool)
+"""
+        ok, errors = gate_syntax(code)
+        assert ok is True
+        assert errors == []
+
+    def test_correct_signature_with_type_annotations_passes(self):
+        """generate_signals(df: pd.DataFrame, params: dict) should pass."""
+        code = """\
+import pandas as pd
+
+DEFAULT_PARAMS = {}
+DESCRIPTION = "Annotated signature."
+
+def generate_signals(df: pd.DataFrame, params: dict | None = None):
+    return pd.Series(False, index=df.index, dtype=bool), pd.Series(False, index=df.index, dtype=bool)
+"""
+        ok, errors = gate_syntax(code)
+        assert ok is True
+        assert errors == []
+
+    def test_wrong_signature_single_arg_fails(self):
+        """generate_signals(df) — missing params arg."""
+        code = """\
+import pandas as pd
+
+DEFAULT_PARAMS = {}
+DESCRIPTION = "Single arg."
+
+def generate_signals(df):
+    return pd.Series(False, index=df.index, dtype=bool), pd.Series(False, index=df.index, dtype=bool)
+"""
+        ok, errors = gate_syntax(code)
+        assert ok is False
+        assert any("signature expected" in e for e in errors)
+        assert any("df" in e for e in errors)
+
+    def test_wrong_signature_three_args_fails(self):
+        """generate_signals(df, params, extra) — too many args."""
+        code = """\
+import pandas as pd
+
+DEFAULT_PARAMS = {}
+DESCRIPTION = "Three args."
+
+def generate_signals(df, params, extra):
+    return pd.Series(False, index=df.index, dtype=bool), pd.Series(False, index=df.index, dtype=bool)
+"""
+        ok, errors = gate_syntax(code)
+        assert ok is False
+        assert any("signature expected" in e for e in errors)
+
+    def test_wrong_signature_reversed_args_fails(self):
+        """generate_signals(params, df) — wrong order."""
+        code = """\
+import pandas as pd
+
+DEFAULT_PARAMS = {}
+DESCRIPTION = "Reversed args."
+
+def generate_signals(params, df):
+    return pd.Series(False, index=df.index, dtype=bool), pd.Series(False, index=df.index, dtype=bool)
+"""
+        ok, errors = gate_syntax(code)
+        assert ok is False
+        assert any("signature expected" in e for e in errors)
+
+    def test_wrong_signature_self_first_fails(self):
+        """generate_signals(self, df, params) — class method pattern."""
+        code = """\
+import pandas as pd
+
+DEFAULT_PARAMS = {}
+DESCRIPTION = "Method-style signature."
+
+def generate_signals(self, df, params):
+    return pd.Series(False, index=df.index, dtype=bool), pd.Series(False, index=df.index, dtype=bool)
+"""
+        ok, errors = gate_syntax(code)
+        assert ok is False
+        assert any("signature expected" in e for e in errors)
+
+    def test_wrong_arg_names_fails(self):
+        """generate_signals(data, config) — wrong names."""
+        code = """\
+import pandas as pd
+
+DEFAULT_PARAMS = {}
+DESCRIPTION = "Wrong arg names."
+
+def generate_signals(data, config):
+    return pd.Series(False, index=df.index, dtype=bool), pd.Series(False, index=df.index, dtype=bool)
+"""
+        ok, errors = gate_syntax(code)
+        assert ok is False
+        assert any("signature expected" in e for e in errors)
+        assert any("data, config" in e for e in errors)
+
+    def test_no_generate_signals_skips_signature_check(self):
+        """If generate_signals is missing, no signature error — only missing attr error."""
+        code = """\
+import pandas as pd
+
+DEFAULT_PARAMS = {}
+DESCRIPTION = "No generate_signals."
+"""
+        ok, errors = gate_syntax(code)
+        assert ok is False
+        assert any("generate_signals" in e for e in errors)
+        # Should NOT have a "signature expected" error since the function doesn't exist
+        assert not any("signature expected" in e for e in errors)
+
+    def test_kwargs_only_not_flagged(self):
+        """generate_signals(df, params, **kwargs) — keyword-only args after pos args are OK."""
+        code = """\
+import pandas as pd
+
+DEFAULT_PARAMS = {}
+DESCRIPTION = "With kwargs."
+
+def generate_signals(df, params, **kwargs):
+    return pd.Series(False, index=df.index, dtype=bool), pd.Series(False, index=df.index, dtype=bool)
+"""
+        # args list is [df, params] — kwargs are in node.args.kwarg, not .args
+        ok, errors = gate_syntax(code)
+        assert ok is True
+        assert errors == []
+
 
 # ── Gate 2: Signal Sanity ──────────────────────────────────────────────────
 

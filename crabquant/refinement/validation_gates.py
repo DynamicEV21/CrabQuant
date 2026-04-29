@@ -69,6 +69,18 @@ def gate_syntax(code: str) -> tuple[bool, list[str]]:
     if missing:
         errors.append(f"Missing required: {sorted(missing)}")
 
+    # Verify generate_signals has correct signature (df, params)
+    if "generate_signals" in defined:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == "generate_signals":
+                args = [a.arg for a in node.args.args]
+                if args != ["df", "params"]:
+                    errors.append(
+                        f"generate_signals(df, params) signature expected, "
+                        f"got ({', '.join(args)})"
+                    )
+                break
+
     return (len(errors) == 0, errors)
 
 
