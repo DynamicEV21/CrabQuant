@@ -276,6 +276,15 @@ If you complete all tasks above, keep going. Here's the priority order:
   - Remaining thin files: test_gate3_smoke.py (12), test_e2e.py (4), test_e2e_phase2.py (18), test_e2e_phase3.py (18), test_cron_integration.py (18), test_pipeline.py (19)
   - NOTE: All remaining thin files are E2E/integration tests that require actual pipeline execution — difficult to expand without real backtest runs.
 
+- [2026-04-28 22:xx] Continuous improvement cycle 7 — 3 parallel workers dispatched for critical module test expansion:
+  - Worker-1 (completed, 1 file): llm_api (25→77). Total: +52 tests. Commit: 9bbf909
+  - Worker-2 (completed, 2 files): api_budget (31→73), circuit_breaker (25→50). Total: +67 tests. Commits: ee337ae, cb8a87d
+  - Worker-3 (completed, 2 files): promoter (22→68), scanner (20→39). Total: +65 tests. Commits: 1f833e0, 533f1b9
+  - Total: +184 new tests. Suite: 3207 passing (up from 3023). All 3 merges clean (1 fast-forward, 2 ort).
+  - Merged commits: 9bbf909 (W1), ee337ae, cb8a87d (W2), 1f833e0, 533f1b9 (W3)
+  - Remaining expansion targets: schemas (25/231 lines), diagnostics (47/445 lines), tier1_diagnostics (26/156 lines), per_wave_metrics (27/187 lines), guardrails (22 tests)
+  - E2E/integration tests still thin: gate3_smoke (12), e2e (4), e2e_phase2 (18), e2e_phase3 (18), cron_integration (18), pipeline (19)
+
 ## Errors / Blockers
 
 (none yet)
