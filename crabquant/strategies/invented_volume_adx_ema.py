@@ -57,8 +57,10 @@ def generate_signals(df, params):
     
     # OBV crossover detection (handle NaN values properly)
     obv_above = df_copy['obv_fast'] > df_copy['obv_slow']
-    obv_crossover = obv_above & ~(obv_above.shift(1).fillna(False))
-    obv_crossover = obv_crossover.fillna(False)
+    prev_obv_above = obv_above.shift(1)
+    prev_obv_above = prev_obv_above.where(prev_obv_above.notna(), other=False)
+    obv_crossover = obv_above & (prev_obv_above == False)
+    obv_crossover = obv_crossover.where(obv_crossover.notna(), other=False)
     
     # ADX for trend strength
     adx = ta.adx(df_copy['high'], df_copy['low'], df_copy['close'], length=adx_len)
