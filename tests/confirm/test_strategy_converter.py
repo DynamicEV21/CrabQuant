@@ -1015,10 +1015,10 @@ class TestNumericEdgeCases:
         """ROC should handle negative prices (unusual but valid)."""
         prices = np.array([-100.0, -90.0, -80.0])
         result = _roc(prices, 1)
-        # ROC = (curr - prev) / abs(prev) * 100 → (-90 - (-100))/100*100 = 10
-        assert result[1] == pytest.approx(10.0)
-        # (-80 - (-90))/90*100 = 11.11
-        assert result[2] == pytest.approx(11.11, rel=0.01)
+        # ROC = (curr - prev) / prev * 100 → (-90 - (-100))/(-100)*100 = -10.0
+        assert result[1] == pytest.approx(-10.0)
+        # (-80 - (-90))/(-90)*100 = -11.11
+        assert result[2] == pytest.approx(-11.11, rel=0.01)
 
     def test_vpt_with_zero_volume(self):
         """Zero volume should produce flat VPT."""

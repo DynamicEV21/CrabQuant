@@ -1,8 +1,8 @@
 {
-  "running_count": 47,
-  "total_mandates": 91,
-  "convergence_rate": 0.25,
-  "wave_progress": 0.6652537938252224,
+  "running_count": 48,
+  "total_mandates": 93,
+  "convergence_rate": 0.24444444444444444,
+  "wave_progress": 0.6703020993343575,
   "best_strategies": [
     {
       "mandate_name": "momentum_googl",
@@ -235,6 +235,12 @@
       "best_sharpe": 0.0
     },
     {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 4,
+      "max_turns": 5,
+      "best_sharpe": 0.9160120104178994
+    },
+    {
       "mandate_name": "momentum_spy",
       "current_turn": 4,
       "max_turns": 7,
@@ -319,5 +325,5 @@
       "best_sharpe": 1.0504761504747684
     }
   ],
-  "timestamp": "2026-04-29T11:01:29.906320+00:00"
+  "timestamp": "2026-04-29T11:52:29.902785+00:00"
 }
