@@ -1,8 +1,8 @@
 {
-  "running_count": 46,
-  "total_mandates": 89,
-  "convergence_rate": 0.2558139534883721,
-  "wave_progress": 0.6633493846976993,
+  "running_count": 47,
+  "total_mandates": 91,
+  "convergence_rate": 0.25,
+  "wave_progress": 0.6652537938252224,
   "best_strategies": [
     {
       "mandate_name": "momentum_googl",
@@ -113,6 +113,12 @@
       "current_turn": 4,
       "max_turns": 7,
       "best_sharpe": 0.35646860736168795
+    },
+    {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 1,
+      "max_turns": 2,
+      "best_sharpe": 1.2307632985168413
     },
     {
       "mandate_name": "Momentum Strategy for SPY",
@@ -313,5 +319,5 @@
       "best_sharpe": 1.0504761504747684
     }
   ],
-  "timestamp": "2026-04-29T00:10:45.254181+00:00"
+  "timestamp": "2026-04-29T00:18:34.441653+00:00"
 }

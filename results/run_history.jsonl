@@ -683,3 +683,8 @@
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-29T00:08:46.511177+00:00"}
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-29T00:10:45.085594+00:00"}
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-29T00:10:45.226896+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-29T00:11:49.194975+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-29T00:11:49.337705+00:00"}
+{"mandate": "Explorer SPY Momentum", "turn": 1, "action": "novel", "sharpe": 1.2307632985168413, "success": false, "failure_mode": "too_few_trades", "timestamp": "2026-04-29T00:15:04.515361+00:00"}
+{"mandate": "Explorer SPY Momentum", "turn": 1, "action": "novel", "sharpe": 0.6404995480926883, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-29T00:18:23.159092+00:00"}
+{"mandate": "Explorer SPY Momentum", "turn": 2, "action": "novel", "sharpe": -0.32840391408038405, "success": false, "failure_mode": "regime_fragility", "timestamp": "2026-04-29T00:18:34.409486+00:00"}

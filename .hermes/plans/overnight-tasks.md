@@ -191,7 +191,13 @@ If you complete all tasks above, keep going. Here's the priority order:
   - Updated invention accelerator toggles (removed "not yet implemented" notes)
   - Commit: `fe665e8`
 
-7. **Update ROADMAP.md** — mark completed items, add new items you discovered
+- [x] 7. **Update ROADMAP.md** ✅ DONE
+  - Marked Phase 5.6 as ✅ Done, Phase 6 as 🔴 NEXT
+  - Added 7 new deliverables (5.6.4 through 5.6.10): anti-overfitting, archetypes, negative feedback, composite score, stagnation recovery, multi-ticker, feature importance
+  - Updated all success criteria to checked
+  - Updated test count: 1335 passing
+  - Commit: `3a86202`
+
 8. **Run more mandates** to validate improvements (8 min max each)
 9. **Create the PR** — `gh pr create --title "Phase 5.6: Invention Accelerators" --body "..."` from `phase5.6-overnight` to `master`
 
