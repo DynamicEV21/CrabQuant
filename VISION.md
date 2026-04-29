@@ -68,16 +68,25 @@ The pipeline runs end-to-end. Strategies get invented and backtested. Some hit S
 
 | Metric | Value | Problem? |
 |--------|-------|----------|
-| Total mandates run | 95 | — |
-| Backtest successes (Sharpe ≥ target) | ~26% | ✅ Improved |
-| Code gen failure rate | 54% | 🟡 Too high |
+| Total mandates run | 30 unique (147 turns) | — |
+| Backtest successes (real mandates) | 6.8% per-turn | 🔴 Low |
+| Mandate convergence (≥1 success) | 33% (7/21 real) | 🟡 Needs work |
+| Code gen failure rate (real mandates) | **0%** | ✅ Fixed |
 | Strategies in production registry | **118** (ROBUST) | ✅ Exceeded target |
 | winners.json entries | 178 (119 promoted) | ✅ Strong pipeline |
 | Validation pass rate | 67% (119/178 winners) | ✅ Exceeded target |
 
-**The funnel is open.** After fixing threshold bugs (Cycle 10-12) and the promotion pipeline gap (Cycle 13), 118 validated strategies are now in the production registry. The batch promoter bridges the refinement pipeline to the production registry.
+**The funnel is open.** After fixing threshold bugs (Cycle 10-12) and the promotion pipeline gap (Cycle 13), 118 validated strategies are now in the production registry.
 
-**Remaining gaps:** Code gen failure rate (54%) wastes API calls. Need to verify LLM-invented strategies can pass during live mandate runs (not just retroactive promotion).
+**Key insight (Cycle 15):** The "54% code gen failure rate" was a phantom metric inflated by smoke_test and test_mandate entries. Real production mandates have **0% code gen failures**. The real bottleneck is **strategy quality** — 83% of real mandate turns fail on performance metrics:
+- low_sharpe: 35% — strategies run but underperform
+- regime_fragility: 25% — strategies work in some years but not others
+- too_few_trades: 24% — strategies too selective (< 5 trades)
+- excessive_drawdown: 10% — strategies lose too much
+
+**Fixes applied (Cycle 15):**
+- Sharpe Root Cause Analyzer: 12 diagnosis patterns for low_sharpe with specific actionable fixes
+- Regime Diagnosis System: 9 regime patterns with per-year breakdown and targeted fixes
 
 **Phase 5 fixes the funnel. Phase 5.5 adds regime awareness. Phase 5.6 accelerates invention.** See ROADMAP.md.
 
@@ -89,10 +98,10 @@ The pipeline runs end-to-end. Strategies get invented and backtested. Some hit S
 |--------|--------|---------|-----|
 | Validation pass rate | >50% | 67% (119/178) | ✅ Met |
 | Strategies in registry (from invention) | 10+ | 118 promoted | ✅ Exceeded |
-| Code gen failure rate | <30% | 54% | 🟡 24% |
-| Convergence rate | >20% | ~26% | ✅ Met |
-| Unattended runtime | 7+ days | ~1 day | 🟢 6 days |
-| Test coverage | 100% of new code | 4049+ tests | ✅ Surpassed |
+| Mandate convergence rate | >50% | 33% (7/21) | 🟡 17% |
+| Per-turn success rate | >20% | 6.8% (10/147) | 🔴 13% |
+| Code gen failure rate | <30% | 0% (real) | ✅ Fixed |
+| Test coverage | 100% of new code | 4137+ tests | ✅ Surpassed |
 
 ---
 
@@ -112,27 +121,26 @@ This section tells the orchestrator what to do when all planned tasks are comple
 
 The orchestrator should recalculate priorities every cycle by looking at actual metric values (not just what's written here — check real files like `results/winners/`, `STRATEGY_REGISTRY`, test counts, etc.):
 
-**🔴 P0 — Fix Code Gen Failure Rate (54% → <30%)**
-- **Code gen failure rate (54% → <30%)** — wasting half our API calls.
-  - Analyze which failure modes are most common
-  - Improve indicator usage examples in prompts
-  - Better zero-signals recovery hints
-  - Tune circuit breaker thresholds
-  - Consider adding a code validation step before backtest
+**🔴 P0 — Improve Per-Turn Success Rate (6.8% → >20%)**
+- The biggest gap. 83% of real mandate turns fail on performance, not code quality.
+- **low_sharpe (35%)** — ✅ Sharpe Root Cause Analyzer added (Cycle 15). Next: verify it helps in live mandates.
+- **regime_fragility (25%)** — ✅ Regime Diagnosis System added (Cycle 15). Next: verify it helps.
+- **too_few_trades (24%)** — ❌ NO feedback exists. Classifier fires but `build_failure_guidance()` has no template for `too_few_trades`. This is the next fix.
+- **excessive_drawdown (10%)** — Minor. Existing guidance is adequate.
+- Action: Add `too_few_trades` diagnosis + guidance, then run live mandates to verify all 3 diagnosis systems.
 
-**🟡 P1 — Verify End-to-End During Live Mandates**
-- **Live mandate promotion** — verify LLM-invented strategies pass during actual mandate runs
-  - Run mandates with `mode: explorer` to maximize discovery
-  - Verify batch_promote_refinement_winners() captures new winners automatically
-  - Check that newly invented strategies flow through the full pipeline
+**🟡 P1 — Run Live Mandates to Verify Improvements**
+- The diagnosis systems (sharpe, regime) were built based on historical data analysis
+- Need to run actual mandates to verify they improve the per-turn success rate
+- Run explorer mode mandates on diverse tickers (not just SPY)
+- Verify the feedback loop actually changes LLM behavior
 
 **🟢 P2 — Polish (only after P0/P1 are significantly improved)**
-- **Convergence rate (~10% → >20%)** — nice to have but blocked by validation
-- **Unattended runtime** — stability improvements, error recovery
-- **ROADMAP Phase 6 prep items** — daemon config, budget tracking, Telegram briefs
+- Mandate convergence rate (33% → >50%)
+- ROADMAP Phase 6 prep items — daemon config, budget tracking, Telegram briefs
 
 **⚪ P3 — Diminished Returns (avoid unless directly tied to P0/P1 work)**
-- **Test expansion** — we have 3700+ tests. Only write tests for code you're actively modifying for a higher-priority goal. Do NOT expand test files for coverage alone.
+- Test expansion — we have 4137+ tests. Only write tests for code you're actively modifying for a higher-priority goal.
 
 ### Dynamic Priority Rules
 

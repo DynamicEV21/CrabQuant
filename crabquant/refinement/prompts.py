@@ -594,6 +594,14 @@ def format_previous_attempts_section(previous_attempts: list[dict]) -> str:
                     "to a more robust indicator that works across regimes."
                 )
 
+        elif failure == "too_few_trades":
+            num_trades = entry.get("num_trades", 0)
+            note = (
+                f"\n  ⚠️ TOO SELECTIVE: Only {num_trades} trades. "
+                "OPEN UP your entry conditions — widen thresholds, remove a filter, "
+                "or shorten indicator periods. Target: 20-100 trades per year."
+            )
+
         lines.append(
             f"Turn {turn}: Sharpe {sharpe:.2f}\n"
             f"  Failure: {failure} | Action: {action}\n"
@@ -693,6 +701,22 @@ def build_failure_guidance(
             "- Try different indicator parameters or a different indicator family entirely\n"
             "- Consider adding a trend filter — only take signals in the direction of the trend\n"
             "{sharpe_diagnosis}"
+        ),
+        "too_few_trades": (
+            "### ⚠️ Too Few Trades ({trades} trades, minimum 5)\n"
+            "Your strategy's entry conditions are too restrictive, causing very few trades. "
+            "With so few trades, the Sharpe ratio is unreliable (could be luck).\n\n"
+            "**What to do (pick ONE):**\n"
+            "- LOOSEN entry thresholds — widen RSI bands, reduce required indicator alignment\n"
+            "- REMOVE a filter — if you require 3+ conditions to align, try 2 or even 1\n"
+            "- SHORTEN indicator periods — shorter lookbacks fire more often (e.g., EMA 10 → EMA 5)\n"
+            "- Try a MORE FREQUENT signal type — crossovers and threshold breaches fire more than extreme readings\n"
+            "- Add SHORT side — if you only go long, adding short signals doubles your opportunities\n\n"
+            "**Anti-patterns to avoid:**\n"
+            "- Do NOT just add random filters — this makes the problem worse\n"
+            "- Do NOT tighten exits — this doesn't create more entries\n"
+            "- Do NOT use very long lookback periods (50+, 200+) as primary signals — they rarely cross\n"
+            "**Target: 20-100 trades per year on daily data.**"
         ),
         "backtest_crash": (
             "### ⚠️ ACTION REQUIRED: Fix Code Crash\n"
