@@ -251,6 +251,14 @@ If you complete all tasks above, keep going. Here's the priority order:
   - Total: 251 new tests. Suite: 2387 passing (up from 2136). All 3 merges clean.
   - Commits: d74f06d, 7330d91, 61f15cd, 047129b (W1), a0d894e, 9c1e279, 1a6680f, 6355e60 (W2), 80fe57b, 8fdca0f, 2f02ffb (W3)
 
+- [2026-04-28 21:xx] Continuous improvement cycle 4 — 3 parallel workers dispatched for thin test file expansion:
+  - Worker-1 (partial, 1/3 files before timeout): models (5→35). Did not reach market or discoveries. Commit: a2f21b7
+  - Worker-2 (completed, 3 files): cross_run_learning (12→31), regime_sharpe (12→43), composite_score (15→34). Total: +69 tests. Commits: 3f566f0, 3fe2d03, a3ca193
+  - Worker-3 (completed, 3 files): mode_system (16→69), soft_promote (16→52), wave_manager (16→42). Total: +115 tests. Commits: 92c5e3e, edb2bf7, 8de19a3
+  - Total: 286 new tests. Suite: 2673 passing (up from 2387). All merges clean.
+  - Merged commits: 7b007a4 (W1), 99d8e5d, 16c1faf, 91c2582 (W2), 622b43d, a1101bd, ba7f755 (W3)
+  - Remaining thin files for next cycle: test_market.py (13), test_discoveries.py (19), test_e2e.py (4), test_regime_aware_thresholds.py (6), test_registry_compat.py (14), test_cron_integration.py (18)
+
 ## Errors / Blockers
 
 (none yet)
