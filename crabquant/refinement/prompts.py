@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from crabquant.refinement.sharpe_diagnosis import diagnose_low_sharpe
+from crabquant.refinement.regime_diagnosis import diagnose_regime_fragility
 
 # ── Action Types ─────────────────────────────────────────────────────────────
 
@@ -570,12 +571,28 @@ def format_previous_attempts_section(previous_attempts: list[dict]) -> str:
                     "that fires 30+ times per year."
                 )
         elif failure == "regime_fragility":
-            note = (
-                "\n  ⚠️ REGIME WARNING: This strategy only works in specific market conditions "
-                "(e.g., trending or ranging markets). It fails when the regime changes. "
-                "Either add regime detection (only trade when conditions match) or switch "
-                "to a more robust indicator that works across regimes."
-            )
+            # Use sharpe_by_year if available in the history entry for a specific note
+            sby_entry = entry.get("sharpe_by_year", {})
+            if sby_entry and len(sby_entry) >= 2:
+                neg_years = [y for y, s in sby_entry.items() if s < 0]
+                if neg_years:
+                    note = (
+                        f"\n  ⚠️ REGIME WARNING: Lost money in years: {', '.join(neg_years)}. "
+                        "See the Regime Fragility Diagnosis below for specific fixes."
+                    )
+                else:
+                    low_years = [f"{y} ({s:.1f})" for y, s in sorted(sby_entry.items(), key=lambda x: x[1])[:2]]
+                    note = (
+                        f"\n  ⚠️ REGIME WARNING: Weakest years: {', '.join(low_years)}. "
+                        "See the Regime Fragility Diagnosis below for specific fixes."
+                    )
+            else:
+                note = (
+                    "\n  ⚠️ REGIME WARNING: This strategy only works in specific market conditions "
+                    "(e.g., trending or ranging markets). It fails when the regime changes. "
+                    "Either add regime detection (only trade when conditions match) or switch "
+                    "to a more robust indicator that works across regimes."
+                )
 
         lines.append(
             f"Turn {turn}: Sharpe {sharpe:.2f}\n"
@@ -665,12 +682,8 @@ def build_failure_guidance(
         "regime_fragility": (
             "### ⚠️ Strategy is Regime-Dependent\n"
             "Your strategy performs well in one market regime but fails in others. "
-            "It may only work during trends, or only during ranges.\n\n"
-            "**What to do:**\n"
-            "- Add regime detection — check if the market is trending or ranging before trading\n"
-            "- Use adaptive parameters — different thresholds for different volatility levels\n"
-            "- OR lean into it — make the strategy explicitly regime-specific (only trade when "
-            "conditions match), but accept fewer trades"
+            "The diagnosis below shows exactly WHICH years failed and WHY.\n\n"
+            "{regime_diagnosis}"
         ),
         "low_sharpe": (
             "### Guidance: Improve Sharpe Ratio\n"
@@ -711,6 +724,7 @@ def build_failure_guidance(
     # Build curve-fitting warning for low_sharpe with very few trades
     curve_fit_warning = ""
     sharpe_diagnosis = ""
+    regime_diagnosis = ""
     if failure_mode == "low_sharpe":
         if total_trades < 10:
             curve_fit_warning = (
@@ -740,11 +754,25 @@ def build_failure_guidance(
         if sharpe_diagnosis:
             sharpe_diagnosis = "\n\n" + sharpe_diagnosis
 
+    elif failure_mode == "regime_fragility":
+        # Run the regime diagnosis analyzer
+        regime_diagnosis = diagnose_regime_fragility(sharpe_by_year or {})
+        if not regime_diagnosis:
+            # Fallback if no year data available
+            regime_diagnosis = (
+                "**What to do:**\n"
+                "- Add regime detection — check if the market is trending or ranging before trading\n"
+                "- Use adaptive parameters — different thresholds for different volatility levels\n"
+                "- OR lean into it — make the strategy explicitly regime-specific (only trade when "
+                "conditions match), but accept fewer trades"
+            )
+
     return template.format(
         trades=total_trades,
         window_breakdown=window_breakdown,
         curve_fit_warning=curve_fit_warning,
         sharpe_diagnosis=sharpe_diagnosis,
+        regime_diagnosis=regime_diagnosis,
     )
 
 
