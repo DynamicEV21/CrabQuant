@@ -123,11 +123,13 @@ The orchestrator should recalculate priorities every cycle by looking at actual 
 
 **🔴 P0 — Improve Per-Turn Success Rate (6.8% → >20%)**
 - The biggest gap. 83% of real mandate turns fail on performance, not code quality.
-- **low_sharpe (35%)** — ✅ Sharpe Root Cause Analyzer added (Cycle 15). Next: verify it helps in live mandates.
-- **regime_fragility (25%)** — ✅ Regime Diagnosis System added (Cycle 15). Next: verify it helps.
-- **too_few_trades (24%)** — ❌ NO feedback exists. Classifier fires but `build_failure_guidance()` has no template for `too_few_trades`. This is the next fix.
+- **low_sharpe (35%)** — ✅ Sharpe Root Cause Analyzer added (Cycle 15). Verified wired correctly (Cycle 17 wiring audit).
+- **regime_fragility (25%)** — ✅ Regime Diagnosis System added (Cycle 15). Verified wired correctly.
+- **too_few_trades (24%)** — ✅ Guidance template added (Cycle 15 orchestrator fix). Verified wired correctly.
 - **excessive_drawdown (10%)** — Minor. Existing guidance is adequate.
-- Action: Add `too_few_trades` diagnosis + guidance, then run live mandates to verify all 3 diagnosis systems.
+- **Wiring bugs fixed (Cycle 17)**: `detect_regime` imported from wrong module, `analyze_failure_patterns` called with wrong arg type, 2 silent `except-pass` blocks now log warnings. All 3 bugs would have caused dead-code paths in the Turn 1 and Turn 2+ prompt builders.
+- **Full wiring audit (Cycle 17)**: Zero new bugs found across all 17 modules. All function signatures match their call sites.
+- Action: Run live mandates to verify all diagnosis systems work end-to-end (now P1).
 
 **🟡 P1 — Run Live Mandates to Verify Improvements**
 - The diagnosis systems (sharpe, regime) were built based on historical data analysis

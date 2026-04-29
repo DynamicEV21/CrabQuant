@@ -693,7 +693,8 @@
     "JNJ|roc_ema_volume_jnj|1842d975aff6",
     "JPM|roc_ema_volume_jpm|1842d975aff6",
     "GLD|roc_ema_volume_gld|1842d975aff6",
-    "QQQ|roc_ema_volume_qqq|1842d975aff6"
+    "QQQ|roc_ema_volume_qqq|1842d975aff6",
+    "AAPL|refined_cycle17_verify_aapl|7cbfa71f4344"
   ],
   "total_runs": 459,
   "total_winners": 8156,

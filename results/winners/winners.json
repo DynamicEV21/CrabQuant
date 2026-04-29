@@ -5670,5 +5670,29 @@
     "promoted_at": "2026-04-29T15:38:15.709955+00:00",
     "validation_status": "promoted",
     "regime_tags": null
+  },
+  {
+    "strategy": "refined_cycle17_verify_aapl",
+    "ticker": "AAPL",
+    "sharpe": 1.4540695290884345,
+    "return": 0.22079607227802683,
+    "max_drawdown": -0.11179725193946663,
+    "trades": 12,
+    "params": {
+      "roc_len": 3,
+      "ema_len": 10,
+      "atr_len": 8,
+      "atr_mult": 1.2,
+      "trailing_len": 8
+    },
+    "refinement_run": "cycle17_verify_aapl_20260429_160418",
+    "refinement_turns": 5,
+    "validation": {
+      "status": "error",
+      "message": "name 'config' is not defined",
+      "passed": false
+    },
+    "promoted_at": "2026-04-29T23:08:56.385288+00:00",
+    "validation_status": "backtest_only"
   }
 ]
