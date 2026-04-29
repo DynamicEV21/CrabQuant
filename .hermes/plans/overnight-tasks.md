@@ -259,6 +259,14 @@ If you complete all tasks above, keep going. Here's the priority order:
   - Merged commits: 7b007a4 (W1), 99d8e5d, 16c1faf, 91c2582 (W2), 622b43d, a1101bd, ba7f755 (W3)
   - Remaining thin files for next cycle: test_market.py (13), test_discoveries.py (19), test_e2e.py (4), test_regime_aware_thresholds.py (6), test_registry_compat.py (14), test_cron_integration.py (18)
 
+- [2026-04-28 22:xx] Continuous improvement cycle 5 — 3 parallel workers dispatched for thin test file expansion:
+  - Worker-1 (completed, 3 files): regime_aware_thresholds (6→33), registry_compat (14→44), batch (14→40). Total: +83 tests. Commits: cbcea03, 448764a, af065fd
+  - Worker-2 (partial, 1/3 files before timeout): strategies (8→44). Did not reach parallel or gate3_smoke. Commit: 0c24780
+  - Worker-3 (completed, 3 files): health (16→57), analysis_correlation (17→37), regime (17→41). Total: +85 tests. Commits: 26ca6ff, ae3177a, a88040c
+  - Total: +204 new tests (from workers alone, but strategies overlap with existing counted). Suite: 2877 passing (up from 2673). All 3 merges clean (fast-forward).
+  - Merged commits: cbcea03, 448764a, af065fd (W1), 5e2562f (W2), 4262fad (W3)
+  - Remaining thin files for next cycle: test_parallel.py (9), test_gate3_smoke.py (12), test_e2e.py (4), test_e2e_phase2.py (18), test_e2e_phase3.py (18), test_cron_integration.py (18), test_pipeline.py (19)
+
 ## Errors / Blockers
 
 (none yet)
