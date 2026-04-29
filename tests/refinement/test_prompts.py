@@ -371,6 +371,33 @@ class TestBuildFailureGuidance:
         result = build_failure_guidance("too_few_trades_for_validation")
         assert "0 trades" in result
 
+    def test_excessive_drawdown(self):
+        """excessive_drawdown has actionable guidance for risk management."""
+        result = build_failure_guidance("excessive_drawdown", total_trades=30)
+        assert "Excessive Drawdown" in result
+        assert "STOP LOSS" in result
+        assert "TREND FILTER" in result
+        assert "VOLATILITY FILTER" in result
+        assert "max drawdown < 25%" in result
+
+    def test_flat_signal(self):
+        """flat_signal has actionable guidance for getting signals to fire."""
+        result = build_failure_guidance("flat_signal", total_trades=0)
+        assert "Flat Signal" in result
+        assert "SIMPLER signal" in result
+        assert "NaN handling" in result
+        assert "fillna" in result
+        assert "at least 10 trades" in result
+
+    def test_overtrading(self):
+        """overtrading has actionable guidance for reducing trade frequency."""
+        result = build_failure_guidance("overtrading", total_trades=500)
+        assert "Overtrading" in result
+        assert "COOLDOWN" in result
+        assert "LONGER indicator periods" in result
+        assert "CONFIRMATION" in result
+        assert "20-100 trades" in result
+
 
 # ─── format_previous_attempts_section (failure-mode-specific notes) ──────────
 
