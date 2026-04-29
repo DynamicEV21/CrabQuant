@@ -220,6 +220,14 @@ def check_health(
         "total_api_calls": state.get("total_api_calls") if state else None,
     }
 
+    # --- API budget check (Phase 6 prep) ---
+    api_budget = {}
+    try:
+        from crabquant.refinement.api_budget import get_global_tracker
+        api_budget = get_global_tracker().get_summary()
+    except Exception:
+        pass
+
     # --- System check ---
     system = _get_system_info()
 
@@ -234,11 +242,18 @@ def check_health(
         cache_fresh=data["cache_fresh"],
     )
 
+    # Add budget-related recommendations
+    if api_budget:
+        budget_remaining = api_budget.get("budget_remaining", {})
+        if budget_remaining.get("cost_usd", 1) < 0.5:
+            recommendations.append("API budget nearly exhausted — consider pausing daemon")
+
     return {
         "status": status,
         "daemon": daemon,
         "system": system,
         "data": data,
+        "api_budget": api_budget,
         "recommendations": recommendations,
         "checked_at": checked_at,
     }
