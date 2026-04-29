@@ -22,3 +22,10 @@ results/daemon_state.json
 results/daemon_heartbeat.json
 results/daemon.log
 refinement_runs/
+
+# Night mode state (project-local, not tracked)
+.nightmode.json
+NIGHT_MODE_STATE.json
+LONG_RUNNING_STATE.json
+LONG_RUNNING_STATE.json.tmp
+LONG_RUNNING_STATE.json.bak.*
