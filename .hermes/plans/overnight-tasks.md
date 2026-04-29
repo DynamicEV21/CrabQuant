@@ -167,8 +167,22 @@ If you complete all tasks above, keep going. Here's the priority order:
   - 44 new tests in `tests/refinement/test_stagnation_recovery.py`
   - Total tests: 1266 passing
 
-4. **Multi-ticker support** — run strategy on SPY+QQQ+IWM simultaneously, require pass on 2/3
-5. **Feature importance feedback** — after backtest, tell the LLM which indicators contributed most to Sharpe
+- [x] 4. **Multi-ticker support** ✅ DONE
+  - Already implemented — `run_multi_ticker_backtest()` in `diagnostics.py`, wired into refinement loop
+  - Config fields: `multi_ticker_backtest`, `multi_ticker_extra`, `multi_ticker_min_pass`
+  - Results flow into report and context_builder for LLM feedback
+  - Verified: secondary tickers, extra tickers, sharpe_target passthrough
+
+5. **Feature importance feedback** ✅ DONE
+  - Module: `crabquant/refinement/feature_importance.py` — 18 indicator compute functions, `compute_feature_importance()`, `format_feature_importance_for_prompt()`
+  - `feature_importance: bool = True` config field in `RefinementConfig`
+  - Wired into refinement loop: after backtest, before report creation — calls `compute_feature_importance(strategy_code, primary_ticker, state.period)`
+  - `BacktestReport` dataclass: `feature_importance: dict | None = None` field
+  - `from_backtest_result()` factory accepts `feature_importance` param
+  - Context builder extracts `feature_importance` from prev_report → `context["feature_importance_section"]`
+  - `{feature_importance_section}` placeholder in `REFINEMENT_PROMPT` template
+  - 57 unit tests in `tests/refinement/test_feature_importance.py`
+  - Commit: `1fae2e7`
 6. **Update SKILL.md** with any architecture changes you made
 7. **Update ROADMAP.md** — mark completed items, add new items you discovered
 8. **Run more mandates** to validate improvements (8 min max each)
