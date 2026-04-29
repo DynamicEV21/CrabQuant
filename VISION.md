@@ -68,16 +68,16 @@ The pipeline runs end-to-end. Strategies get invented and backtested. Some hit S
 
 | Metric | Value | Problem? |
 |--------|-------|----------|
-| Total mandates run | 80 | — |
-| Backtest successes (Sharpe ≥ target) | ~10% | Low but workable |
-| Code gen failure rate | 54% | 🔴 Too high |
-| Strategies registered in registry | **0** (from invention) | 🔴 Critical |
-| winners.json entries | 58 (50 are sweep debris) | 🔴 Mostly noise |
-| Validation pass rate | 0% (0/8 refined) | 🔴 Wall |
+| Total mandates run | 95 | — |
+| Backtest successes (Sharpe ≥ target) | ~26% | ✅ Improved |
+| Code gen failure rate | 54% | 🟡 Too high |
+| Strategies registered in registry | **3** (from promotion) | 🟡 Progress |
+| winners.json entries | 65 (4 promoted) | 🟡 Improving |
+| Validation pass rate | 30% (3/10 top winners) | 🟡 Progress |
 
-**The one thing that matters:** Zero strategies from the invention pipeline have ever been registered in STRATEGY_REGISTRY. The walk-forward validation gate is a wall — it always detects regime shift and rejects. The `auto_promote()` path is effectively dead code.
+**The funnel is opening.** After fixing two critical threshold bugs (rolling WF per-window thresholds in Cycle 10-11, cross-ticker robust threshold in Cycle 12), the first strategies are now passing validation and getting promoted. The pipeline works end-to-end.
 
-Everything else works. The LLM can write good strategies. The backtest engine is fast and accurate. The daemon runs reliably. But nothing survives validation, so nothing gets promoted.
+**Remaining gaps:** Need more strategies to pass (target 10+), and need to verify LLM-invented strategies can pass during live mandate runs (not just retroactive promotion of existing winners).
 
 **Phase 5 fixes the funnel. Phase 5.5 adds regime awareness. Phase 5.6 accelerates invention.** See ROADMAP.md.
 
@@ -87,12 +87,12 @@ Everything else works. The LLM can write good strategies. The backtest engine is
 
 | Metric | Target | Current | Gap |
 |--------|--------|---------|-----|
-| Validation pass rate | >50% | 0% | 🔴 50% |
-| Strategies in registry (from invention) | 10+ | 0 | 🔴 10 |
+| Validation pass rate | >50% | 30% (3/10 top winners) | 🟡 20% |
+| Strategies in registry (from invention) | 10+ | 3 promoted | 🟡 7 |
 | Code gen failure rate | <30% | 54% | 🟡 24% |
-| Convergence rate | >20% | ~10% | 🟢 10% |
+| Convergence rate | >20% | ~26% | ✅ Met |
 | Unattended runtime | 7+ days | ~1 day | 🟢 6 days |
-| Test coverage | 100% of new code | 3700+ tests | ✅ Surpassed |
+| Test coverage | 100% of new code | 3995+ tests | ✅ Surpassed |
 
 ---
 

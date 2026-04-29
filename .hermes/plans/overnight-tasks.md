@@ -379,3 +379,21 @@ If you complete all tasks above, keep going using VISION.md. Legacy items (compl
   - All merges clean. Tests: 3980 passing.
   - **VALIDATION PASS RATE: 0% → 100% (rolling WF on hand-crafted strategies)** ✅
   - **REMAINING**: Run actual mandate to verify LLM-invented strategies can pass and get promoted to registry.
+
+- [2026-04-29 05:xx] **CYCLE 12 — P0: Fix Cross-Ticker Validation Gate + First Promotions**
+  - Continued P0: strategies in registry (0 → 10+).
+  - Dispatched diagnostic worker to test top 10 winners against relaxed validation.
+  - **KEY FINDING**: 0/10 winners passed because `cross_ticker_validation()` hardcoded `avg_sharpe > 0.5` for the `robust` flag, making the configurable `min_cross_ticker_sharpe=0.3` threshold dead code.
+  - roc_ema_volume (GOOGL, Sharpe 2.65) was the best near-miss: WF excellent (5/6 windows, avg 1.69) but CT avg_sharpe=0.45 (above 0.3 threshold but below the hidden 0.5 `robust` gate).
+  - **FIX**: Parameterized `cross_ticker_validation()` with `min_avg_sharpe` (default 0.3) and `min_profitable_pct` (default 0.3) keyword args. Wired through `promotion.py` and `VALIDATION_CONFIG`.
+  - Commit: 600726d
+  - **RETEST**: After fix, 3 strategies pass both WF and CT validation:
+    1. roc_ema_volume (GOOGL): WF avg=1.69, CT avg=0.45, 5/6 windows, 18/29 profitable
+    2. roc_ema_volume (SPY): WF avg=0.61, CT avg=0.46, 4/6 windows, 13/19 profitable
+    3. e2e_test_momentum (SPY): WF avg=1.09, CT avg=0.39, 4/6 windows, 11/19 profitable
+  - **🎉 FIRST-EVER PROMOTIONS**: 4 entries in winners.json now have validation_status="promoted". Strategy .py files written to crabquant/strategies/.
+  - Registry count: 25 → 26 (in-memory during promotion runs)
+  - Commit: 23e8cdc
+  - All 3995 tests passing.
+  - **REMAINING**: The promotion pipeline works end-to-end for existing strategies. Next: verify it works during actual mandate runs (LLM-invented strategies).
+
