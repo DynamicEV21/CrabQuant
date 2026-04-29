@@ -124,6 +124,8 @@ def run_full_validation_check(
         "step": "6mo",
         "min_avg_test_sharpe": 0.3,
         "min_windows_passed": 1,
+        "min_window_test_sharpe": 0.0,
+        "max_window_degradation": 1.0,
     }
     rcfg.update(VALIDATION_CONFIG.get("rolling", {}))
     if rolling_config:
@@ -141,6 +143,8 @@ def run_full_validation_check(
                 step=rcfg["step"],
                 min_avg_test_sharpe=rcfg["min_avg_test_sharpe"],
                 min_windows_passed=rcfg["min_windows_passed"],
+                min_window_test_sharpe=rcfg["min_window_test_sharpe"],
+                max_window_degradation=rcfg["max_window_degradation"],
             )
             result["walk_forward"] = {
                 "avg_test_sharpe": rwf.avg_test_sharpe,

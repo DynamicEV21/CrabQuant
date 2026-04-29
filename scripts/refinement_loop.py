@@ -215,6 +215,10 @@ def _promote_post_loop(
             discovery_ticker=primary_ticker,
             validation_tickers=validation_tickers,
             is_regime_specific=is_regime_specific,
+            rolling_config={
+                "min_window_test_sharpe": config.min_window_test_sharpe,
+                "max_window_degradation": config.max_window_degradation,
+            },
         )
     except Exception as e:
         print(f"  ⚠️ Post-loop validation error: {e}")
@@ -982,6 +986,10 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                     discovery_ticker=primary_ticker,
                     validation_tickers=validation_tickers,
                     is_regime_specific=_is_regime_specific,
+                    rolling_config={
+                        "min_window_test_sharpe": config.min_window_test_sharpe,
+                        "max_window_degradation": config.max_window_degradation,
+                    },
                 )
             except Exception as e:
                 print(f"  ⚠️ Full validation error: {e}")

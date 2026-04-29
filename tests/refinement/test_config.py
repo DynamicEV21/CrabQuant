@@ -296,3 +296,39 @@ class TestTypes:
         assert isinstance(cfg.mandates_dir, str)
         assert isinstance(cfg.runs_dir, str)
         assert isinstance(cfg.winners_file, str)
+
+
+# ─── Per-window walk-forward thresholds (Phase 6) ───────────────────────────
+
+class TestPerWindowThresholds:
+    def test_defaults_are_relaxed(self):
+        cfg = RefinementConfig()
+        assert cfg.min_window_test_sharpe == 0.0
+        assert cfg.max_window_degradation == 1.0
+
+    def test_from_dict_custom_values(self):
+        cfg = RefinementConfig.from_dict({
+            "min_window_test_sharpe": 0.2,
+            "max_window_degradation": 0.5,
+        })
+        assert cfg.min_window_test_sharpe == 0.2
+        assert cfg.max_window_degradation == 0.5
+
+    def test_to_dict_includes_new_fields(self):
+        cfg = RefinementConfig()
+        d = cfg.to_dict()
+        assert "min_window_test_sharpe" in d
+        assert "max_window_degradation" in d
+        assert d["min_window_test_sharpe"] == 0.0
+        assert d["max_window_degradation"] == 1.0
+
+    def test_json_roundtrip_preserves_values(self):
+        cfg = RefinementConfig(min_window_test_sharpe=0.15, max_window_degradation=0.6)
+        cfg2 = RefinementConfig.from_json(cfg.to_json())
+        assert cfg2.min_window_test_sharpe == 0.15
+        assert cfg2.max_window_degradation == 0.6
+
+    def test_fields_are_float(self):
+        cfg = RefinementConfig()
+        assert isinstance(cfg.min_window_test_sharpe, float)
+        assert isinstance(cfg.max_window_degradation, float)
