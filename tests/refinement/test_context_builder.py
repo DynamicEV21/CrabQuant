@@ -900,3 +900,150 @@ class TestFeatureImportanceInContext:
         context = build_llm_context(state, report=ReportWithEmptyFI())
         
         assert "feature_importance_section" not in context
+
+
+class TestPromptWiring:
+    """Verify that build_llm_context sets context['prompt'] using proper prompt builders.
+
+    This is the CRITICAL wiring that enables failure guidance, sharpe diagnosis,
+    regime diagnosis, and all other feedback systems. Without this, call_llm_inventor
+    falls back to raw JSON dumps that bypass all guidance.
+    """
+
+    def test_turn1_sets_prompt_key(self):
+        """Turn 1 (no report) should set context['prompt'] via build_turn1_prompt."""
+        from crabquant.refinement.context_builder import build_llm_context
+
+        state = FakeRunState(current_turn=0)
+        context = build_llm_context(state, report=None, mandate={})
+
+        assert "prompt" in context
+        assert isinstance(context["prompt"], str)
+        assert len(context["prompt"]) > 100  # Substantial prompt content
+        # Turn 1 prompt should include mandate-related content
+        assert "Turn" in context["prompt"] or "turn" in context["prompt"]
+
+    def test_turn2_sets_prompt_key(self):
+        """Turn 2+ (with report) should set context['prompt'] via build_refinement_prompt."""
+        from crabquant.refinement.context_builder import build_llm_context
+
+        state = FakeRunState(current_turn=1)
+        context = build_llm_context(state, report=FakeReport(), mandate={})
+
+        assert "prompt" in context
+        assert isinstance(context["prompt"], str)
+        assert len(context["prompt"]) > 100
+
+    def test_refinement_prompt_contains_failure_guidance(self):
+        """The refinement prompt should contain failure guidance for low_sharpe."""
+        from crabquant.refinement.context_builder import build_llm_context
+
+        state = FakeRunState(current_turn=1)
+        report = FakeReport(failure_mode="low_sharpe")
+        context = build_llm_context(state, report=report, mandate={"sharpe_target": 1.5})
+
+        assert "prompt" in context
+        prompt = context["prompt"]
+        # The refinement prompt should include failure guidance section
+        assert "Guidance" in prompt or "guidance" in prompt or "low_sharpe" in prompt
+
+    def test_refinement_prompt_contains_too_few_trades_guidance(self):
+        """The refinement prompt should contain too_few_trades guidance."""
+        from crabquant.refinement.context_builder import build_llm_context
+
+        state = FakeRunState(current_turn=1)
+        report = FakeReport(failure_mode="too_few_trades", total_trades=2)
+        context = build_llm_context(state, report=report, mandate={})
+
+        assert "prompt" in context
+        prompt = context["prompt"]
+        assert "Too Few Trades" in prompt or "too_few_trades" in prompt
+
+    def test_refinement_prompt_contains_regime_guidance(self):
+        """The refinement prompt should contain regime_fragility guidance."""
+        from crabquant.refinement.context_builder import build_llm_context
+
+        state = FakeRunState(current_turn=1)
+        report = FakeReport(failure_mode="regime_fragility")
+        context = build_llm_context(state, report=report, mandate={})
+
+        assert "prompt" in context
+        prompt = context["prompt"]
+        assert "Regime" in prompt or "regime" in prompt
+
+    def test_refinement_prompt_with_sharpe_diagnosis(self):
+        """low_sharpe with metrics should trigger sharpe diagnosis in the prompt."""
+        from crabquant.refinement.context_builder import build_llm_context
+
+        @dataclass
+        class ReportWithMetrics:
+            sharpe_ratio: float = 0.3
+            total_return_pct: float = 0.02
+            total_trades: int = 40
+            failure_mode: str = "low_sharpe"
+            failure_details: str = "Sharpe 0.3 < target 1.5"
+            sharpe_by_year: dict = field(default_factory=lambda: {
+                "2023": 0.5, "2024": 0.1, "2025": 0.3
+            })
+            stagnation_score: float = 0.0
+            current_strategy_code: str = "def generate_signals(df, params): pass"
+            current_params: dict = field(default_factory=dict)
+            win_rate: float = 0.42
+            profit_factor: float = 0.8
+            sortino_ratio: float = 0.4
+            calmar_ratio: float = 0.2
+            max_drawdown_pct: float = -0.15
+            composite_score: float = 0.3
+            guardrail_violations: list = field(default_factory=list)
+            guardrail_warnings: list = field(default_factory=list)
+            previous_attempts: list = field(default_factory=list)
+            previous_sharpes: list = field(default_factory=list)
+            previous_actions: list = field(default_factory=list)
+            stagnation_trend: str = "improving"
+
+        state = FakeRunState(current_turn=1)
+        context = build_llm_context(
+            state, report=ReportWithMetrics(), mandate={"sharpe_target": 1.5}
+        )
+
+        assert "prompt" in context
+        prompt = context["prompt"]
+        # Sharpe diagnosis should mention root cause or actionable fix
+        assert "win rate" in prompt.lower() or "profit factor" in prompt.lower() or "Guidance" in prompt
+
+    def test_prompt_key_takes_precedence_over_fallback(self):
+        """When prompt key is set, call_llm_inventor should use it directly."""
+        from crabquant.refinement.context_builder import build_llm_context
+
+        state = FakeRunState(current_turn=0)
+        context = build_llm_context(state, report=None, mandate={})
+
+        # Verify the prompt key is a complete, self-contained prompt
+        # (not just a reference to another field)
+        prompt = context["prompt"]
+        assert "##" in prompt  # Has markdown headers (structured prompt)
+        assert len(prompt) > 500  # Substantial content
+
+    def test_turn1_prompt_graceful_on_exception(self):
+        """If build_turn1_prompt fails, context should still be returned without prompt."""
+        from crabquant.refinement.context_builder import build_llm_context
+
+        state = FakeRunState(current_turn=0)
+
+        with patch("crabquant.refinement.context_builder.build_turn1_prompt", side_effect=Exception("test error")):
+            context = build_llm_context(state, report=None, mandate={})
+
+        # Should not crash, but prompt should not be set
+        assert "prompt" not in context or context.get("prompt") is None
+
+    def test_turn2_prompt_graceful_on_exception(self):
+        """If build_refinement_prompt fails, context should still be returned without prompt."""
+        from crabquant.refinement.context_builder import build_llm_context
+
+        state = FakeRunState(current_turn=1)
+
+        with patch("crabquant.refinement.context_builder.build_refinement_prompt", side_effect=Exception("test error")):
+            context = build_llm_context(state, report=FakeReport(), mandate={})
+
+        # Should not crash, but prompt should not be set
+        assert "prompt" not in context or context.get("prompt") is None

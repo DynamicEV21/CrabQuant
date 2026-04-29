@@ -18,7 +18,13 @@ from crabquant.strategies._registry_compat import (
     get_defaults as _get_defaults,
     get_description as _get_desc,
 )
-from crabquant.refinement.prompts import load_indicator_reference, extract_quick_reference
+from crabquant.refinement.prompts import (
+    load_indicator_reference,
+    extract_quick_reference,
+    build_turn1_prompt,
+    build_refinement_prompt,
+    format_stagnation_suffix,
+)
 
 # Path to winners database
 _WINNERS_PATH = Path(__file__).parent.parent.parent / "results" / "winners" / "winners.json"
@@ -444,6 +450,89 @@ def build_llm_context(
     crash_feedback = _build_crash_error_feedback(state)
     if crash_feedback:
         context["crash_error_feedback"] = crash_feedback
+
+    # ── CRITICAL: Build the formatted prompt for call_llm_inventor ──────
+    # This ensures the prompt builders (build_turn1_prompt / build_refinement_prompt)
+    # are actually used, which enables failure guidance, sharpe diagnosis,
+    # regime diagnosis, and all other feedback systems. Without this key,
+    # call_llm_inventor falls back to raw JSON dumps that bypass all guidance.
+    current_turn_num = getattr(state, "current_turn", 0) + 1
+    indicator_ref = context.get("indicator_reference", "")
+    indicator_qr = context.get("indicator_quick_ref", "")
+
+    if report is None:
+        # Turn 1: Use build_turn1_prompt for invention
+        try:
+            context["prompt"] = build_turn1_prompt(
+                mandate=mandate,
+                current_turn=current_turn_num,
+                max_turns=context.get("max_turns", 7),
+                strategy_examples=context.get("strategy_examples"),
+                winner_examples=context.get("winner_examples"),
+                indicator_reference=indicator_ref,
+                indicator_quick_ref=indicator_qr,
+                archetype_section=context.get("archetype_section"),
+            )
+        except Exception:
+            # If prompt building fails, let call_llm_inventor use its fallback
+            pass
+    else:
+        # Turns 2+: Use build_refinement_prompt for targeted feedback
+        try:
+            # Build tier1_report dict from BacktestReport for build_refinement_prompt
+            tier1 = {}
+            if hasattr(report, "to_dict"):
+                tier1 = report.to_dict()
+            elif hasattr(report, "__dataclass_fields__"):
+                tier1 = asdict(report)
+            else:
+                tier1 = dict(report)
+
+            # Ensure all fields needed by build_failure_guidance are present
+            tier1.setdefault("sharpe_target", context.get("sharpe_target", 1.5))
+            tier1.setdefault("total_return_pct", 0.0)
+            tier1.setdefault("max_drawdown_pct", 0.0)
+            tier1.setdefault("win_rate", 0.0)
+            tier1.setdefault("profit_factor", 0.0)
+            tier1.setdefault("sortino_ratio", 0.0)
+            tier1.setdefault("calmar_ratio", 0.0)
+            tier1.setdefault("avg_holding_bars", None)
+            tier1.setdefault("sharpe_by_year", {})
+
+            # Include feature importance section if available
+            if context.get("feature_importance_section"):
+                tier1["feature_importance_section"] = context["feature_importance_section"]
+
+            # Build stagnation suffix from state
+            history = getattr(state, "history", [])
+            prev_sharpes = [h.get("sharpe", 0.0) for h in history[-5:]]
+            stag_suffix = ""
+            try:
+                stag_suffix = format_stagnation_suffix(
+                    current_turn_num,
+                    prev_sharpes,
+                    getattr(state, "stagnation_trend", "improving"),
+                )
+            except Exception:
+                pass
+
+            context["prompt"] = build_refinement_prompt(
+                tier1_report=tier1,
+                current_turn=current_turn_num,
+                max_turns=context.get("max_turns", 7),
+                sharpe_target=context.get("sharpe_target", 1.5),
+                best_sharpe=context.get("best_sharpe_so_far", 0.0),
+                best_turn=context.get("best_turn", 0),
+                stagnation_suffix=stag_suffix,
+                strategy_examples=context.get("strategy_examples"),
+                winner_examples=context.get("winner_examples"),
+                archetype_section=context.get("archetype_section"),
+                indicator_reference=indicator_ref,
+                indicator_quick_ref=indicator_qr,
+            )
+        except Exception:
+            # If prompt building fails, let call_llm_inventor use its fallback
+            pass
 
     return context
 
