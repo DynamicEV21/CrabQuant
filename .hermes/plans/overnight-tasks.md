@@ -285,6 +285,16 @@ If you complete all tasks above, keep going. Here's the priority order:
   - Remaining expansion targets: schemas (25/231 lines), diagnostics (47/445 lines), tier1_diagnostics (26/156 lines), per_wave_metrics (27/187 lines), guardrails (22 tests)
   - E2E/integration tests still thin: gate3_smoke (12), e2e (4), e2e_phase2 (18), e2e_phase3 (18), cron_integration (18), pipeline (19)
 
+- [2026-04-28 22:xx] Continuous improvement cycle 8 — 3 parallel workers dispatched for test expansion:
+  - Worker-1 (completed, 3 files): schemas (25→80), per_wave_metrics (27→71), tier1_diagnostics (26→70). Total: +143 tests. Commits: 4b5e9a2, 5e88a28, be3dce8
+  - Worker-2 (timed out, 0 commits): strategy_converter + guardrails — timed out before any commits. No work produced. Will retry next cycle with reduced scope.
+  - Worker-3 (completed, 3 files): data (20→39), engine (40→80), indicator_cache (24→54). Total: +89 tests. Commits: 34f8858, f931bac, 567db31
+  - Total: +232 new tests (from workers). Suite: 3432 passing (up from 3207). All 2 merges clean (1 fast-forward, 1 ort).
+  - Merged commits: 4b5e9a2, 5e88a28, be3dce8 (W1), 34f8858, f931bac, 567db31 (W3)
+  - Remaining thin files: guardrails (22), brief (19), measure_convergence (22), production (22), negative_feedback (25), module_loader (26), orchestrator (24), classifier (28)
+  - strategy_converter.py (1508 lines) still has ZERO tests — retry next cycle
+  - E2E/integration tests still thin: gate3_smoke (12), e2e (4), e2e_phase2 (18), e2e_phase3 (18), cron_integration (18), pipeline (19)
+
 ## Errors / Blockers
 
 (none yet)
