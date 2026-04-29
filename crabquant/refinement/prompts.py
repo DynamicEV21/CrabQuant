@@ -20,6 +20,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from crabquant.refinement.sharpe_diagnosis import diagnose_low_sharpe
+
 # ── Action Types ─────────────────────────────────────────────────────────────
 
 VALID_ACTIONS = [
@@ -591,6 +593,17 @@ def build_failure_guidance(
     failure_mode: str,
     total_trades: int = 0,
     validation: dict | None = None,
+    *,
+    sharpe_ratio: float = 0.0,
+    sharpe_target: float = 1.5,
+    total_return_pct: float = 0.0,
+    max_drawdown_pct: float = 0.0,
+    win_rate: float = 0.0,
+    profit_factor: float = 0.0,
+    sortino_ratio: float = 0.0,
+    calmar_ratio: float = 0.0,
+    avg_holding_bars: float | None = None,
+    sharpe_by_year: dict | None = None,
 ) -> str:
     """Generate actionable guidance based on failure mode.
 
@@ -603,6 +616,16 @@ def build_failure_guidance(
         validation: Optional validation results dict with 'window_results',
             'avg_test_sharpe', 'windows_passed', 'num_windows'. Used for
             validation_failed to include per-window breakdown.
+        sharpe_ratio: Current Sharpe ratio (for low_sharpe diagnosis).
+        sharpe_target: Target Sharpe ratio (for low_sharpe diagnosis).
+        total_return_pct: Total return fraction (for low_sharpe diagnosis).
+        max_drawdown_pct: Max drawdown fraction (for low_sharpe diagnosis).
+        win_rate: Win rate fraction (for low_sharpe diagnosis).
+        profit_factor: Profit factor (for low_sharpe diagnosis).
+        sortino_ratio: Sortino ratio (for low_sharpe diagnosis).
+        calmar_ratio: Calmar ratio (for low_sharpe diagnosis).
+        avg_holding_bars: Average holding period (for low_sharpe diagnosis).
+        sharpe_by_year: Per-year Sharpe (for low_sharpe diagnosis).
 
     Returns:
         Formatted guidance string for prompt injection.
@@ -655,7 +678,8 @@ def build_failure_guidance(
             "**What to do:**\n"
             "- Check your entry/exit logic — are you entering at good prices?\n"
             "- Try different indicator parameters or a different indicator family entirely\n"
-            "- Consider adding a trend filter — only take signals in the direction of the trend"
+            "- Consider adding a trend filter — only take signals in the direction of the trend\n"
+            "{sharpe_diagnosis}"
         ),
         "backtest_crash": (
             "### ⚠️ ACTION REQUIRED: Fix Code Crash\n"
@@ -686,6 +710,7 @@ def build_failure_guidance(
 
     # Build curve-fitting warning for low_sharpe with very few trades
     curve_fit_warning = ""
+    sharpe_diagnosis = ""
     if failure_mode == "low_sharpe":
         if total_trades < 10:
             curve_fit_warning = (
@@ -698,11 +723,28 @@ def build_failure_guidance(
                 f"⚠️ Very few trades ({total_trades}) — your Sharpe may be unreliable. "
                 "Focus on increasing trade frequency FIRST.\n\n"
             )
+        # Run the root cause analyzer
+        sharpe_diagnosis = diagnose_low_sharpe(
+            sharpe_ratio=sharpe_ratio,
+            sharpe_target=sharpe_target,
+            total_return_pct=total_return_pct,
+            max_drawdown_pct=max_drawdown_pct,
+            win_rate=win_rate,
+            profit_factor=profit_factor,
+            sortino_ratio=sortino_ratio,
+            calmar_ratio=calmar_ratio,
+            total_trades=total_trades,
+            avg_holding_bars=avg_holding_bars,
+            sharpe_by_year=sharpe_by_year,
+        )
+        if sharpe_diagnosis:
+            sharpe_diagnosis = "\n\n" + sharpe_diagnosis
 
     return template.format(
         trades=total_trades,
         window_breakdown=window_breakdown,
         curve_fit_warning=curve_fit_warning,
+        sharpe_diagnosis=sharpe_diagnosis,
     )
 
 
@@ -893,7 +935,19 @@ def build_refinement_prompt(
         if pa.get("failure_mode") == "validation_failed" and pa.get("validation"):
             validation_data = pa["validation"]
             break
-    failure_guidance = build_failure_guidance(failure_mode, total_trades, validation_data)
+    failure_guidance = build_failure_guidance(
+        failure_mode, total_trades, validation_data,
+        sharpe_ratio=tier1_report.get("sharpe_ratio", 0.0),
+        sharpe_target=tier1_report.get("sharpe_target", sharpe_target),
+        total_return_pct=tier1_report.get("total_return_pct", 0.0),
+        max_drawdown_pct=tier1_report.get("max_drawdown_pct", 0.0),
+        win_rate=tier1_report.get("win_rate", 0.0),
+        profit_factor=tier1_report.get("profit_factor", 0.0),
+        sortino_ratio=tier1_report.get("sortino_ratio", 0.0),
+        calmar_ratio=tier1_report.get("calmar_ratio", 0.0),
+        avg_holding_bars=tier1_report.get("avg_holding_bars"),
+        sharpe_by_year=tier1_report.get("sharpe_by_year"),
+    )
 
     # Format sharpe_by_year
     sby = tier1_report.get("sharpe_by_year", {})
