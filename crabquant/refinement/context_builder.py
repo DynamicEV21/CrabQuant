@@ -25,6 +25,7 @@ from crabquant.refinement.prompts import (
     build_refinement_prompt,
     format_stagnation_suffix,
 )
+from crabquant.refinement.trade_count_estimator import build_trade_count_guidance
 
 # Path to winners database
 _WINNERS_PATH = Path(__file__).parent.parent.parent / "results" / "winners" / "winners.json"
@@ -469,6 +470,22 @@ def build_llm_context(
     indicator_ref = context.get("indicator_reference", "")
     indicator_qr = context.get("indicator_quick_ref", "")
 
+    # Phase 6: Compute trade count guidance from mandate parameters
+    trade_count_guidance = ""
+    try:
+        tc_ticker = (mandate.get("tickers") or ["SPY"])[0]
+        tc_period = mandate.get("period", "2y")
+        tc_timeframe = mandate.get("timeframe", "daily")
+        tc_strategy_type = mandate.get("strategy_archetype", "momentum")
+        trade_count_guidance = build_trade_count_guidance(
+            ticker=tc_ticker,
+            period=tc_period,
+            timeframe=tc_timeframe,
+            strategy_type=tc_strategy_type,
+        )
+    except Exception:
+        pass  # Non-critical — don't block prompt building
+
     if report is None:
         # Turn 1: Use build_turn1_prompt for invention
         try:
@@ -482,6 +499,7 @@ def build_llm_context(
                 indicator_quick_ref=indicator_qr,
                 archetype_section=context.get("archetype_section"),
                 effective_target=effective_target,
+                trade_count_guidance=trade_count_guidance,
             )
         except Exception:
             # If prompt building fails, let call_llm_inventor use its fallback
@@ -559,6 +577,7 @@ def build_llm_context(
                 indicator_reference=indicator_ref,
                 indicator_quick_ref=indicator_qr,
                 action_effectiveness_section=action_effectiveness_section,
+                trade_count_guidance=trade_count_guidance,
             )
         except Exception:
             # If prompt building fails, let call_llm_inventor use its fallback

@@ -172,6 +172,8 @@ entries = (ema_fast > ema_slow) & (ema_fast.shift(1) <= ema_slow.shift(1))  # Cr
 exits = (ema_fast < ema_slow) | (hold_periods > 20)
 ```
 
+{trade_count_guidance}
+
 ### Indicator Quick Reference — USE THESE SIGNATURES EXACTLY
 {indicator_quick_ref}
 
@@ -234,6 +236,8 @@ Current params: {current_params}
 3. Read PREVIOUS ATTEMPTS — don't repeat what already failed
 4. Propose a targeted modification with a causal hypothesis
 5. Output the COMPLETE modified strategy file
+
+{trade_count_guidance}
 
 ### Indicator Quick Reference — USE THESE SIGNATURES EXACTLY
 {indicator_quick_ref}
@@ -905,6 +909,7 @@ def build_turn1_prompt(
     indicator_quick_ref: str = "",
     archetype_section: str | None = None,
     effective_target: float | None = None,
+    trade_count_guidance: str = "",
 ) -> str:
     """Build the complete Turn 1 (invention) prompt.
 
@@ -922,6 +927,7 @@ def build_turn1_prompt(
         indicator_quick_ref: Quick reference card (section 7) for user message.
         archetype_section: Optional pre-formatted archetype template section.
         effective_target: Adaptive Sharpe target for this turn. If None, uses sharpe_target.
+        trade_count_guidance: Pre-formatted trade count expectations text.
 
     Returns:
         Complete prompt string for the LLM.
@@ -1008,6 +1014,7 @@ def build_turn1_prompt(
         strategy_examples=examples_text,
         winner_examples_section=winner_section,
         indicator_quick_ref=indicator_quick_ref,
+        trade_count_guidance=trade_count_guidance,
     )
 
 
@@ -1027,6 +1034,7 @@ def build_refinement_prompt(
     indicator_reference: str = "",
     indicator_quick_ref: str = "",
     action_effectiveness_section: str = "",
+    trade_count_guidance: str = "",
 ) -> str:
     """Build the complete refinement prompt for turns 2+.
 
@@ -1045,6 +1053,7 @@ def build_refinement_prompt(
         indicator_quick_ref: Quick reference card (section 7) for user message.
         action_effectiveness_section: Pre-formatted action effectiveness data for
             the current failure mode.
+        trade_count_guidance: Pre-formatted trade count expectations text.
 
     Returns:
         Complete prompt string for the LLM.
@@ -1150,6 +1159,7 @@ def build_refinement_prompt(
         winner_examples_section=winner_section,
         indicator_quick_ref=indicator_quick_ref,
         action_effectiveness_section=action_effectiveness_section,
+        trade_count_guidance=trade_count_guidance,
     )
 
 
