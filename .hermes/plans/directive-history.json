@@ -1,4 +1,52 @@
 {
-  "reviews": [],
+  "reviews": [
+    {
+      "timestamp": "2026-04-30T20:25:00Z",
+      "review_number": 2,
+      "status": "OFF COURSE",
+      "directives_issued": [
+        {"id": 1, "action": "fix_prompt", "target": "crabquant/refinement/context_builder.py", "budget_cycles": 1, "description": "Fix too_few_trades — add higher trade frequency guidance to invention prompts"},
+        {"id": 2, "action": "run_mandates", "target": "mandates/mean_reversion_xom.json, volume_nvda.json, momentum_msft.json", "budget_cycles": 2, "description": "Run 3 mandates targeting higher trade frequency"},
+        {"id": 3, "action": "fix_bug", "target": "~/.hermes/scripts/crabquant-health-check.py", "budget_cycles": 1, "description": "Fix KPI computation: winners_with_wf bug and prev/current rotation"},
+        {"id": 4, "action": "behavioral", "target": ".hermes/plans/orchestrator-status.json", "budget_cycles": 0, "description": "Update status file every cycle"},
+        {"id": 5, "action": "cleanup", "target": "results/*.json, VISION.md", "budget_cycles": 0, "description": "Commit uncommitted files, update VISION.md metrics"}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Run 3 real mandates", "outcome": "completed", "evidence": "momentum_spy (7t, failed), breakout_tsla (7t, Sharpe 1.54 success), volume_aapl (7t, failed)"},
+        {"directive": "Commit and push uncommitted work", "outcome": "partial", "evidence": "Committed cleanup (7966bdd), but 3 result files still uncommitted"},
+        {"directive": "Fix vectorbt mock in conftest", "outcome": "completed", "evidence": "Commit 7966bdd"},
+        {"directive": "Stop expanding tests", "outcome": "following", "evidence": "No test-related commits in recent log"},
+        {"directive": "Update VISION.md metrics", "outcome": "ignored", "evidence": "VISION.md still shows April 29 date and old metrics"}
+      ],
+      "key_findings": [
+        "too_few_trades is now the #1 failure mode at 56% (up from 24%), displacing low_sharpe",
+        "KPI winners_with_wf reports 0 but 135/187 winners actually have WF data — health check script bug",
+        "KPI prev/current rotation broken — both files written 1 second apart, no trend data",
+        "Real mandate success rate is 14.1%, not 32.6% (KPI inflated by 5305 synthetic test entries)",
+        "Orchestrator not updating orchestrator-status.json — makes compliance tracking impossible",
+        "Commit message for momentum_spy claims Sharpe 2.13 but run_history shows max 1.01 — potential fabrication"
+      ],
+      "orchestrator_compliance": "following"
+    },
+    {
+      "timestamp": "2026-04-30T17:30:00Z",
+      "review_number": 1,
+      "status": "OFF COURSE",
+      "directives_issued": [
+        {"id": 1, "action": "run_mandates", "target": "mandates/momentum_spy.json, breakout_tsla.json, volume_aapl.json", "budget_cycles": 2},
+        {"id": 2, "action": "cleanup", "target": "git working tree", "budget_cycles": 0},
+        {"id": 3, "action": "fix_bug", "target": "test_param_optimizer.py", "budget_cycles": 1},
+        {"id": 4, "action": "behavioral", "target": "test expansion", "budget_cycles": 0},
+        {"id": 5, "action": "cleanup", "target": "VISION.md", "budget_cycles": 0}
+      ],
+      "previous_directive_outcomes": [],
+      "key_findings": [
+        "System spent 48h on infrastructure instead of running mandates",
+        "Only 4/182 winners have meaningful rolling WF data",
+        "173/182 winners promoted on raw backtest Sharpe alone"
+      ],
+      "orchestrator_compliance": "following"
+    }
+  ],
   "created_at": "2026-04-30T19:00:00Z"
 }
