@@ -733,6 +733,14 @@ def build_llm_context(
             append_sections.append(context["failure_pattern_section"])
         if context.get("param_optimization_section"):
             append_sections.append(context["param_optimization_section"])
+        # Phase 6: Gate validation retry feedback — critical for fixing code errors
+        if context.get("retry_feedback"):
+            append_sections.append(
+                f"\n## ⛔ GATE VALIDATION FAILED — FIX THESE ERRORS\n\n"
+                f"{context['retry_feedback']}\n\n"
+                f"Your previous code was REJECTED by validation gates. You MUST fix the "
+                f"above errors in your new_strategy_code. Do NOT repeat the same mistake."
+            )
         # Phase 6: Auto-revert notice — tell the LLM its change was reverted
         revert_notice = getattr(state, "revert_notice", "")
         if revert_notice:

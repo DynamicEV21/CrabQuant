@@ -398,6 +398,15 @@ def call_llm_inventor(
         if context.get("crash_error_feedback"):
             user_parts.append(f"{context['crash_error_feedback']}\n")
 
+        # Phase 6: Inject gate validation retry feedback — critical for fixing code errors
+        if context.get("retry_feedback"):
+            user_parts.append(
+                f"\n## ⛔ GATE VALIDATION FAILED — FIX THESE ERRORS\n\n"
+                f"{context['retry_feedback']}\n\n"
+                f"Your previous code was REJECTED by validation gates. You MUST fix the "
+                f"above errors in your new_strategy_code. Do NOT repeat the same mistake.\n"
+            )
+
     user_content = "\n".join(user_parts)
 
     # Inject parallel variant bias if present in context (Phase 5.6.2)

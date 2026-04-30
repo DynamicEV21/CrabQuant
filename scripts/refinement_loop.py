@@ -375,8 +375,23 @@ def _build_retry_feedback(gate_errors: list[str]) -> str:
         err_lower = err.lower()
         if "syntaxerror" in err_lower or "importerror" in err_lower or "missing required" in err_lower:
             parts.append(f"  - {err}. Fix the syntax/import error or add the missing definitions.")
-        elif any(kw in err_lower for kw in ("zero entry", "signal", "entries must be", "exits must be", "overtrading", "runtime error in generate_signals", "index does not match", "contain nan")):
-            parts.append(f"  - {err}. Your entry/exit conditions may be too restrictive or produce wrong types. Loosen them or fix the logic.")
+        elif any(kw in err_lower for kw in ("zero entry", "zero trades generated", "no signals")):
+            parts.append(
+                f"  - {err}. CRITICAL: Your strategy produced ZERO signals. "
+                f"This means your entry/exit conditions are NEVER TRUE. "
+                f"Common causes:\n"
+                f"    1. Comparing wrong types (comparing Series to scalar without .gt()/.lt())\n"
+                f"    2. Using `and`/`or` instead of `&`/`|` for Series boolean logic\n"
+                f"    3. Conditions that are mutually exclusive (can never be True simultaneously)\n"
+                f"    4. Thresholds set too extreme (e.g., requiring RSI > 95 AND RSI < 5)\n"
+                f"    5. Using `.values` on pandas Series which returns numpy array — index mismatch\n"
+                f"  FIX: Use `&` for AND, `|` for OR with parentheses. Check your thresholds. "
+                f"Simplify to ONE entry condition and ONE exit condition to start."
+            )
+        elif any(kw in err_lower for kw in ("signal", "entries must be", "exits must be", "overtrading", "runtime error in generate_signals", "index does not match", "contain nan")):
+            parts.append(f"  - {err}. Your entry/exit conditions may be too restrictive or produce wrong types. "
+                         f"Use pd.Series[bool] for entries/exits. Use `&`/`|` not `and`/`or`. "
+                         f"Loosen thresholds or fix the logic.")
         elif "backtest" in err_lower or "smoke" in err_lower:
             parts.append(f"  - {err}. Common causes: wrong column names, incompatible data types.")
         else:
