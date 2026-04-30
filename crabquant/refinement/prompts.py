@@ -22,6 +22,10 @@ from typing import Any
 
 from crabquant.refinement.sharpe_diagnosis import diagnose_low_sharpe
 from crabquant.refinement.regime_diagnosis import diagnose_regime_fragility
+from crabquant.refinement.positive_feedback import (
+    analyze_positive_feedback,
+    format_positive_feedback_for_prompt,
+)
 
 # ── Action Types ─────────────────────────────────────────────────────────────
 
@@ -214,6 +218,7 @@ Current params: {current_params}
 - Details: {failure_details}
 
 {failure_guidance}
+{positive_feedback_section}
 {action_effectiveness_section}
 {failure_pattern_section}
 ### Sharpe by Year
@@ -1131,6 +1136,23 @@ def build_refinement_prompt(
     else:
         sby_text = "  (not available)"
 
+    # Format positive feedback (what's working — prevents regression)
+    pos_feedback = analyze_positive_feedback(
+        sharpe_ratio=tier1_report.get("sharpe_ratio", 0.0),
+        sharpe_target=tier1_report.get("sharpe_target", sharpe_target),
+        total_return_pct=tier1_report.get("total_return_pct", 0.0),
+        max_drawdown_pct=tier1_report.get("max_drawdown_pct", 0.0),
+        win_rate=tier1_report.get("win_rate", 0.0),
+        profit_factor=tier1_report.get("profit_factor", 0.0),
+        sortino_ratio=tier1_report.get("sortino_ratio", 0.0),
+        calmar_ratio=tier1_report.get("calmar_ratio", 0.0),
+        total_trades=tier1_report.get("total_trades", 0),
+        avg_holding_bars=tier1_report.get("avg_holding_bars"),
+        sharpe_by_year=tier1_report.get("sharpe_by_year"),
+        failure_mode=failure_mode,
+    )
+    positive_feedback_section = format_positive_feedback_for_prompt(pos_feedback)
+
     return REFINEMENT_PROMPT.format(
         current_turn=current_turn,
         max_turns=max_turns,
@@ -1148,6 +1170,7 @@ def build_refinement_prompt(
         failure_mode=tier1_report.get("failure_mode", "unknown"),
         failure_details=tier1_report.get("failure_details", "N/A"),
         failure_guidance=failure_guidance,
+        positive_feedback_section=positive_feedback_section,
         sharpe_by_year=sby_text,
         feature_importance_section=tier1_report.get("feature_importance_section", ""),
         tier2_section=tier2_formatted,
