@@ -1,8 +1,8 @@
 {
   "running_count": 52,
-  "total_mandates": 107,
-  "convergence_rate": 0.2909090909090909,
-  "wave_progress": 0.6791722296395195,
+  "total_mandates": 108,
+  "convergence_rate": 0.2857142857142857,
+  "wave_progress": 0.6821428571428574,
   "best_strategies": [
     {
       "mandate_name": "momentum_googl",
@@ -349,5 +349,5 @@
       "best_sharpe": 1.0504761504747684
     }
   ],
-  "timestamp": "2026-04-30T17:23:28.278984+00:00"
+  "timestamp": "2026-04-30T18:11:09.848916+00:00"
 }
