@@ -383,7 +383,7 @@ def build_llm_context(
     
     context = {
         "mandate": mandate,
-        "current_turn": getattr(state, "current_turn", 0) + 1,
+        "current_turn": getattr(state, "current_turn", 0),
         "max_turns": getattr(state, "max_turns", 7),
         "sharpe_target": original_sharpe_target,
         "effective_target": effective_target,
@@ -469,7 +469,7 @@ def build_llm_context(
     # are actually used, which enables failure guidance, sharpe diagnosis,
     # regime diagnosis, and all other feedback systems. Without this key,
     # call_llm_inventor falls back to raw JSON dumps that bypass all guidance.
-    current_turn_num = getattr(state, "current_turn", 0) + 1
+    current_turn_num = getattr(state, "current_turn", 0)
     indicator_ref = context.get("indicator_reference", "")
     indicator_qr = context.get("indicator_quick_ref", "")
 

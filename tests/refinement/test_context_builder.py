@@ -475,7 +475,7 @@ class TestBuildLlmContext:
         state = FakeRunState()
         context = build_llm_context(state, report=None, mandate={"strategy_archetype": "momentum"})
         
-        assert context["current_turn"] == 1
+        assert context["current_turn"] == 0  # default is 0
         assert context["max_turns"] == 7
         assert context["sharpe_target"] == 1.5
         assert context["tickers"] == ["AAPL", "SPY"]
@@ -551,7 +551,7 @@ class TestBuildLlmContext:
         context = build_llm_context(state)
         
         assert context["mandate"] == {}
-        assert context["current_turn"] == 1
+        assert context["current_turn"] == 0  # default is 0
 
     def test_best_composite_score_included(self):
         from crabquant.refinement.context_builder import build_llm_context
@@ -614,13 +614,13 @@ class TestBuildLlmContext:
         assert context["previous_attempts"] == []
 
     def test_current_turn_increments(self):
-        """current_turn should be state.current_turn + 1."""
+        """current_turn should match state.current_turn (no longer adds +1)."""
         from crabquant.refinement.context_builder import build_llm_context
 
         state = FakeRunState(current_turn=5)
         context = build_llm_context(state)
         
-        assert context["current_turn"] == 6
+        assert context["current_turn"] == 5
 
     def test_state_with_missing_attributes(self):
         """State-like object missing some attrs should use getattr defaults."""
@@ -631,7 +631,7 @@ class TestBuildLlmContext:
 
         context = build_llm_context(MinimalState())
         
-        assert context["current_turn"] == 1  # default 0 + 1
+        assert context["current_turn"] == 0  # default from getattr(state, "current_turn", 0)
         assert context["max_turns"] == 7  # default
         assert context["sharpe_target"] == 1.5  # default
         assert context["tickers"] == ["AAPL", "SPY"]  # default
