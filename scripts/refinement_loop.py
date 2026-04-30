@@ -255,6 +255,7 @@ def _promote_post_loop(
     run_dir: Path,
     mandate: Dict[str, Any],
     report: Optional[BacktestReport] = None,
+    config: Optional[RefinementConfig] = None,
 ) -> None:
     """Attempt to promote the best strategy after the loop ends.
 
@@ -288,8 +289,10 @@ def _promote_post_loop(
             validation_tickers=validation_tickers,
             is_regime_specific=is_regime_specific,
             rolling_config={
-                "min_window_test_sharpe": config.min_window_test_sharpe,
-                "max_window_degradation": config.max_window_degradation,
+                "min_window_test_sharpe": (config.min_window_test_sharpe
+                                          if config is not None else 0.0),
+                "max_window_degradation": (config.max_window_degradation
+                                           if config is not None else 1.0),
             },
         )
     except Exception as e:
@@ -1359,6 +1362,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                         run_dir=run_dir,
                         mandate=mandate,
                         report=best_report,
+                        config=config,
                     )
                 else:
                     print(f"  ⚠️ Post-loop promotion skipped: could not load strategy module")
