@@ -375,3 +375,197 @@ def format_optimization_for_context(opt_result: OptimizationResult) -> dict:
         "combinations_tested": opt_result.combinations_tested,
         "sweep_time_seconds": opt_result.sweep_time_seconds,
     }
+
+
+def optimize_for_trade_count(
+    df: pd.DataFrame,
+    strategy_fn,
+    base_params: dict,
+    current_sharpe: float,
+    target_trades: int = 20,
+    max_sharpe_penalty: float = 0.3,
+    sweep_factor: float = 0.6,
+    max_combinations: int = 15,
+) -> OptimizationResult:
+    """Optimize parameters specifically to increase trade count.
+
+    When a strategy has good Sharpe but too few trades for validation,
+    this sweeps wider parameter ranges and accepts a Sharpe penalty
+    in exchange for reaching the target trade count.
+
+    The optimization criterion is:
+    1. Primary: trades >= target_trades
+    2. Secondary: maximize Sharpe among variants that hit the trade target
+    3. Fallback: if no variant hits target_trades, pick the one with most trades
+       (as long as Sharpe > current_sharpe * (1 - max_sharpe_penalty))
+
+    Args:
+        df: OHLCV DataFrame (already loaded).
+        strategy_fn: generate_signals function from strategy module.
+        base_params: The DEFAULT_PARAMS dict from the strategy module.
+        current_sharpe: The Sharpe ratio achieved with base params.
+        target_trades: Minimum trades needed (default 20 for validation).
+        max_sharpe_penalty: Max acceptable Sharpe drop as fraction (0.3 = 30%).
+        sweep_factor: How far to sweep around base values (wider than default).
+        max_combinations: Maximum param combinations to test.
+
+    Returns:
+        OptimizationResult indicating whether trade count was rescued.
+    """
+    t0 = time.time()
+
+    min_sharpe = current_sharpe * (1 - max_sharpe_penalty)
+
+    # Run default params first
+    default_result = _run_param_backtest(df, strategy_fn, base_params)
+    if default_result is None:
+        return OptimizationResult(
+            default_params=base_params,
+            optimized_params=base_params,
+        )
+
+    default_sharpe = default_result["sharpe"]
+    default_trades = default_result["num_trades"]
+
+    # If default already has enough trades, no rescue needed
+    if default_trades >= target_trades:
+        return OptimizationResult(
+            default_sharpe=default_sharpe,
+            optimized_sharpe=default_sharpe,
+            default_params=base_params,
+            optimized_params=dict(base_params),
+            default_trades=default_trades,
+            optimized_trades=default_trades,
+            combinations_tested=0,
+            was_optimized=False,
+            sweep_time_seconds=0.0,
+        )
+
+    # Generate variants with wider sweep
+    variants = _generate_param_variants(base_params, sweep_factor, max_combinations)
+
+    # Collect all valid results
+    valid_results = []
+    for params in variants:
+        result = _run_param_backtest(df, strategy_fn, params)
+        if result is None:
+            continue
+        # Must not tank Sharpe below minimum threshold
+        if result["sharpe"] < min_sharpe:
+            continue
+        valid_results.append(result)
+
+    elapsed = time.time() - t0
+
+    if not valid_results:
+        return OptimizationResult(
+            default_sharpe=default_sharpe,
+            optimized_sharpe=default_sharpe,
+            default_params=base_params,
+            optimized_params=dict(base_params),
+            default_trades=default_trades,
+            optimized_trades=default_trades,
+            combinations_tested=len(variants),
+            was_optimized=False,
+            sweep_time_seconds=elapsed,
+        )
+
+    # Phase 1: Find variants that hit the trade target
+    target_hitters = [r for r in valid_results if r["num_trades"] >= target_trades]
+
+    if target_hitters:
+        # Pick the one with best Sharpe among those that hit the target
+        best = max(target_hitters, key=lambda r: r["sharpe"])
+        improvement = best["sharpe"] - default_sharpe
+        improvement_pct = (improvement / abs(default_sharpe) * 100) if default_sharpe != 0 else 0
+        return OptimizationResult(
+            default_sharpe=default_sharpe,
+            optimized_sharpe=best["sharpe"],
+            default_params=base_params,
+            optimized_params=best["params"],
+            default_trades=default_trades,
+            optimized_trades=best["num_trades"],
+            combinations_tested=len(variants),
+            improvement_pct=improvement_pct,
+            was_optimized=True,
+            sweep_time_seconds=elapsed,
+        )
+
+    # Phase 2: Fallback — pick the variant with most trades
+    best_by_trades = max(valid_results, key=lambda r: (r["num_trades"], r["sharpe"]))
+
+    # Only report as optimized if we got meaningfully more trades
+    if best_by_trades["num_trades"] > default_trades * 1.5:
+        improvement = best_by_trades["sharpe"] - default_sharpe
+        improvement_pct = (improvement / abs(default_sharpe) * 100) if default_sharpe != 0 else 0
+        return OptimizationResult(
+            default_sharpe=default_sharpe,
+            optimized_sharpe=best_by_trades["sharpe"],
+            default_params=base_params,
+            optimized_params=best_by_trades["params"],
+            default_trades=default_trades,
+            optimized_trades=best_by_trades["num_trades"],
+            combinations_tested=len(variants),
+            improvement_pct=improvement_pct,
+            was_optimized=True,
+            sweep_time_seconds=elapsed,
+        )
+
+    return OptimizationResult(
+        default_sharpe=default_sharpe,
+        optimized_sharpe=default_sharpe,
+        default_params=base_params,
+        optimized_params=dict(base_params),
+        default_trades=default_trades,
+        optimized_trades=default_trades,
+        combinations_tested=len(variants),
+        was_optimized=False,
+        sweep_time_seconds=elapsed,
+    )
+
+
+def format_trade_count_rescue_for_prompt(
+    opt_result: OptimizationResult,
+    target_trades: int = 20,
+) -> str:
+    """Format trade count rescue results for LLM prompt injection.
+
+    Args:
+        opt_result: The OptimizationResult from optimize_for_trade_count().
+        target_trades: The trade count target we were trying to reach.
+
+    Returns:
+        Formatted string for prompt injection, or empty string if not optimized.
+    """
+    if not opt_result.was_optimized:
+        return ""
+
+    hit_target = opt_result.optimized_trades >= target_trades
+    sharpe_drop = opt_result.default_sharpe - opt_result.optimized_sharpe
+
+    if hit_target:
+        header = f"## 🎯 Trade Count Rescue — TARGET REACHED ({opt_result.optimized_trades} trades)"
+    else:
+        header = f"## 🎯 Trade Count Rescue — Partial ({opt_result.optimized_trades}/{target_trades} trades)"
+
+    lines = [
+        header,
+        "",
+        f"Original: Sharpe={opt_result.default_sharpe:.3f}, {opt_result.default_trades} trades",
+        f"After sweep ({opt_result.combinations_tested} combos, {opt_result.sweep_time_seconds:.1f}s):",
+        f"  → Sharpe={opt_result.optimized_sharpe:.3f}, {opt_result.optimized_trades} trades",
+    ]
+
+    if sharpe_drop > 0:
+        lines.append(f"  → Sharpe penalty: -{sharpe_drop:.3f} (acceptable to gain trades)")
+
+    if hit_target:
+        lines.append("")
+        lines.append("✅ The strategy now has enough trades for walk-forward validation!")
+        lines.append("💡 If validation fails, the LLM may still need to simplify the logic.")
+    else:
+        lines.append("")
+        lines.append(f"⚠️ Still {target_trades - opt_result.optimized_trades} trades short of validation threshold.")
+        lines.append("💡 The LLM should further loosen entry conditions or shorten indicator periods.")
+
+    return "\\n".join(lines)

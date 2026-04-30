@@ -1126,44 +1126,137 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             # No point running 6-window walk-forward on a curve-fit.
             MIN_TRADES_FOR_VALIDATION = 20
             if result.num_trades < MIN_TRADES_FOR_VALIDATION:
-                print(f"  🏆 Sharpe {result.sharpe:.2f} >= {effective_target}, "
-                      f"but only {result.num_trades} trades "
-                      f"(need >= {MIN_TRADES_FOR_VALIDATION}) — skipping validation")
-                failure_mode = "too_few_trades_for_validation"
-                # Update the saved report so next turn's context_builder reads
-                # the correct failure_mode (not the stale classify_failure output)
-                report.failure_mode = failure_mode
-                report.failure_details = (
-                    f"Sharpe {result.sharpe:.2f} hit target but only "
-                    f"{result.num_trades} trades (need >= {MIN_TRADES_FOR_VALIDATION})"
-                )
-                save_report(run_dir, turn, report)
-                # Update state to reflect best Sharpe found but not validated
-                composite = compute_composite_score(
-                    result.sharpe, result.num_trades, result.max_drawdown
-                )
-                if composite > state.best_composite_score:
-                    state.best_sharpe = result.sharpe
-                    state.best_composite_score = composite
-                    state.best_turn = turn
-                    state.best_code_path = str(strategy_path)
-                # Record in history so LLM gets feedback about trade count
-                state.history.append({
-                    "turn": turn, "sharpe": result.sharpe,
-                    "failure_mode": failure_mode,
-                    "action": modification.action,
-                    "hypothesis": modification.hypothesis,
-                    "code_path": str(strategy_path),
-                    "num_trades": result.num_trades,
-                    "composite_score": composite,
-                    "params_used": result.params if result.params else strategy_module.DEFAULT_PARAMS.copy(),
-                    "strategy_hash": compute_strategy_hash(strategy_code),
-                    "delta_from_prev": "Sharpe hit but too few trades for validation",
-                })
-                update_cooldowns(cosmetic_state, "too_few_trades_for_validation", action, success=False)
-                _sync_cooldowns_to_state(state, cosmetic_state)
-                save_state(run_dir, state)
-                continue  # Keep iterating — LLM might find a strategy with more trades
+                # ── Trade count rescue via parameter optimization (Phase 6) ──
+                # Before asking the LLM to fix trade count, try automatic rescue.
+                # Widen parameters to find a variant with 20+ trades while
+                # accepting up to 30% Sharpe penalty.
+                trade_rescue_result = None
+                if config.param_optimization and strategy_module:
+                    try:
+                        from crabquant.refinement.param_optimizer import (
+                            optimize_for_trade_count,
+                        )
+                        tr_start = time.time()
+                        rescue_base = strategy_module.DEFAULT_PARAMS.copy()
+                        if result.params:
+                            rescue_base = result.params.copy()
+                        trade_rescue_result = optimize_for_trade_count(
+                            df, strategy_module.generate_signals, rescue_base,
+                            current_sharpe=result.sharpe,
+                            target_trades=MIN_TRADES_FOR_VALIDATION,
+                            max_sharpe_penalty=0.3,
+                            sweep_factor=0.6,
+                            max_combinations=15,
+                        )
+                        tr_elapsed = time.time() - tr_start
+                        if trade_rescue_result.was_optimized:
+                            print(f"  🎯 Trade count rescue ({tr_elapsed:.1f}s): "
+                                  f"trades {trade_rescue_result.default_trades} → "
+                                  f"{trade_rescue_result.optimized_trades}, "
+                                  f"Sharpe {trade_rescue_result.default_sharpe:.3f} → "
+                                  f"{trade_rescue_result.optimized_sharpe:.3f}",
+                                  flush=True)
+                            # If rescue found enough trades, re-run backtest with rescued params
+                            if trade_rescue_result.optimized_trades >= MIN_TRADES_FOR_VALIDATION:
+                                rescue_output = run_backtest_safely(
+                                    strategy_module, primary_ticker, state.period,
+                                    return_portfolio=True,
+                                    override_params=trade_rescue_result.optimized_params,
+                                )
+                                if rescue_output and rescue_output[0] is not None:
+                                    result, df, portfolio, _ = rescue_output
+                                    print(f"  ✅ Rescue successful! Re-ran backtest: "
+                                          f"Sharpe={result.sharpe:.3f}, "
+                                          f"trades={result.num_trades} — proceeding to validation",
+                                          flush=True)
+                                    # Don't continue — fall through to validation below
+                                    # But skip the too_few_trades handling
+                                    trade_rescue_result = None  # Mark rescue as consumed
+                                    # We need to skip the rest of the too_few_trades block
+                                    # and fall through to the SUCCESS path
+                                    if result.sharpe >= effective_target and result.num_trades >= MIN_TRADES_FOR_VALIDATION:
+                                        print(f"  🏆 SUCCESS (via trade rescue)! Sharpe {result.sharpe:.2f} >= {effective_target} "
+                                              f"({result.num_trades} trades)", flush=True)
+                                        # Jump to validation — set failure_mode to None
+                                        failure_mode = None
+                                        # Fall through past the too_few_trades continue
+                                    else:
+                                        # Rescue got more trades but not enough or Sharpe dropped too much
+                                        failure_mode = "too_few_trades_for_validation"
+                                        report.failure_mode = failure_mode
+                                        report.failure_details = (
+                                            f"Sharpe {result.sharpe:.2f} after trade rescue, "
+                                            f"{result.num_trades} trades (need >= {MIN_TRADES_FOR_VALIDATION})"
+                                        )
+                                        save_report(run_dir, turn, report)
+                                        composite = compute_composite_score(
+                                            result.sharpe, result.num_trades, result.max_drawdown
+                                        )
+                                        if composite > state.best_composite_score:
+                                            state.best_sharpe = result.sharpe
+                                            state.best_composite_score = composite
+                                            state.best_turn = turn
+                                            state.best_code_path = str(strategy_path)
+                                        state.history.append({
+                                            "turn": turn, "sharpe": result.sharpe,
+                                            "failure_mode": failure_mode,
+                                            "action": modification.action,
+                                            "hypothesis": modification.hypothesis,
+                                            "code_path": str(strategy_path),
+                                            "num_trades": result.num_trades,
+                                            "composite_score": composite,
+                                            "params_used": result.params if result.params else strategy_module.DEFAULT_PARAMS.copy(),
+                                            "strategy_hash": compute_strategy_hash(strategy_code),
+                                            "delta_from_prev": f"Trade rescue: trades→{result.num_trades}, Sharpe={result.sharpe:.2f}",
+                                        })
+                                        update_cooldowns(cosmetic_state, "too_few_trades_for_validation", action, success=False)
+                                        _sync_cooldowns_to_state(state, cosmetic_state)
+                                        save_state(run_dir, state)
+                                        continue
+                    except Exception as e:
+                        print(f"  ⚠️ Trade count rescue error: {e}", flush=True)
+
+                # If rescue didn't fully succeed (or wasn't attempted), handle normally
+                if trade_rescue_result is not None or result.num_trades < MIN_TRADES_FOR_VALIDATION:
+                    if failure_mode != "too_few_trades_for_validation":
+                        failure_mode = "too_few_trades_for_validation"
+                    print(f"  🏆 Sharpe {result.sharpe:.2f} >= {effective_target}, "
+                          f"but only {result.num_trades} trades "
+                          f"(need >= {MIN_TRADES_FOR_VALIDATION}) — skipping validation")
+                    # Update the saved report so next turn's context_builder reads
+                    # the correct failure_mode (not the stale classify_failure output)
+                    report.failure_mode = failure_mode
+                    report.failure_details = (
+                        f"Sharpe {result.sharpe:.2f} hit target but only "
+                        f"{result.num_trades} trades (need >= {MIN_TRADES_FOR_VALIDATION})"
+                    )
+                    save_report(run_dir, turn, report)
+                    # Update state to reflect best Sharpe found but not validated
+                    composite = compute_composite_score(
+                        result.sharpe, result.num_trades, result.max_drawdown
+                    )
+                    if composite > state.best_composite_score:
+                        state.best_sharpe = result.sharpe
+                        state.best_composite_score = composite
+                        state.best_turn = turn
+                        state.best_code_path = str(strategy_path)
+                    # Record in history so LLM gets feedback about trade count
+                    state.history.append({
+                        "turn": turn, "sharpe": result.sharpe,
+                        "failure_mode": failure_mode,
+                        "action": modification.action,
+                        "hypothesis": modification.hypothesis,
+                        "code_path": str(strategy_path),
+                        "num_trades": result.num_trades,
+                        "composite_score": composite,
+                        "params_used": result.params if result.params else strategy_module.DEFAULT_PARAMS.copy(),
+                        "strategy_hash": compute_strategy_hash(strategy_code),
+                        "delta_from_prev": "Sharpe hit but too few trades for validation",
+                    })
+                    update_cooldowns(cosmetic_state, "too_few_trades_for_validation", action, success=False)
+                    _sync_cooldowns_to_state(state, cosmetic_state)
+                    save_state(run_dir, state)
+                    continue  # Keep iterating — LLM might find a strategy with more trades
 
             print(f"  🏆 SUCCESS! Sharpe {result.sharpe:.2f} >= {effective_target} "
                   f"({result.num_trades} trades)")
