@@ -280,8 +280,12 @@ def optimize_parameters(
         if result["num_trades"] < min_trades:
             continue
 
-        # Prefer higher Sharpe, with trade count as tiebreaker
+        # Prefer higher Sharpe, with trade count as near-Sharpe tiebreaker.
+        # When Sharpe is within 5% of best, prefer the variant with more trades.
+        sharpe_epsilon = best_sharpe * 0.05 if best_sharpe > 0 else 0.05
         if (result["sharpe"] > best_sharpe or
+                (abs(result["sharpe"] - best_sharpe) <= sharpe_epsilon
+                 and result["num_trades"] > best_trades) or
                 (result["sharpe"] == best_sharpe and result["num_trades"] > best_trades)):
             best_sharpe = result["sharpe"]
             best_params = result["params"]
