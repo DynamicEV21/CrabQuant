@@ -106,9 +106,29 @@ The pipeline runs end-to-end. Strategies get invented and backtested. Some hit S
 
 ---
 
-## Continuous Improvement Engine
+## Governance System
 
-This section tells the orchestrator what to do when all planned tasks are complete. It does NOT need human direction — it reads this section, identifies priorities, and works autonomously.
+The system has a three-layer governance architecture:
+
+### Layer 1: Monitor (every 5 min)
+Lightweight health check. Is the system alive? Are tests green? Any crashes? Alerts immediately on failure. Does NOT make strategic decisions.
+
+### Layer 2: Orchestrator (every 30 min)
+The doer. Reads priorities, executes them, commits, pushes. Has execution context (codebase, test suite, current branch). Should NOT make strategic decisions about what matters — it follows directives.
+
+### Layer 3: Supervisor (every 2h)
+The thinker. Does NOT write code or run tests. Performs a deep assessment of whether the system is aligned with VISION.md goals. Checks metric integrity, detects waste, identifies stale tasks, and writes directives to `.hermes/plans/supervisor-review.md` that the Orchestrator reads at the start of each cycle.
+
+**Communication flow:**
+```
+Supervisor → .hermes/plans/supervisor-review.md → Orchestrator reads at cycle start
+```
+
+**The Supervisor catches what the Orchestrator can't:**
+- "You've been wiring modules for 3 cycles. You have 31 components. Run a mandate."
+- "182 winners with no walk-forward data. The success rate metric is misleading."
+- "The pre-commit hook points to the wrong venv."
+- "Task 0 says 'audit registry' but that was completed in Cycle 19."
 
 ### How the Priority System Works
 
