@@ -237,11 +237,7 @@ Current params: {current_params}
 {winner_examples_section}
 
 ## Your Task
-1. Read the CURRENT STRATEGY CODE above — understand what it's doing
-2. Read the FAILURE DIAGNOSIS — understand what's wrong
-3. Read PREVIOUS ATTEMPTS — don't repeat what already failed
-4. Propose a targeted modification with a causal hypothesis
-5. Output the COMPLETE modified strategy file
+{targeted_task_guidance}
 
 {trade_count_guidance}
 
@@ -638,6 +634,144 @@ def format_previous_attempts_section(previous_attempts: list[dict]) -> str:
         )
 
     return "\n".join(lines)
+
+
+def build_targeted_task_guidance(
+    failure_mode: str,
+    *,
+    sharpe_ratio: float = 0.0,
+    sharpe_target: float = 1.5,
+    total_trades: int = 0,
+    turn_num: int = 2,
+    max_turns: int = 7,
+) -> str:
+    """Generate failure-mode-specific task instructions for the refinement prompt.
+
+    Instead of generic "read the code and fix it", this tells the LLM exactly
+    what to focus on based on the failure mode. This is the "how to think about
+    this problem" instruction, complementing build_failure_guidance which is the
+    "what to do about it" instruction.
+
+    Args:
+        failure_mode: The classified failure mode.
+        sharpe_ratio: Current Sharpe ratio.
+        sharpe_target: Target Sharpe ratio.
+        total_trades: Number of trades.
+        turn_num: Current turn number (for urgency messaging).
+        max_turns: Maximum turns (for urgency messaging).
+
+    Returns:
+        Formatted task guidance string.
+    """
+    # Base instructions (always present)
+    base = (
+        "1. Read the CURRENT STRATEGY CODE above — understand what it's doing\n"
+        "2. Read the FAILURE DIAGNOSIS — understand what's wrong\n"
+        "3. Read PREVIOUS ATTEMPTS — don't repeat what already failed\n"
+    )
+
+    # Failure-mode-specific step 4
+    mode_step = ""
+    if failure_mode == "low_sharpe":
+        gap = sharpe_target - sharpe_ratio
+        if gap < 0.5:
+            mode_step = (
+                f"4. You're CLOSE to target (gap: {gap:.2f}). Make ONE small, "
+                f"targeted change — don't rewrite the whole strategy. "
+                f"A small parameter tweak or one additional filter may close the gap.\n"
+                f"5. Output the COMPLETE modified strategy file"
+            )
+        elif gap < 1.5:
+            mode_step = (
+                f"4. MODERATE gap to target (Sharpe {sharpe_ratio:.2f} vs {sharpe_target:.2f}). "
+                f"Focus on ONE specific weakness identified in the diagnosis above. "
+                f"Check the ✅ What's Working section — preserve those elements.\n"
+                f"5. Output the COMPLETE modified strategy file"
+            )
+        else:
+            mode_step = (
+                f"4. LARGE gap to target (Sharpe {sharpe_ratio:.2f} vs {sharpe_target:.2f}). "
+                f"The core signal may need replacement. Consider a different indicator family "
+                f"or entry logic, but keep the overall structure simple.\n"
+                f"5. Output the COMPLETE modified strategy file"
+            )
+    elif failure_mode == "too_few_trades" or failure_mode == "too_few_trades_for_validation":
+        mode_step = (
+            f"4. Your ONLY job this turn: increase trade frequency from {total_trades} to 20+.\n"
+            f"   - Widen ONE threshold (e.g., RSI 20→35, or EMA period 50→20)\n"
+            f"   - OR remove ONE condition from your entry logic\n"
+            f"   - OR shorten your indicator lookback period\n"
+            f"   Do NOT add new indicators. Do NOT change the exit logic. SIMPLIFY.\n"
+            f"5. Output the COMPLETE modified strategy file"
+        )
+    elif failure_mode == "regime_fragility":
+        mode_step = (
+            f"4. Add a REGIME FILTER on top of your existing signal — don't replace the signal.\n"
+            f"   - Use ADX > 25 to detect trending markets (only trade when trending)\n"
+            f"   - OR use ATR ratio to detect volatility regime\n"
+            f"   - OR use SMA(200) slope to detect market direction\n"
+            f"   Your existing signal is good in some conditions — just skip the bad conditions.\n"
+            f"5. Output the COMPLETE modified strategy file"
+        )
+    elif failure_mode == "excessive_drawdown":
+        mode_step = (
+            f"4. Add RISK MANAGEMENT — don't change the entry signal.\n"
+            f"   - Add ATR-based stop loss: exit when loss exceeds 2× ATR(14)\n"
+            f"   - OR add volatility filter: skip entries when ATR is above its SMA\n"
+            f"   - OR add time-based stop: exit after N bars if not profitable\n"
+            f"   Your entry signal generates returns — just cap the losses.\n"
+            f"5. Output the COMPLETE modified strategy file"
+        )
+    elif failure_mode == "validation_failed":
+        mode_step = (
+            f"4. Your strategy works in-sample but fails out-of-sample — it's OVERFIT.\n"
+            f"   - REMOVE the most recently added condition/indicator\n"
+            f"   - Widen ALL thresholds by 20-30%\n"
+            f"   - Replace multi-condition entries with a SINGLE simpler condition\n"
+            f"   - Fewer parameters = less overfitting\n"
+            f"5. Output the COMPLETE modified strategy file"
+        )
+    elif failure_mode == "flat_signal":
+        mode_step = (
+            f"4. Your strategy produces ZERO signals — the entry condition is never True.\n"
+            f"   DEBUG: Check if you're using `and`/`or` instead of `&`/`|` for Series comparisons\n"
+            f"   DEBUG: Check if your thresholds are impossible (e.g., RSI > 90 AND RSI < 10)\n"
+            f"   FIX: Start with the SIMPLEST possible entry: `entries = (ema_fast > ema_slow)`\n"
+            f"5. Output the COMPLETE modified strategy file"
+        )
+    elif failure_mode == "overtrading":
+        mode_step = (
+            f"4. Your strategy fires too many signals — transaction costs eat profits.\n"
+            f"   - Add a COOLDOWN: minimum N bars between trades\n"
+            f"   - OR use LONGER indicator periods\n"
+            f"   - OR add a CONFIRMATION requirement (2+ indicators must agree)\n"
+            f"5. Output the COMPLETE modified strategy file"
+        )
+    elif failure_mode in ("backtest_crash", "module_load_failed"):
+        mode_step = (
+            f"4. Your code has a bug — read the error message carefully and fix it.\n"
+            f"   - Check the INDICATOR QUICK REFERENCE below for correct function signatures\n"
+            f"   - Common: atr needs (high, low, close), stoch needs (high, low, close)\n"
+            f"   - Check that entries/exits are pd.Series[bool], not scalars\n"
+            f"5. Output the COMPLETE modified strategy file"
+        )
+    else:
+        mode_step = (
+            f"4. Propose a targeted modification with a causal hypothesis\n"
+            f"5. Output the COMPLETE modified strategy file"
+        )
+
+    # Add urgency for later turns
+    urgency = ""
+    remaining = max_turns - turn_num
+    if remaining <= 2:
+        urgency = (
+            f"\n⚠️ Only {remaining} turn(s) remaining. If this strategy can't hit the target "
+            f"with one more modification, consider `full_rewrite` or `novel` action "
+            f"to try a fundamentally different approach."
+        )
+
+    return base + mode_step + urgency
 
 
 def build_failure_guidance(
@@ -1153,6 +1287,16 @@ def build_refinement_prompt(
     )
     positive_feedback_section = format_positive_feedback_for_prompt(pos_feedback)
 
+    # Build failure-mode-specific task guidance
+    targeted_task_guidance = build_targeted_task_guidance(
+        failure_mode,
+        sharpe_ratio=tier1_report.get("sharpe_ratio", 0.0),
+        sharpe_target=tier1_report.get("sharpe_target", sharpe_target),
+        total_trades=total_trades,
+        turn_num=current_turn,
+        max_turns=max_turns,
+    )
+
     return REFINEMENT_PROMPT.format(
         current_turn=current_turn,
         max_turns=max_turns,
@@ -1186,6 +1330,7 @@ def build_refinement_prompt(
         action_effectiveness_section=action_effectiveness_section,
         failure_pattern_section=failure_pattern_section,
         trade_count_guidance=trade_count_guidance,
+        targeted_task_guidance=targeted_task_guidance,
     )
 
 
