@@ -5232,3 +5232,10 @@
 {"mandate": "momentum_spy", "turn": 5, "action": "novel", "sharpe": 1.1650125355342231, "success": false, "failure_mode": "too_few_trades", "timestamp": "2026-04-30T18:19:37.715120+00:00"}
 {"mandate": "momentum_spy", "turn": 6, "action": "novel", "sharpe": 0.20805544403281215, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T18:21:06.811511+00:00"}
 {"mandate": "momentum_spy", "turn": 7, "action": "novel", "sharpe": 0.9195630842367315, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T18:26:00.894182+00:00"}
+{"mandate": "breakout_tsla", "turn": 1, "action": "novel", "sharpe": 1.4279437329387366, "success": false, "failure_mode": "too_few_trades", "timestamp": "2026-04-30T18:27:13.811252+00:00"}
+{"mandate": "breakout_tsla", "turn": 2, "action": "modify_params", "sharpe": 1.5336764944221535, "success": true, "failure_mode": "", "timestamp": "2026-04-30T18:27:39.946986+00:00"}
+{"mandate": "breakout_tsla", "turn": 3, "action": "change_entry_logic", "sharpe": 1.1041107105476533, "success": false, "failure_mode": "too_few_trades", "timestamp": "2026-04-30T18:28:02.576880+00:00"}
+{"mandate": "breakout_tsla", "turn": 4, "action": "novel", "sharpe": 0.6808306680178239, "success": false, "failure_mode": "too_few_trades", "timestamp": "2026-04-30T18:28:56.384383+00:00"}
+{"mandate": "breakout_tsla", "turn": 5, "action": "novel", "sharpe": 1.5115722801130171, "success": true, "failure_mode": "", "timestamp": "2026-04-30T18:30:01.331441+00:00"}
+{"mandate": "breakout_tsla", "turn": 6, "action": "modify_params", "sharpe": 0.8370799072722349, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-04-30T18:30:45.799990+00:00"}
+{"mandate": "breakout_tsla", "turn": 7, "action": "modify_params", "sharpe": 0.8370799072722349, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-04-30T18:31:45.405186+00:00"}
