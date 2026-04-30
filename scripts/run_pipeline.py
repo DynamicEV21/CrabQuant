@@ -222,6 +222,20 @@ def run_daemon(
                     print(f"No new mandates found. Sleeping {sleep_seconds}s...")
                     time.sleep(sleep_seconds)
                     state.heartbeat(str(STATE_FILE))
+                    # Also update heartbeat file so health checks don't
+                    # report daemon as shut down during idle periods
+                    HEARTBEAT_FILE.parent.mkdir(parents=True, exist_ok=True)
+                    HEARTBEAT_FILE.write_text(
+                        json.dumps(
+                            {
+                                "wave": wave,
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
+                                "mandates_run": state.total_mandates_run,
+                                "promoted": state.total_strategies_promoted,
+                            },
+                            indent=2,
+                        )
+                    )
                     continue
 
             # ── Pick mandates for this wave ───────────────────────────
