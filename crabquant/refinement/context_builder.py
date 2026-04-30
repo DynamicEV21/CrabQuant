@@ -229,10 +229,54 @@ def get_winner_examples(
 
     # Sort by composite score, take top N
     scored.sort(key=lambda x: x["composite"], reverse=True)
-    candidates = scored[:max_examples * 3]  # Oversample — some won't have code
+    candidates = scored[:max_examples * 5]  # Oversample — some won't have code
+
+    # ── Archetype-aware diversity selection ──
+    # Classify each candidate by its strategy name pattern to ensure
+    # we don't feed the LLM examples all from the same archetype.
+    # This prevents the LLM from converging on a single strategy family.
+    def _classify_archetype(name: str) -> str:
+        """Classify strategy name into an archetype bucket."""
+        name_lower = name.lower()
+        if any(kw in name_lower for kw in ["momentum", "roc", "trend", "ema_cross", "ichimoku"]):
+            return "momentum"
+        elif any(kw in name_lower for kw in ["reversion", "mean_rev", "rsi", "bollinger", "bb_"]):
+            return "mean_reversion"
+        elif any(kw in name_lower for kw in ["breakout", "channel", "squeeze", "atr"]):
+            return "breakout"
+        elif any(kw in name_lower for kw in ["volume", "vol_", "obv", "vwap"]):
+            return "volume"
+        elif any(kw in name_lower for kw in ["adx", "pullback", "macd", "stoch"]):
+            return "trend_following"
+        else:
+            return "other"
+
+    # Select diverse candidates: pick best from each archetype first,
+    # then fill remaining slots from highest composite score.
+    archetype_buckets: dict[str, list] = {}
+    for cand in candidates:
+        arch = _classify_archetype(cand["name"])
+        archetype_buckets.setdefault(arch, []).append(cand)
+
+    diverse_candidates = []
+    seen_archetypes = set()
+
+    # First pass: take best from each archetype (diversity-first)
+    for arch in sorted(archetype_buckets.keys()):
+        if len(diverse_candidates) >= max_examples * 3:
+            break
+        diverse_candidates.append(archetype_buckets[arch][0])
+        seen_archetypes.add(arch)
+
+    # Second pass: fill with remaining high-scoring candidates
+    for cand in candidates:
+        if len(diverse_candidates) >= max_examples * 3:
+            break
+        if cand not in diverse_candidates:
+            diverse_candidates.append(cand)
 
     examples = []
-    for cand in candidates:
+    for cand in diverse_candidates:
         if len(examples) >= max_examples:
             break
 

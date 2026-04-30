@@ -368,6 +368,60 @@ class TestGetWinnerExamples:
             examples = get_winner_examples(runs_dir=tmp_path, max_examples=2)
             assert len(examples) <= 2
 
+    def test_archetype_diversity_selection(self, tmp_path):
+        """Verify that winner examples span multiple archetypes, not just the top-scoring one."""
+        from crabquant.refinement.context_builder import get_winner_examples
+
+        winners_dir = tmp_path / "winners"
+        winners_dir.mkdir()
+        # Create winners dominated by one archetype (momentum/roc) with lower-scoring
+        # entries from other archetypes. The diversity selection should surface them.
+        winners = [
+            {"strategy": "roc_ema_volume_a", "sharpe": 3.0, "trades": 30, "ticker": "SPY"},
+            {"strategy": "roc_ema_volume_b", "sharpe": 2.8, "trades": 28, "ticker": "SPY"},
+            {"strategy": "roc_ema_volume_c", "sharpe": 2.5, "trades": 25, "ticker": "SPY"},
+            {"strategy": "roc_ema_volume_d", "sharpe": 2.3, "trades": 22, "ticker": "SPY"},
+            {"strategy": "roc_ema_volume_e", "sharpe": 2.1, "trades": 20, "ticker": "SPY"},
+            # Lower-scoring but different archetypes
+            {"strategy": "bollinger_squeeze", "sharpe": 1.5, "trades": 15, "ticker": "SPY"},
+            {"strategy": "mean_reversion_rsi", "sharpe": 1.4, "trades": 18, "ticker": "SPY"},
+            {"strategy": "volume_breakout", "sharpe": 1.3, "trades": 16, "ticker": "SPY"},
+            {"strategy": "adx_pullback", "sharpe": 1.2, "trades": 14, "ticker": "SPY"},
+        ]
+        (winners_dir / "winners.json").write_text(json.dumps(winners))
+
+        with patch("crabquant.refinement.context_builder._WINNERS_PATH",
+                    winners_dir / "winners.json"):
+            examples = get_winner_examples(runs_dir=tmp_path, max_examples=3)
+            names = [e["name"] for e in examples]
+
+            # Without diversity, all 3 would be roc_ema_volume_*. With diversity,
+            # at least one should be from a different archetype.
+            roc_count = sum(1 for n in names if n.startswith("roc_ema_volume"))
+            assert roc_count < 3, (
+                f"Expected archetype diversity but got all roc_ema_volume: {names}"
+            )
+
+    def test_archetype_diversity_fallback_when_single_archetype(self, tmp_path):
+        """When all winners are from one archetype, diversity selection still returns results."""
+        from crabquant.refinement.context_builder import get_winner_examples
+
+        winners_dir = tmp_path / "winners"
+        winners_dir.mkdir()
+        winners = [
+            {"strategy": f"momentum_{i}", "sharpe": float(3 - i * 0.3), "trades": 20, "ticker": "SPY"}
+            for i in range(5)
+        ]
+        (winners_dir / "winners.json").write_text(json.dumps(winners))
+
+        with patch("crabquant.refinement.context_builder._WINNERS_PATH",
+                    winners_dir / "winners.json"):
+            examples = get_winner_examples(runs_dir=tmp_path, max_examples=2)
+            assert len(examples) <= 2
+            # All should still be momentum (no other archetype available)
+            for e in examples:
+                assert "momentum" in e["name"].lower()
+
 
 class TestComputeDelta:
     """Test delta computation between strategy versions."""
