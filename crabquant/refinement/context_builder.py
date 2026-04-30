@@ -524,6 +524,61 @@ def build_llm_context(
             })()
             context["param_optimization_section"] = format_optimization_for_prompt(opt)
 
+        # Phase 6: Positive feedback analysis — tell LLM what's WORKING
+        # Complements failure guidance by preserving good strategy components.
+        # Analyzes current turn metrics and highlights previous successful turns.
+        try:
+            from crabquant.refinement.positive_feedback import (
+                analyze_positive_feedback,
+                format_positive_feedback_for_prompt,
+            )
+
+            report_dict = context.get("backtest_report", {})
+            pos_feedback = analyze_positive_feedback(
+                sharpe_ratio=report_dict.get("sharpe_ratio", 0.0),
+                sharpe_target=original_sharpe_target,
+                total_return_pct=report_dict.get("total_return_pct", 0.0),
+                max_drawdown_pct=report_dict.get("max_drawdown_pct", 0.0),
+                win_rate=report_dict.get("win_rate", 0.0),
+                profit_factor=report_dict.get("profit_factor", 0.0),
+                sortino_ratio=report_dict.get("sortino_ratio", 0.0),
+                calmar_ratio=report_dict.get("calmar_ratio", 0.0),
+                total_trades=report_dict.get("total_trades", 0),
+                avg_holding_bars=report_dict.get("avg_holding_bars"),
+                sharpe_by_year=report_dict.get("sharpe_by_year"),
+                failure_mode=report_dict.get("failure_mode", ""),
+            )
+            positive_feedback_section = format_positive_feedback_for_prompt(pos_feedback)
+
+            # Also surface previous successful turns from history so the LLM
+            # knows which specific approaches already hit the sharpe target.
+            history = getattr(state, "history", [])
+            successful_turns = [
+                h for h in history
+                if h.get("sharpe") is not None and h["sharpe"] >= original_sharpe_target
+            ]
+            if successful_turns:
+                if positive_feedback_section:
+                    positive_feedback_section += "\n\n"
+                positive_feedback_section += "### 🏆 Previous Successful Turns\n\n"
+                positive_feedback_section += (
+                    "These turns hit the Sharpe target — study what made them work:\n"
+                )
+                for st in successful_turns[-3:]:
+                    turn_num = st.get("turn", "?")
+                    sharpe = st.get("sharpe", 0)
+                    action = st.get("action", "unknown")
+                    trades = st.get("num_trades", "?")
+                    positive_feedback_section += (
+                        f"- **Turn {turn_num}**: Sharpe={sharpe:.2f}, "
+                        f"Action={action}, Trades={trades}\n"
+                    )
+
+            if positive_feedback_section:
+                context["positive_feedback_section"] = positive_feedback_section
+        except Exception:
+            logger.debug("Positive feedback analysis failed, skipping", exc_info=True)
+
     # Phase 5.6: Stagnation recovery — detect trap type and inject recovery guidance
     stagnation_recovery = _build_stagnation_recovery_section(state)
     if stagnation_recovery:
@@ -777,6 +832,9 @@ def build_llm_context(
             append_sections.append(context["failure_pattern_section"])
         if context.get("param_optimization_section"):
             append_sections.append(context["param_optimization_section"])
+        # Phase 6: Positive feedback — what's working (prevents regression)
+        if context.get("positive_feedback_section"):
+            append_sections.append(context["positive_feedback_section"])
         # Phase 6: Gate validation retry feedback — critical for fixing code errors
         if context.get("retry_feedback"):
             append_sections.append(
