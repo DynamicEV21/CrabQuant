@@ -1,8 +1,8 @@
 {
   "running_count": 49,
-  "total_mandates": 97,
-  "convergence_rate": 0.2708333333333333,
-  "wave_progress": 0.6770250368188513,
+  "total_mandates": 98,
+  "convergence_rate": 0.2857142857142857,
+  "wave_progress": 0.680320699708455,
   "best_strategies": [
     {
       "mandate_name": "momentum_googl",
@@ -17,6 +17,12 @@
       "status": "success"
     },
     {
+      "mandate_name": "momentum_googl",
+      "best_sharpe": 2.0557346626750834,
+      "best_turn": 4,
+      "status": "success"
+    },
+    {
       "mandate_name": "e2e_test_momentum",
       "best_sharpe": 1.8728166181760793,
       "best_turn": 2,
@@ -26,12 +32,6 @@
       "mandate_name": "mean_reversion_nvda",
       "best_sharpe": 1.7422784491824221,
       "best_turn": 2,
-      "status": "success"
-    },
-    {
-      "mandate_name": "multi_rsi_googl",
-      "best_sharpe": 1.7059361666878445,
-      "best_turn": 4,
       "status": "success"
     }
   ],
@@ -331,5 +331,5 @@
       "best_sharpe": 1.0504761504747684
     }
   ],
-  "timestamp": "2026-04-30T02:15:56.740903+00:00"
+  "timestamp": "2026-04-30T06:13:56.770985+00:00"
 }

@@ -462,6 +462,24 @@ def build_llm_context(
             from crabquant.refinement.feature_importance import format_feature_importance_for_prompt
             context["feature_importance_section"] = format_feature_importance_for_prompt(fi)
 
+        # Phase 6: Parameter optimization feedback
+        po = getattr(report, "param_optimization", None)
+        if po is not None and po.get("param_optimization_applied"):
+            from crabquant.refinement.param_optimizer import format_optimization_for_prompt
+            opt = type("obj", (object,), {
+                "was_optimized": po["param_optimization_applied"],
+                "default_sharpe": po.get("default_sharpe", 0),
+                "optimized_sharpe": po.get("optimized_sharpe", 0),
+                "default_trades": 0,
+                "optimized_trades": 0,
+                "combinations_tested": po.get("combinations_tested", 0),
+                "improvement_pct": po.get("improvement_pct", 0),
+                "sweep_time_seconds": po.get("sweep_time_seconds", 0),
+                "default_params": {},
+                "optimized_params": {},
+            })()
+            context["param_optimization_section"] = format_optimization_for_prompt(opt)
+
     # Phase 5.6: Stagnation recovery — detect trap type and inject recovery guidance
     stagnation_recovery = _build_stagnation_recovery_section(state)
     if stagnation_recovery:
@@ -713,6 +731,8 @@ def build_llm_context(
             append_sections.append(context["stagnation_recovery"])
         if context.get("failure_pattern_section"):
             append_sections.append(context["failure_pattern_section"])
+        if context.get("param_optimization_section"):
+            append_sections.append(context["param_optimization_section"])
         # Phase 6: Auto-revert notice — tell the LLM its change was reverted
         revert_notice = getattr(state, "revert_notice", "")
         if revert_notice:

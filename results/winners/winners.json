@@ -5694,5 +5694,27 @@
     },
     "promoted_at": "2026-04-29T23:08:56.385288+00:00",
     "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_momentum_googl",
+    "ticker": "GOOGL",
+    "sharpe": 2.0557346626750834,
+    "return": 1.1207667214554144,
+    "max_drawdown": -0.19320546785031126,
+    "trades": 15,
+    "params": {
+      "rsi_len": 7,
+      "entry_level": 50,
+      "exit_level": 40
+    },
+    "refinement_run": "momentum_googl_20260429_200243",
+    "refinement_turns": 4,
+    "validation": {
+      "status": "error",
+      "message": "name 'config' is not defined",
+      "passed": false
+    },
+    "promoted_at": "2026-04-30T03:06:02.167511+00:00",
+    "validation_status": "backtest_only"
   }
 ]
