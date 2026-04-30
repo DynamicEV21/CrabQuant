@@ -5827,3 +5827,147 @@
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:37:39.259053+00:00"}
 {"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:37:39.434060+00:00"}
 {"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:37:40.002710+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:46:27.544056+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:46:27.755421+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:46:27.803393+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:46:30.413563+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:46:31.409415+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "smoke_test", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:46:31.562376+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "multi_ticker", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:46:31.794781+00:00"}
+{"mandate": "high_target", "turn": 1, "action": "novel", "sharpe": 5.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:46:31.916418+00:00"}
+{"mandate": "unreachable_target", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:46:32.039416+00:00"}
+{"mandate": "unreachable_target", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:46:32.151801+00:00"}
+{"mandate": "modify_test", "turn": 1, "action": "modify_params", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:46:32.428369+00:00"}
+{"mandate": "module_fail", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:46:33.010692+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "module_fail", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:46:33.152392+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "single_turn", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:46:34.358054+00:00"}
+{"mandate": "history_test", "turn": 1, "action": "novel", "sharpe": 1.5, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:46:34.490654+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:46:37.669557+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:46:38.268913+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:46:38.427768+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:46:38.710188+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:46:38.992347+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:46:39.264192+00:00"}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:46:39.446558+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:46:40.043409+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:48:34.870971+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:48:35.063178+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:48:35.122196+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:48:36.150079+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:48:37.203276+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "smoke_test", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:48:37.394350+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "multi_ticker", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:48:37.622679+00:00"}
+{"mandate": "high_target", "turn": 1, "action": "novel", "sharpe": 5.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:48:37.751681+00:00"}
+{"mandate": "unreachable_target", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:48:37.873666+00:00"}
+{"mandate": "unreachable_target", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:48:37.982140+00:00"}
+{"mandate": "modify_test", "turn": 1, "action": "modify_params", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:48:38.224879+00:00"}
+{"mandate": "module_fail", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:48:38.800843+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "module_fail", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:48:38.944957+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "single_turn", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:48:40.164753+00:00"}
+{"mandate": "history_test", "turn": 1, "action": "novel", "sharpe": 1.5, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:48:40.291440+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:48:45.242293+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:48:45.866282+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:48:46.032833+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:48:46.313011+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:48:46.595076+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:48:46.872631+00:00"}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:48:47.104962+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:48:47.672548+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:50:53.006015+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:50:53.209406+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:50:53.263752+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:50:56.193555+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:50:57.269329+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "smoke_test", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:50:57.429318+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "multi_ticker", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:50:57.673473+00:00"}
+{"mandate": "high_target", "turn": 1, "action": "novel", "sharpe": 5.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:50:57.802175+00:00"}
+{"mandate": "unreachable_target", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:50:57.928341+00:00"}
+{"mandate": "unreachable_target", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:50:58.051497+00:00"}
+{"mandate": "modify_test", "turn": 1, "action": "modify_params", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:50:58.315307+00:00"}
+{"mandate": "module_fail", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:50:58.910392+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "module_fail", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:50:59.067314+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "single_turn", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:51:00.400280+00:00"}
+{"mandate": "history_test", "turn": 1, "action": "novel", "sharpe": 1.5, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:51:00.541199+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:51:05.877771+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:51:06.522587+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:51:06.695324+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:51:07.000924+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:51:07.315395+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:51:07.685880+00:00"}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:51:07.867537+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:51:08.471205+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:52:54.414286+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:52:54.624611+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:52:54.676480+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:52:57.389274+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:52:58.554296+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "smoke_test", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:52:58.725720+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "multi_ticker", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:52:59.032507+00:00"}
+{"mandate": "high_target", "turn": 1, "action": "novel", "sharpe": 5.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:52:59.194015+00:00"}
+{"mandate": "unreachable_target", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:52:59.317598+00:00"}
+{"mandate": "unreachable_target", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:52:59.443543+00:00"}
+{"mandate": "modify_test", "turn": 1, "action": "modify_params", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:52:59.692078+00:00"}
+{"mandate": "module_fail", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:53:00.384070+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "module_fail", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:53:00.534160+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "single_turn", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:53:01.917658+00:00"}
+{"mandate": "history_test", "turn": 1, "action": "novel", "sharpe": 1.5, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:53:02.062567+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:53:07.415058+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:53:08.105486+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T22:53:08.287216+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T22:53:08.588312+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:53:08.907651+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:53:09.204703+00:00"}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T22:53:09.388752+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T22:53:09.965681+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:08:38.163958+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:08:38.355609+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:08:38.406849+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:08:41.068964+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T23:08:42.314438+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "smoke_test", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T23:08:42.467682+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "multi_ticker", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:08:42.698444+00:00"}
+{"mandate": "high_target", "turn": 1, "action": "novel", "sharpe": 5.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:08:42.821794+00:00"}
+{"mandate": "unreachable_target", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:08:42.945702+00:00"}
+{"mandate": "unreachable_target", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:08:43.063978+00:00"}
+{"mandate": "modify_test", "turn": 1, "action": "modify_params", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:08:43.287573+00:00"}
+{"mandate": "module_fail", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T23:08:43.874848+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "module_fail", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T23:08:44.028081+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "single_turn", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:08:45.287368+00:00"}
+{"mandate": "history_test", "turn": 1, "action": "novel", "sharpe": 1.5, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:08:45.408866+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:08:50.736349+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T23:08:51.393115+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T23:08:51.545417+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T23:08:51.821206+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:08:52.115869+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:08:52.404368+00:00"}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:08:52.566041+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:08:53.128224+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:09:40.261845+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:09:40.448505+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.5, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:09:40.492873+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:09:42.854608+00:00"}
+{"mandate": "smoke_test", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T23:09:43.839295+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "smoke_test", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T23:09:43.982657+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "multi_ticker", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:09:44.207966+00:00"}
+{"mandate": "high_target", "turn": 1, "action": "novel", "sharpe": 5.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:09:44.323949+00:00"}
+{"mandate": "unreachable_target", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:09:44.453748+00:00"}
+{"mandate": "unreachable_target", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:09:44.563153+00:00"}
+{"mandate": "modify_test", "turn": 1, "action": "modify_params", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:09:44.818007+00:00"}
+{"mandate": "module_fail", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T23:09:45.406777+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "module_fail", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T23:09:45.549349+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "single_turn", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:09:46.951234+00:00"}
+{"mandate": "history_test", "turn": 1, "action": "novel", "sharpe": 1.5, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:09:47.082298+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:09:52.268599+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T23:09:52.888752+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "module_load_failed", "timestamp": "2026-04-30T23:09:53.043597+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.0, "success": false, "failure_mode": "backtest_crash", "timestamp": "2026-04-30T23:09:53.336232+00:00", "error_type": "unknown", "error_message": "", "error_traceback": ""}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:09:53.643779+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:09:53.934785+00:00"}
+{"mandate": "test_mandate", "turn": 2, "action": "novel", "sharpe": 0.3, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:09:54.109622+00:00"}
+{"mandate": "test_mandate", "turn": 1, "action": "novel", "sharpe": 2.0, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:09:54.767241+00:00"}
+{"mandate": "volume_nvda", "turn": 1, "action": "novel", "sharpe": 0.9511436103927592, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-04-30T23:14:05.289256+00:00"}
+{"mandate": "volume_nvda", "turn": 2, "action": "add_filter", "sharpe": 0.9424730356336217, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:15:26.551782+00:00"}
+{"mandate": "volume_nvda", "turn": 3, "action": "modify_params", "sharpe": 1.0023753646621447, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-04-30T23:16:45.313770+00:00"}
+{"mandate": "volume_nvda", "turn": 4, "action": "novel", "sharpe": 0.3384245675242281, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-04-30T23:17:25.314342+00:00"}
+{"mandate": "volume_nvda", "turn": 6, "action": "novel", "sharpe": 1.6464714013782262, "success": true, "failure_mode": "", "timestamp": "2026-04-30T23:19:58.272960+00:00"}
+{"mandate": "volume_nvda", "turn": 7, "action": "modify_params", "sharpe": 1.2096699892030927, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-04-30T23:20:41.281034+00:00"}
