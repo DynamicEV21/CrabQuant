@@ -72,11 +72,12 @@ The pipeline runs end-to-end. Strategies get invented and backtested. Some hit S
 | Backtest successes (real mandates) | 6.8% per-turn | 🔴 Low |
 | Mandate convergence (≥1 success) | 33% (7/21 real) | 🟡 Needs work |
 | Code gen failure rate (real mandates) | **0%** | ✅ Fixed |
-| Strategies in production registry | **118** (ROBUST) | ✅ Exceeded target |
+| Strategies in production registry | **99** (ROBUST, audited) | ✅ Exceeded target |
+| Registry entries demoted (integrity audit) | 19 (Cycle 19) | ✅ Cleaned |
 | winners.json entries | 178 (119 promoted) | ✅ Strong pipeline |
-| Validation pass rate | 67% (119/178 winners) | ✅ Exceeded target |
+| Validation pass rate | 84% (97/116 re-validated) | ✅ Exceeded target |
 
-**The funnel is open.** After fixing threshold bugs (Cycle 10-12) and the promotion pipeline gap (Cycle 13), 118 validated strategies are now in the production registry.
+**The funnel is open.** After fixing threshold bugs (Cycle 10-12), the promotion pipeline gap (Cycle 13), and the registry integrity audit (Cycle 19), 99 genuinely validated strategies remain in the production registry. The other 19 were demoted after failing re-validation with proper rolling walk-forward (6 windows, min_avg_test_sharpe=0.5, min_windows_passed=3).
 
 **Key insight (Cycle 15):** The "54% code gen failure rate" was a phantom metric inflated by smoke_test and test_mandate entries. Real production mandates have **0% code gen failures**. The real bottleneck is **strategy quality** — 83% of real mandate turns fail on performance metrics:
 - low_sharpe: 35% — strategies run but underperform
@@ -132,12 +133,12 @@ The orchestrator should recalculate priorities every cycle by looking at actual 
 - **Positive Feedback Analyzer (a3dc168)**: Added to prevent LLM regression — tracks what works and feeds successful patterns back into prompts. Agent should verify this is wired and not regressed.
 - Action: Run live mandates to verify all diagnosis systems work end-to-end (now P1).
 
-**🟠 P0.5 — Registry Data Integrity Audit**
-- 116/118 strategies in `strategies/production/registry.json` have `walk_forward_test_sharpe=0.000` but `walk_forward_robust=True`.
-- `sweep_promote_remaining.py` hardcoded `robust=True` without re-running validation — data integrity bug, not strategy quality bug.
-- Re-run rolling walk-forward on all flagged entries (6 windows, min_avg_test_sharpe=0.5, min_windows_passed=3).
-- Remove entries that fail. Update `winners.json` validation_status accordingly.
-- Commit results with detailed before/after counts.
+**✅ P0.5 — Registry Data Integrity Audit — COMPLETE (Cycle 19)**
+- ~~116/118 strategies had `walk_forward_test_sharpe=0.0` but `walk_forward_robust=True`.~~ FIXED.
+- Re-ran rolling walk-forward on all 116 flagged entries (6 windows, min_avg_test_sharpe=0.5, min_windows_passed=3).
+- 97 PASSED (avg_test_sharpe 0.526-2.188, median 0.990).
+- 19 DEMOTED (avg_test_sharpe below 0.5 threshold). Registry updated.
+- All 118 strategy .py files import and execute cleanly (0 errors).
 
 **🟡 P1 — Run Live Mandates to Verify Improvements**
 - The diagnosis systems (sharpe, regime) were built based on historical data analysis
