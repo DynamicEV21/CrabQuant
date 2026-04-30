@@ -5806,5 +5806,90 @@
     },
     "promoted_at": "2026-04-30T07:01:40.599807+00:00",
     "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_Momentum Strategy for GOOGL",
+    "ticker": "GOOGL",
+    "sharpe": 1.3876356183088083,
+    "return": 0.5735435855174256,
+    "max_drawdown": -0.2542518374525482,
+    "trades": 30,
+    "params": {},
+    "refinement_run": "momentum_strategy_for_googl_20260430_030245",
+    "refinement_turns": 1,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 1.4114692793068508,
+        "min_test_sharpe": -0.5013109640462313,
+        "avg_degradation": 0.3754097865184571,
+        "num_windows": 6,
+        "windows_passed": 4,
+        "robust": true,
+        "notes": "Windows: 6, passed: 4 | Avg test Sharpe: 1.41 (min: -0.50) | Avg degradation: 37.5%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -1.5322053361738064,
+            "test_sharpe": 1.2729915548949755,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.7801369007655422,
+            "test_sharpe": -0.5013109640462313,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": -0.14474067005255162,
+            "test_sharpe": 1.5369603991185503,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 1.1352114416509689,
+            "test_sharpe": 1.6875922371243948,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 1.095646284816259,
+            "test_sharpe": -0.2766054576631561,
+            "degradation": 1.2524587191107421,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.4276001390998294,
+            "test_sharpe": 4.749187906412572,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": null,
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false
+    },
+    "promoted_at": "2026-04-30T10:09:07.291872+00:00",
+    "validation_status": "promoted",
+    "regime_tags": {
+      "preferred_regimes": [
+        "mean_reversion",
+        "trending_down",
+        "trending_up"
+      ],
+      "acceptable_regimes": [],
+      "weak_regimes": [],
+      "is_regime_specific": false
+    }
   }
 ]
