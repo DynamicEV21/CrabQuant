@@ -177,11 +177,11 @@ def analyze_signal_density(
         return result
 
     # Warning: too many signals (noise)
-    if entry_rate > 0.3:
+    if result["entry_rate"] > 0.3:
         result["severity"] = "warning"
         result["diagnosis"] = "excessive_entries"
         result["fix_suggestion"] = (
-            f"Entry rate is {entry_rate:.1%} — signals fire on {entry_count}/{df_length} bars. "
+            f"Entry rate is {result['entry_rate']:.1%} — signals fire on {entry_count}/{df_length} bars. "
             "This is too frequent and likely means your entry conditions are too loose, "
             "capturing noise rather than genuine opportunities. Add a filter or tighten thresholds."
         )
