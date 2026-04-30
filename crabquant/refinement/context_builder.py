@@ -785,6 +785,16 @@ def build_llm_context(
                 f"Your previous code was REJECTED by validation gates. You MUST fix the "
                 f"above errors in your new_strategy_code. Do NOT repeat the same mistake."
             )
+        # Phase 6: Code quality pre-check feedback — anti-patterns detected
+        code_quality_fb = getattr(state, "code_quality_feedback", "")
+        if code_quality_fb:
+            append_sections.append(
+                f"\n## ⛔ CODE QUALITY PRE-CHECK FAILED\n\n"
+                f"{code_quality_fb}\n\n"
+                f"Your previous code was REJECTED by the code quality pre-check. "
+                f"You MUST fix the above anti-patterns in your new_strategy_code. "
+                f"Do NOT repeat the same mistakes."
+            )
         # Phase 6: Auto-revert notice — tell the LLM its change was reverted
         revert_notice = getattr(state, "revert_notice", "")
         if revert_notice:

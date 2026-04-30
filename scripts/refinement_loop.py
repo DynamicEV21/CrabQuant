@@ -58,6 +58,7 @@ from crabquant.refinement.action_analytics import (
 )
 from crabquant.refinement.promotion import auto_promote, run_full_validation_check, soft_promote
 from crabquant.refinement.stagnation import compute_stagnation, get_stagnation_response
+from crabquant.refinement.code_quality_check import check_code_quality, format_code_quality_for_prompt
 from crabquant.refinement.wave_dashboard import generate_dashboard, snapshot_to_json
 from crabquant.refinement.prompts import (
     get_parallel_prompt_variants,
@@ -797,6 +798,37 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             _write_dashboard(run_dir)
             continue
         
+        # ── Code quality pre-check (Phase 6) ────────────────────────────
+        # Static analysis of strategy source code BEFORE backtesting.
+        # Catches anti-patterns (over-complex logic, no exits, contradictions)
+        # that waste backtest compute. Critical issues cause rejection;
+        # warnings are stored as feedback for the next LLM turn.
+        code_quality_report = check_code_quality(strategy_code)
+        if code_quality_report.overall_verdict == "reject":
+            print(f"  ⛔ Code quality REJECTED (score={code_quality_report.score:.2f}): "
+                  f"{code_quality_report.summary_for_llm}")
+            quality_feedback = format_code_quality_for_prompt(code_quality_report)
+            state.code_quality_feedback = quality_feedback
+            state.history.append({
+                "turn": turn,
+                "status": "code_quality_rejected",
+                "code_quality_score": code_quality_report.score,
+                "code_quality_verdict": code_quality_report.overall_verdict,
+                "code_quality_feedback": quality_feedback,
+            })
+            save_state(run_dir, state)
+            _write_dashboard(run_dir)
+            continue
+        elif code_quality_report.overall_verdict == "warning":
+            print(f"  ⚠️ Code quality warning (score={code_quality_report.score:.2f}): "
+                  f"{code_quality_report.summary_for_llm}")
+            # Don't reject, but store feedback for the LLM on the next turn
+            quality_feedback = format_code_quality_for_prompt(code_quality_report)
+            state.code_quality_feedback = quality_feedback
+        else:
+            print(f"  ✅ Code quality check passed (score={code_quality_report.score:.2f})")
+            state.code_quality_feedback = ""
+
         # Create modification object from LLM response
         raw_action = modification.get("action", "novel") if isinstance(modification, dict) else "novel"
         action, action_was_remapped = validate_action(raw_action)

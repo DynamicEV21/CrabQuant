@@ -39,6 +39,11 @@ class RunState:
     # History (append-only)
     history: list = field(default_factory=list)
 
+    # Code quality feedback from the most recent code quality pre-check.
+    # Set when check_code_quality() finds issues; consumed by context_builder
+    # to inject into the LLM prompt on the next turn.
+    code_quality_feedback: str = ""
+
     # Within-run action cooldown tracking
     # Maps failure_mode → {action → consecutive_fail_count}
     action_cooldowns: dict = field(default_factory=dict)
