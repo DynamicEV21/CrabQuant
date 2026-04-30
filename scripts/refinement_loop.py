@@ -41,7 +41,7 @@ from crabquant.refinement.diagnostics import (
     run_multi_ticker_backtest,
 )
 from crabquant.refinement.classifier import classify_failure
-from crabquant.refinement.context_builder import build_llm_context
+from crabquant.refinement.context_builder import build_llm_context, compute_delta
 from crabquant.refinement.llm_api import call_zai_llm, call_llm_inventor, load_api_config
 from crabquant.guardrails import check_guardrails, GuardrailReport, GuardrailConfig
 
@@ -1065,6 +1065,14 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                       f"but only {result.num_trades} trades "
                       f"(need >= {MIN_TRADES_FOR_VALIDATION}) — skipping validation")
                 failure_mode = "too_few_trades_for_validation"
+                # Update the saved report so next turn's context_builder reads
+                # the correct failure_mode (not the stale classify_failure output)
+                report.failure_mode = failure_mode
+                report.failure_details = (
+                    f"Sharpe {result.sharpe:.2f} hit target but only "
+                    f"{result.num_trades} trades (need >= {MIN_TRADES_FOR_VALIDATION})"
+                )
+                save_report(run_dir, turn, report)
                 # Update state to reflect best Sharpe found but not validated
                 composite = compute_composite_score(
                     result.sharpe, result.num_trades, result.max_drawdown
@@ -1283,6 +1291,17 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             release_lock(run_dir)
             return state
         
+        # Compute delta from previous turn's strategy code
+        prev_code_path = None
+        if turn > 1:
+            prev_code_path = str(run_dir / f"strategy_v{turn - 1}.py")
+        delta = compute_delta(
+            strategy_code,
+            modification.action,
+            modification.hypothesis,
+            prev_code_path,
+        )
+
         # Append to history
         state.history.append({
             "turn": turn, "sharpe": result.sharpe,
@@ -1293,7 +1312,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             "code_path": str(strategy_path),
             "params_used": result.params if result.params else strategy_module.DEFAULT_PARAMS.copy(),
             "strategy_hash": compute_strategy_hash(strategy_code),
-            "delta_from_prev": "Initial strategy (no prior version)",
+            "delta_from_prev": delta,
         })
         # Update cooldowns for failed turn
         update_cooldowns(cosmetic_state, failure_mode, action, success=turn_success)

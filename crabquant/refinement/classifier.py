@@ -29,11 +29,12 @@ def classify_failure(
         sharpe_target: Sharpe ratio target for the low_sharpe catch-all.
     """
 
-    # 1. Too few trades
-    if result.num_trades < 5:
+    # 1. Too few trades (below validation minimum)
+    if result.num_trades < 20:
         return (
             "too_few_trades",
-            f"Only {result.num_trades} trades (min 5). Strategy is too selective.",
+            f"Only {result.num_trades} trades (min 20 for validation). "
+            f"Strategy is too selective — simplify entry conditions or shorten lookback periods.",
         )
 
     # 2. Flat signal (no meaningful activity)

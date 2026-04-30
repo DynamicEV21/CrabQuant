@@ -1,9 +1,15 @@
 {
   "running_count": 49,
-  "total_mandates": 96,
-  "convergence_rate": 0.2765957446808511,
-  "wave_progress": 0.6736607142857144,
+  "total_mandates": 97,
+  "convergence_rate": 0.2708333333333333,
+  "wave_progress": 0.6770250368188513,
   "best_strategies": [
+    {
+      "mandate_name": "momentum_googl",
+      "best_sharpe": 2.417704920539824,
+      "best_turn": 1,
+      "status": "max_turns_exhausted"
+    },
     {
       "mandate_name": "momentum_googl",
       "best_sharpe": 2.188954944584191,
@@ -26,12 +32,6 @@
       "mandate_name": "multi_rsi_googl",
       "best_sharpe": 1.7059361666878445,
       "best_turn": 4,
-      "status": "success"
-    },
-    {
-      "mandate_name": "Momentum Strategy for SPY",
-      "best_sharpe": 1.6769364708542696,
-      "best_turn": 3,
       "status": "success"
     }
   ],
@@ -331,5 +331,5 @@
       "best_sharpe": 1.0504761504747684
     }
   ],
-  "timestamp": "2026-04-29T23:40:51.328615+00:00"
+  "timestamp": "2026-04-30T01:18:35.700671+00:00"
 }

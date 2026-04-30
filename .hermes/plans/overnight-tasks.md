@@ -462,3 +462,23 @@ If you complete all tasks above, keep going using VISION.md. Legacy items (compl
   - Commit: f522f31. Tests: 4430 passing (up from 4411).
   - **REMAINING**: Run live mandates to verify all improvements work end-to-end.
 
+- [2026-04-30 00:xx] **CYCLE 18 — P1: Live Mandate Verification + Bug Fixes**
+  - Started with uncommitted Phase 6 code (signal_analysis.py, diagnostics.py, refinement_loop.py changes).
+  - **FIX**: `diagnostics.py` signal density pre-check used invalid `start_date`/`end_date` kwargs on `BacktestResult` constructor. Replaced with all required fields (ticker, strategy_name, iteration, avg_trade_return, calmar_ratio, sortino_ratio, etc.). Commit: 50b96e6.
+  - **Worker 1 (tests)**: Wrote 54 unit tests for `signal_analysis.py`. Found and fixed bug: `entry_rate` referenced as local variable but never assigned (should be `result["entry_rate"]`). Commit: a844044.
+  - **Worker 2 (live mandate)**: Ran 2-turn smoke test on GOOGL (sharpe_target=5.0, 84s total).
+    - Turn 1: Sharpe 2.42, 9 trades, low_sharpe → novel
+    - Turn 2: Sharpe 0.34, 6 trades, regressed (LLM chose wrong direction)
+    - Feature verification:
+      - ✅ Feature importance (both turns)
+      - ✅ Sharpe Root Cause Analyzer (Turn 2)
+      - ✅ Stagnation detection (both turns)
+      - ✅ Semantic action validator (Turn 2: new_strategy → novel)
+      - ⚠️ Signal density pre-check (didn't fire — signals were OK, correct behavior)
+      - ⚠️ Regime diagnosis (didn't fire — failure was low_sharpe, not regime_fragility)
+      - ❌ Parallel spawning (not enabled by default in mandate JSON)
+    - **FOUND**: Turn numbering off-by-one — context_builder added +1 to state.current_turn, making LLM see "Turn 2/2" for the first turn.
+  - **FIX**: Removed `+1` from context_builder.py (2 locations). Updated 4 test assertions. Commit: c02caf0.
+  - All 4567 tests passing.
+  - **REMAINING**: Run more live mandates with real sharpe targets to measure per-turn success rate improvement.
+

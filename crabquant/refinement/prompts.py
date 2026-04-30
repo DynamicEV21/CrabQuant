@@ -724,7 +724,7 @@ def build_failure_guidance(
             "{sharpe_diagnosis}"
         ),
         "too_few_trades": (
-            "### ⚠️ Too Few Trades ({trades} trades, minimum 5)\n"
+            "### ⚠️ Too Few Trades ({trades} trades, minimum 20 for validation)\n"
             "Your strategy's entry conditions are too restrictive, causing very few trades. "
             "With so few trades, the Sharpe ratio is unreliable (could be luck).\n\n"
             "**What to do (pick ONE):**\n"

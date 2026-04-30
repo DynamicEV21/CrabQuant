@@ -668,6 +668,24 @@ def build_llm_context(
             # If prompt building fails, let call_llm_inventor use its fallback
             logger.warning("Turn 2+ prompt build failed, falling back to per-field prompt")
 
+    # ── CRITICAL: Append context fields that the pre-built prompt misses ──
+    # build_turn1_prompt / build_refinement_prompt produce context["prompt"]
+    # which call_llm_inventor uses directly (line 314-315), bypassing the
+    # fallback branch that would consume these keys individually.
+    # Without this, multi_ticker_feedback, crash_error_feedback, and
+    # action_analytics are computed but silently dropped — never reach the LLM.
+    prompt = context.get("prompt", "")
+    append_sections = []
+    if context.get("multi_ticker_feedback"):
+        append_sections.append(context["multi_ticker_feedback"])
+    if context.get("crash_error_feedback"):
+        append_sections.append(context["crash_error_feedback"])
+    if context.get("action_analytics"):
+        append_sections.append(context["action_analytics"])
+    if append_sections:
+        prompt = prompt.rstrip() + "\n\n" + "\n\n".join(append_sections)
+        context["prompt"] = prompt
+
     return context
 
 
