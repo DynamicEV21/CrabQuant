@@ -20,3 +20,36 @@
 - Fix: Wrapped append_sections in `if prompt:` guard so it only runs when a prompt was actually built.
 
 **Test results**: 4568 passed, 1 skipped, 0 failures.
+
+---
+
+## 2026-04-30 07:15 UTC — Cycle 20: Wire Dead Code Modules (code_quality_check + positive_feedback)
+
+### Commit 354070e: Wire code_quality_check into refinement loop before backtesting
+- **Problem**: `code_quality_check.py` module existed (491 lines, 786 tests) with `check_code_quality()` and `format_code_quality_for_prompt()` but was never imported or called in `scripts/refinement_loop.py` or `context_builder.py`. Dead code.
+- **Fix**: Added import in `refinement_loop.py`. Inserted code quality pre-check block after validation gates pass but before backtesting:
+  - Reject verdict (score < 0.50): skips backtesting, stores feedback on `state.code_quality_feedback`, records `code_quality_rejected` in history
+  - Warning verdict (score < 0.75): proceeds to backtesting but stores feedback for LLM
+  - Good verdict: proceeds, clears previous feedback
+- Added `code_quality_feedback: str = ""` field to `RunState` in `schemas.py`
+- Wired feedback into `context_builder.py` append_sections — appears as "## ⛔ CODE QUALITY PRE-CHECK FAILED" in prompt
+- 24 integration tests in `test_code_quality_integration.py`
+
+### Commit e881a9e: Wire positive_feedback analyzer into refinement loop context
+- **Problem**: `positive_feedback.py` module existed with `analyze_positive_feedback()` and `format_positive_feedback_for_prompt()` but was never imported or called in `context_builder.py`. Dead code.
+- **Fix**: Wired into `context_builder.py`'s `build_llm_context()`:
+  - Calls `analyze_positive_feedback()` on latest backtest report
+  - Scans up to 3 historical successful turns (where sharpe_target_hit=True)
+  - Sets `positive_feedback_section` in context dict
+  - Only emits section when strengths are non-empty (avoids noise on early iterations)
+  - Placed in append_sections between param_optimization and gate_validation (positive-before-negative framing)
+- 21 integration tests in `test_positive_feedback_integration.py`
+
+### Impact
+- Both modules were built in prior cycles but never wired — classic "build but not integrate" gap
+- Code quality pre-check catches anti-patterns (flat signals, no generate_signals, over-complexity) BEFORE wasting a backtest
+- Positive feedback prevents LLM regression by reinforcing what worked
+- Test suite: 4867 → 4912 passed (+45 new integration tests)
+
+### Live Mandate
+- Running `momentum_aapl` mandate (sharpe_target=1.5, max_turns=5) to verify wiring end-to-end

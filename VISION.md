@@ -391,30 +391,54 @@ def time_reversed_check(strategy_fn, data, threshold=0.3):
 
 **Why this matters:** Trivially implementable (reverse a DataFrame), catches the most insidious form of overfitting — the kind where the strategy accidentally memorizes temporal structure.
 
-### Enhancement 8: Forced Structural Exploration on Plateau
+### Enhancement 8: Mandate-Aware Forced Exploration on Plateau
 
-**File:** `crabquant/refinement/stagnation.py` — add forced diversity trigger (~60 lines)
-**Source:** dietmarwo/autoresearch-trading's explore/exploit alternation
-**Problem:** CrabQuant's stagnation detection exists but only detects "stuck" — it doesn't force the LLM to try a structurally different approach. When one strategy family dominates but fails, the LLM keeps generating variants of that family for all 7 turns, wasting them.
-**Solution:** Track strategy families across turns. If the same family appears 3+ times without a KEEP, inject a nuclear prompt:
+**File:** `crabquant/refinement/stagnation.py` — enhance existing stagnation with forced pivot (~80 lines)
+**Source:** dietmarwo/autoresearch-trading's explore/exploit alternation (adapted for mandate system)
+**Problem:** `stagnation.py` already detects indicator ruts (`track_indicator_diversity`) and stagnation traps (`detect_stagnation_trap`), but only *suggests* alternatives — it never forces a structural pivot. The LLM keeps generating variants of the same family for all 7 turns, wasting them. Crucially, this must **respect the mandate's archetype** — a manual `momentum_aapl.json` mandate should not get hijacked into mean reversion.
+**Solution:** Two-tier pivot system. On 3+ consecutive failures in same family without a KEEP:
+
+1. **Within-archetype pivot** (always, respects mandate): Force different indicators, logic structure, or timeframe within the same strategy family
+2. **Cross-archetype pivot** (only when mandate allows): Jump to a completely different family
 
 ```python
-def check_family_plateau(turn_history, max_same_family=3):
+def check_family_plateau(turn_history, mandate, max_same_family=3):
+    """Check if LLM is stuck in a strategy rut. Returns (should_pivot, pivot_type, message)."""
     families = [classify_family(t) for t in turn_history]
     recent = families[-max_same_family:]
-    if len(set(recent)) == 1 and all(t.status != "keep" for t in turn_history[-max_same_family:]):
-        return True, f"All {max_same_family} recent turns used {recent[0]}. Force structural pivot."
-    return False, None
+    recent_statuses = [t.status for t in turn_history[-max_same_family:]]
 
-NUCLEAR_PROMPT = """STOP refining {family} strategies. They are not working for this ticker/market.
-You must now try a COMPLETELY DIFFERENT approach:
-- If you were using momentum, try mean reversion or volatility breakout
-- If you were using indicators, try price action or volume patterns
-- If you were using single timeframe, try multi-timeframe
-Do NOT submit anything similar to your previous attempts."""
+    if not (len(set(recent)) == 1 and all(s != "keep" for s in recent_statuses)):
+        return False, None, None
+
+    stuck_family = recent[0]
+    mandate_arch = mandate.get("strategy_archetype", "")
+    allow_cross = mandate.get("force_diversify", False)  # Only auto-generated mandates default True
+
+    if stuck_family == mandate_arch and not allow_cross:
+        # Within-archetype: different indicators, logic, timeframe
+        return True, "within", (
+            f"STUCK: All {max_same_family} turns used {stuck_family} indicators with no progress.\n"
+            f"You MUST use a completely different set of {stuck_family} indicators and logic structure.\n"
+            f"Try a different approach within {stuck_family}: "
+            f"if using MACD try ROC/TSI, if using single timeframe try multi-timeframe, "
+            f"if using entry signals try a filter-based approach.\n"
+            f"Do NOT repeat your previous indicator combination."
+        )
+    else:
+        # Cross-archetype: completely different family
+        alternatives = [f for f in _INDICATOR_FAMILIES if f != stuck_family]
+        alt_hint = ", ".join(alternatives[:3])
+        return True, "cross", (
+            f"STUCK: All {max_same_family} turns used {stuck_family} strategies with no progress.\n"
+            f"You must switch to a DIFFERENT strategy family entirely: {alt_hint}.\n"
+            f"Do NOT use any {stuck_family} indicators on the next turn."
+        )
 ```
 
-**Impact:** 25% of failures are regime_fragility — forcing a structural pivot when the current family is dead would recover some of those turns.
+**Mandate field:** Add `"force_diversify": true` to auto-generated mandates. Manual mandates default to `false`, preserving user intent when deliberately exploring a specific archetype.
+
+**Impact:** 25% of failures are regime_fragility — forcing within-archetype structural pivots recovers wasted turns without breaking deliberate deep-dives.
 
 ### Enhancement 9: Error-Type-Specific Repair Prompts
 
@@ -466,22 +490,31 @@ def hodl_penalty(strategy_return, benchmark_return, threshold=0.8):
     return 0.0
 ```
 
-### Enhancement 12: Fast-Fail Walk-Forward
+### Enhancement 12: Tighten Walk-Forward Pass Criteria
 
-**File:** `crabquant/refinement/walk_forward.py` — add early abort (~15 lines)
-**Source:** CarloNicolini/autoresearch-skfolio's fast-fail mechanism
-**Problem:** Walk-forward runs 6 windows. If the first 2 windows have terrible Sharpe (< 0.2), the remaining 4 are almost certainly going to fail too. Running them wastes ~40 seconds per strategy.
-**Solution:**
+**File:** `crabquant/refinement/config.py` — raise thresholds (config change only)
+**Problem:** Current walk-forward pass criteria are dangerously permissive. With 6 rolling windows (18mo train / 6mo test / 6mo step over 5y data), only `min_avg_test_sharpe >= 0.3` and `min_windows_passed >= 1` are required. A strategy that works in just 1 out of 6 time windows and has a mediocre average Sharpe gets promoted. This is a major source of the 6.8% success rate — flukes pass validation and then fail in production.
+
+**Probability argument:** If first 2 windows average Sharpe ~0.1, the remaining 4 must each average ≥0.4 to hit the 0.3 floor — meaning each remaining window must exceed the threshold itself. The chance of a strategy that fails in 2 distinct time periods suddenly thriving in 4 others is under 5%.
+
+**Solution:** Tighten thresholds in `VALIDATION_CONFIG`:
 
 ```python
-def walk_forward_fast_fail(folds, min_first_n=2, min_median_sharpe=0.2):
-    """Abort walk-forward early if first N folds are terrible."""
-    early_results = folds[:min_first_n]
-    early_sharpes = [f.test_sharpe for f in early_results]
-    if np.median(early_sharpes) < min_median_sharpe:
-        return None, f"Fast-fail: first {min_first_n} folds median Sharpe {np.median(early_sharpes):.2f}"
-    return run_remaining_folds(folds), None
+VALIDATION_CONFIG: dict = {
+    # rolling_walk_forward() — tightened thresholds
+    "min_avg_test_sharpe": 0.4,        # was 0.3 — raise the floor
+    "min_windows_passed": 3,            # was 1 — require majority (3/6 windows)
+    "min_window_test_sharpe": 0.1,      # was 0.0 (disabled) — each window must be at least slightly positive
+    "max_window_degradation": 0.8,      # was 1.0 (disabled) — cap train→test drop at 80%
+    ...
+}
 ```
+
+**Why 3/6 windows:** Majority rule ensures the strategy works in *most* time periods, not just one lucky one. With 6 windows covering different market regimes (bull, bear, sideways, volatile, etc.), passing 3 means the strategy has genuine edge across at least half the observed market conditions.
+
+**Impact:** Directly filters out fluke strategies before they reach the winners pool. Will initially reduce the number of promoted strategies but dramatically increase the quality of those that pass — directly attacking the 6.8% success rate from the validation gate rather than trying to fix bad strategies downstream.
+
+**Optional follow-up:** Add fast-fail optimization (~15 lines in `validation/__init__.py`) to abort after first 2 windows if median Sharpe < 0.15, saving ~40 seconds per garbage strategy. This is a performance optimization, not a quality improvement — tighten the bar first.
 
 ### Enhancement 13: Missing Crypto Indicators
 
@@ -525,25 +558,27 @@ def build_ticker_alpha_feedback(ticker_results):
 | # | Enhancement | Impact on 6.8% success rate | Effort | Why |
 |---|---|---|---|---|
 | **1** | **scipy DE optimizer** | 🔴 HIGH | 2-3h | Many strategies fail on params, not logic. 20→1000+ evals |
-| **8** | **Forced structural exploration** | 🔴 HIGH | 1-2h | Breaks family-dominated plateaus (25% of failures) |
+| **12** | **Tighten walk-forward criteria** | 🔴 HIGH | 15min | Config-only: 1/6→3/6 windows, enables per-window floor. Directly attacks 6.8% |
+| **8** | **Mandate-aware forced exploration** | 🔴 HIGH | 1-2h | Breaks family plateaus (25% failures). Within-archetype pivot respects mandate |
 | **9** | **Error-type-specific repair** | 🔴 HIGH | 1h | Saves repair turns. Different error = different fix |
 | **7** | **Time-reversed validation** | 🔴 HIGH | 30min | Catches overfitting false winners. 5 lines of code |
 | **10** | **Degenerate strategy rejection** | 🟡 HIGH | 30min | Instant-reject zero-trade strategies (24% of failures) |
+| **1** | **scipy DE optimizer** | 🟡 HIGH | 2-3h | Many strategies fail on params, not logic. 20→1000+ evals |
 | **4** | **Explainer Agent** | 🟡 MEDIUM | 1-2h | Better feedback loop for LLM |
 | **14** | **Per-ticker alpha in prompts** | 🟡 MEDIUM | 1h | Helps fix regime_fragility (25% of failures) |
 | **3** | **Complexity scoring** | 🟡 MEDIUM | 2-3h | Penalizes overfit, improves promotion quality |
 | **11** | **HODL baseline comparison** | 🟡 MEDIUM | 1h | Prevents promoting strategies that underperform buy-and-hold |
-| **12** | **Fast-fail walk-forward** | 🟡 MEDIUM | 30min | Saves ~40s per bad strategy. Allows more attempts per mandate |
 | **2** | **Deflated Sharpe Ratio** | 🟡 MEDIUM | 2-3h | Prevents accepting statistical noise after 4,614 trials |
 | **13** | **Missing crypto indicators** | 🟢 LOW | 2h | More tools for LLM. Won't move success rate directly |
 | **5** | **AST sanitizer (enhanced)** | 🟢 LOW | 2h | Security hardening. Add dunder blocking + AST look-ahead check |
 | **6** | **dietmarwo ports (shadow replay, family labeling)** | 🟢 LOW | 3h | Polish, not core pipeline improvement |
 
 **Recommended implementation order:**
-1. **Quick wins** (30min each): Time-reversed validation (#7) → Degenerate rejection (#10) → Fast-fail (#12)
-2. **High-impact** (1-2h each): Forced exploration (#8) → Error-type repair (#9) → Per-ticker alpha (#14)
-3. **Core upgrades** (2-3h each): scipy DE (#1) → Explainer Agent (#4) → Complexity (#3) → Deflated Sharpe (#2)
-4. **Polish** (1-3h each): HODL baseline (#11) → Indicators (#13) → Enhanced sanitizer (#5) → Shadow replay/families (#6)
+1. **Config fix** (15min): Tighten walk-forward criteria (#12) — biggest bang for zero code
+2. **Quick wins** (30min each): Time-reversed validation (#7) → Degenerate rejection (#10)
+3. **High-impact** (1-2h each): Mandate-aware exploration (#8) → Error-type repair (#9) → Per-ticker alpha (#14)
+4. **Core upgrades** (2-3h each): scipy DE (#1) → Explainer Agent (#4) → Complexity (#3) → Deflated Sharpe (#2)
+5. **Polish** (1-3h each): HODL baseline (#11) → Indicators (#13) → Enhanced sanitizer (#5) → Shadow replay/families (#6)
 
 **Estimated total impact:** Implementing the 3 quick wins + 3 high-impact items could move 6.8% → **15-20%**. The core upgrades push toward **25%+**.
 

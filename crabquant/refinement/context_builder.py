@@ -859,11 +859,108 @@ def build_llm_context(
             append_sections.append(
                 f"\n## ⚠️ STRATEGY REVERTED\n\n{revert_notice}\n"
             )
+        # Enhancement 14: Per-ticker alpha decomposition — show LLM what HASN'T
+        # worked for each ticker so it avoids repeating failed approaches.
+        try:
+            ticker_alpha = build_ticker_alpha_context(
+                ticker=(mandate.get("tickers") or ["SPY"])[0],
+                turn_history=getattr(state, "history", []),
+            )
+            if not ticker_alpha.startswith("No prior data"):
+                append_sections.append(
+                    f"\n## 📊 Per-Ticker Alpha Decomposition\n\n{ticker_alpha}\n"
+                )
+        except Exception:
+            pass  # Non-critical
         if append_sections:
             prompt = prompt.rstrip() + "\n\n" + "\n\n".join(append_sections)
             context["prompt"] = prompt
 
     return context
+
+
+def build_ticker_alpha_context(ticker: str, turn_history: list) -> str:
+    """Build per-ticker alpha decomposition summary for LLM prompts.
+
+    Scans turn_history for all turns involving *ticker*, groups by
+    archetype/indicator family, and returns a concise summary so the LLM
+    knows what approaches have already been tried on this ticker and
+    which showed promise.
+
+    Only archetypes with 2+ attempts are included (one-offs are noise).
+
+    Args:
+        ticker: Uppercase ticker symbol (e.g. "AAPL").
+        turn_history: List of history-entry dicts from RunState.history.
+
+    Returns:
+        Formatted string for prompt injection, or a "no data" message.
+    """
+    ticker_upper = ticker.upper()
+    # Collect relevant turns
+    relevant = [
+        h for h in turn_history
+        if h.get("ticker", "").upper() == ticker_upper
+        and h.get("sharpe") is not None
+    ]
+    if not relevant:
+        return f"No prior data for {ticker_upper}."
+
+    # Group by archetype
+    groups: dict[str, list[dict]] = {}
+    for entry in relevant:
+        archetype = entry.get("archetype", "unknown")
+        groups.setdefault(archetype, []).append(entry)
+
+    # Build per-archetype lines (skip families with < 2 attempts)
+    lines = [f"{ticker_upper} past attempts ({len(relevant)} turns):"]
+    family_stats: list[tuple[str, float, float, int, int]] = []
+
+    for archetype, entries in sorted(groups.items()):
+        if len(entries) < 2:
+            continue
+        sharpes = [e["sharpe"] for e in entries]
+        avg_sharpe = sum(sharpes) / len(sharpes)
+        best_sharpe = max(sharpes)
+        total_trades = sum(e.get("num_trades", 0) for e in entries)
+        # "passed" means sharpe >= 1.0 or status indicates success
+        passed = sum(
+            1 for e in entries
+            if e["sharpe"] >= 1.0 or e.get("status") == "promoted"
+        )
+        # Extract primary indicator from action or indicators field
+        indicators = entry.get("indicators", [])
+        if isinstance(indicators, list) and indicators:
+            ind_label = indicators[0]
+        else:
+            ind_label = archetype
+        lines.append(
+            f"  - {archetype} ({ind_label}): avg Sharpe {avg_sharpe:.2f}, "
+            f"best {best_sharpe:.2f} ({passed}/{len(entries)} passed initial screen)"
+        )
+        family_stats.append((archetype, avg_sharpe, best_sharpe, passed, len(entries)))
+
+    if len(lines) == 1:
+        # All archetypes were one-offs
+        return f"No prior data for {ticker_upper}."
+
+    # Cap at 10 lines total (header + up to 9 archetype lines)
+    if len(lines) > 10:
+        lines = lines[:10]
+
+    # Add suggestion: highlight best-performing family and worst
+    if family_stats:
+        best = max(family_stats, key=lambda s: s[2])  # best best_sharpe
+        worst = min(family_stats, key=lambda s: s[1])  # worst avg_sharpe
+        suggestion_parts = []
+        if worst[1] < 0:
+            suggestion_parts.append(f"Avoid {worst[0]} on {ticker_upper}")
+        if best[2] > 0:
+            suggestion_parts.append(f"{best[0]} shows promise")
+        if suggestion_parts:
+            lines.append(f"Suggestion: {', '.join(suggestion_parts)}.")
+
+    return "\n".join(lines)
 
 
 def _format_multi_ticker_feedback(mt_results: dict) -> str:

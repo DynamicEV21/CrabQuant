@@ -5,6 +5,7 @@ Tests various history patterns to ensure stagnation scoring works correctly.
 import pytest
 from crabquant.refinement.stagnation import (
     build_stagnation_recovery,
+    check_family_plateau,
     check_hypothesis_failure_alignment,
     classify_indicator,
     compute_stagnation,
@@ -531,3 +532,159 @@ class TestBuildStagnationRecovery:
     def test_unknown_trap_returns_empty(self):
         trap_info = {"trap": "unknown_trap", "severity": "high", "turns_in_trap": 1}
         assert build_stagnation_recovery(trap_info) == ""
+
+
+class TestCheckFamilyPlateau:
+    """Test mandate-aware forced exploration on plateau (Enhancement 8)."""
+
+    def _momentum_turn(self, status: str = "REJECT") -> dict:
+        """Create a turn dict that classifies as 'momentum' family."""
+        return {
+            "status": status,
+            "code": 'cached_indicator("ema", 12)\ncached_indicator("macd", 14)',
+        }
+
+    def _mean_reversion_turn(self, status: str = "REJECT") -> dict:
+        """Create a turn dict that classifies as 'mean_reversion' family."""
+        return {
+            "status": status,
+            "code": 'cached_indicator("rsi", 14)\ncached_indicator("bbands", 20)',
+        }
+
+    # ── Within-archetype pivot ────────────────────────────────────────
+
+    def test_within_archetype_pivot_when_mandate_matches(self):
+        """Mandate=momentum, stuck on momentum, no force_diversify → 'within'."""
+        history = [self._momentum_turn() for _ in range(3)]
+        mandate = {"strategy_archetype": "momentum"}
+        should_pivot, pivot_type, message = check_family_plateau(history, mandate)
+        assert should_pivot is True
+        assert pivot_type == "within"
+        assert "momentum" in message
+        assert "STUCK" in message
+
+    def test_within_archetype_message_suggests_alternatives(self):
+        """Within-archetype message should mention trying different indicators."""
+        history = [self._momentum_turn() for _ in range(3)]
+        mandate = {"strategy_archetype": "momentum"}
+        _, _, message = check_family_plateau(history, mandate)
+        assert "MACD" in message
+        assert "ROC" in message
+
+    # ── Cross-archetype pivot ─────────────────────────────────────────
+
+    def test_cross_archetype_pivot_when_force_diversify(self):
+        """Mandate=momentum, stuck on momentum, force_diversify=True → 'cross'."""
+        history = [self._momentum_turn() for _ in range(3)]
+        mandate = {"strategy_archetype": "momentum", "force_diversify": True}
+        should_pivot, pivot_type, message = check_family_plateau(history, mandate)
+        assert should_pivot is True
+        assert pivot_type == "cross"
+        assert "STUCK" in message
+
+    def test_cross_archetype_pivot_when_family_mismatches_mandate(self):
+        """Mandate=trend, stuck on momentum → 'cross' (family != archetype)."""
+        history = [self._momentum_turn() for _ in range(3)]
+        mandate = {"strategy_archetype": "trend"}
+        should_pivot, pivot_type, message = check_family_plateau(history, mandate)
+        assert should_pivot is True
+        assert pivot_type == "cross"
+
+    def test_cross_archetype_lists_alternative_families(self):
+        """Cross-archetype message should list families excluding the stuck one."""
+        history = [self._momentum_turn() for _ in range(3)]
+        mandate = {"strategy_archetype": "mean_reversion"}
+        _, _, message = check_family_plateau(history, mandate)
+        assert "mean_reversion" in message  # listed as alternative
+        assert "Do NOT use any momentum" in message
+
+    # ── No pivot cases ────────────────────────────────────────────────
+
+    def test_no_pivot_when_diverse_families(self):
+        """Different families in recent turns → no pivot."""
+        history = [
+            self._momentum_turn(),
+            self._mean_reversion_turn(),
+            self._momentum_turn(),
+        ]
+        mandate = {"strategy_archetype": "momentum"}
+        should_pivot, pivot_type, message = check_family_plateau(history, mandate)
+        assert should_pivot is False
+        assert pivot_type is None
+        assert message is None
+
+    def test_no_pivot_when_keep_in_history(self):
+        """A KEEP status in recent history suppresses the pivot."""
+        history = [
+            self._momentum_turn(status="REJECT"),
+            self._momentum_turn(status="KEEP"),
+            self._momentum_turn(status="REJECT"),
+        ]
+        mandate = {"strategy_archetype": "momentum"}
+        should_pivot, pivot_type, message = check_family_plateau(history, mandate)
+        assert should_pivot is False
+        assert pivot_type is None
+
+    def test_no_pivot_when_keep_case_insensitive(self):
+        """KEEP status matching is case-insensitive."""
+        history = [
+            self._momentum_turn(status="reject"),
+            self._momentum_turn(status="keep"),
+            self._momentum_turn(status="reject"),
+        ]
+        mandate = {"strategy_archetype": "momentum"}
+        should_pivot, pivot_type, _ = check_family_plateau(history, mandate)
+        assert should_pivot is False
+
+    def test_no_pivot_when_too_few_turns(self):
+        """Fewer turns than max_same_family → no pivot."""
+        history = [self._momentum_turn(), self._momentum_turn()]
+        mandate = {"strategy_archetype": "momentum"}
+        should_pivot, pivot_type, _ = check_family_plateau(history, mandate)
+        assert should_pivot is False
+
+    def test_no_pivot_when_unknown_family(self):
+        """Turns that classify as 'unknown' don't trigger a pivot."""
+        history = [
+            {"status": "REJECT", "params_used": {"foo_bar": 1}},
+            {"status": "REJECT", "params_used": {"baz_qux": 2}},
+            {"status": "REJECT", "params_used": {"random_key": 3}},
+        ]
+        mandate = {"strategy_archetype": "momentum"}
+        should_pivot, pivot_type, _ = check_family_plateau(history, mandate)
+        assert should_pivot is False
+
+    # ── Edge cases ────────────────────────────────────────────────────
+
+    def test_params_used_fallback_classification(self):
+        """Family inferred from params_used keys when no code is present."""
+        history = [
+            {"status": "REJECT", "params_used": {"ema_fast": 12, "ema_slow": 26}},
+            {"status": "REJECT", "params_used": {"macd_fast": 12, "macd_slow": 26}},
+            {"status": "REJECT", "params_used": {"sma_period": 50}},
+        ]
+        mandate = {"strategy_archetype": "momentum"}
+        should_pivot, pivot_type, message = check_family_plateau(history, mandate)
+        assert should_pivot is True
+        assert pivot_type == "within"
+
+    def test_custom_max_same_family(self):
+        """Respects custom max_same_family threshold."""
+        history = [self._momentum_turn() for _ in range(4)]
+        mandate = {"strategy_archetype": "momentum"}
+        # With max_same_family=4, 4 turns should trigger
+        should_pivot, _, _ = check_family_plateau(
+            history, mandate, max_same_family=4
+        )
+        assert should_pivot is True
+        # With max_same_family=5, 4 turns should NOT trigger
+        should_pivot, _, _ = check_family_plateau(
+            history, mandate, max_same_family=5
+        )
+        assert should_pivot is False
+
+    def test_empty_history(self):
+        should_pivot, pivot_type, _ = check_family_plateau(
+            [], {"strategy_archetype": "momentum"}
+        )
+        assert should_pivot is False

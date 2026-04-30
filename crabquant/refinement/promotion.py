@@ -65,6 +65,8 @@ def run_full_validation_check(
     use_rolling: bool = True,
     rolling_config: dict | None = None,
     is_regime_specific: bool = False,
+    n_trials: int = 1,
+    observed_sharpe: float | None = None,
 ) -> dict[str, Any]:
     """Run rolling walk-forward + cross-ticker validation before promoting.
 
@@ -90,10 +92,16 @@ def run_full_validation_check(
             test_window, step, min_avg_test_sharpe, min_windows_passed.
         is_regime_specific: If True, apply relaxed thresholds (regime-specific
             strategies don't need to work everywhere — just in their regime).
+        n_trials: Total number of independent experiments run.  Used for
+            Deflated Sharpe Ratio computation (multiple-testing correction).
+            Default 1 (no correction).
+        observed_sharpe: Observed annualised Sharpe ratio.  If not provided,
+            derived from walk-forward test Sharpe.
 
     Returns:
         Dict with keys: passed, walk_forward_robust, cross_ticker_robust,
-        walk_forward, cross_ticker, error, validation_method, is_regime_specific.
+        walk_forward, cross_ticker, error, validation_method, is_regime_specific,
+        deflated_sharpe.
     """
     from crabquant.validation import (
         walk_forward_test,
@@ -125,6 +133,7 @@ def run_full_validation_check(
         "error": None,
         "validation_method": "rolling" if use_rolling else "single_split",
         "is_regime_specific": is_regime_specific,
+        "deflated_sharpe": None,
     }
 
     # Merge rolling config from VALIDATION_CONFIG + caller overrides
@@ -209,6 +218,27 @@ def run_full_validation_check(
         result["walk_forward_robust"] = wf_pass
         result["cross_ticker_robust"] = ct_pass
         result["passed"] = wf_pass and ct_pass
+
+        # ── Deflated Sharpe Ratio (multiple-testing correction) ──
+        try:
+            from crabquant.refinement.deflated_sharpe import deflated_sharpe as _dsr
+
+            # Determine observed Sharpe for DSR computation
+            _sr = observed_sharpe
+            if _sr is None:
+                if use_rolling and result["walk_forward"]:
+                    _sr = result["walk_forward"].get("avg_test_sharpe", 0.0)
+                elif result["walk_forward"]:
+                    _sr = result["walk_forward"].get("test_sharpe", 0.0)
+            if _sr is not None:
+                dsr = _dsr(sharpe=_sr, n_trials=n_trials)
+                result["deflated_sharpe"] = round(dsr, 4)
+                logger.info(
+                    "Deflated Sharpe: %.4f (observed=%.2f, n_trials=%d)",
+                    dsr, _sr, n_trials,
+                )
+        except Exception as e:
+            logger.warning("Deflated Sharpe computation failed: %s", e)
 
     except Exception as e:
         logger.error("Full validation error: %s", e)

@@ -29,3 +29,4 @@ from crabquant.refinement.state import DaemonState
 from crabquant.refinement.context_builder import build_llm_context
 from crabquant.refinement.llm_api import call_zai_llm, call_llm_inventor
 from crabquant.refinement.diagnostics import run_backtest_safely, compute_sharpe_by_year, compute_strategy_hash, compute_tier2_diagnostics
+from crabquant.refinement.deflated_sharpe import deflated_sharpe, deflated_sharpe_ratio

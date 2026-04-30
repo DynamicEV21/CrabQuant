@@ -16,6 +16,83 @@ import httpx
 logger = logging.getLogger(__name__)
 
 
+# ── Error-Type-Specific Repair Guidance (Enhancement 9) ──────────────────
+
+_REPAIR_GUIDANCE: dict[type, str] = {
+    SyntaxError: (
+        "Check indentation — Python uses 4-space indent, not tabs. "
+        "Check for missing colons after if/for/def/with. "
+        "Verify all brackets/parentheses are balanced."
+    ),
+    IndentationError: (
+        "Fix indentation. All code inside if/for/def/with/class must be "
+        "indented 4 spaces more than the parent line."
+    ),
+    ImportError: (
+        "Module not available. Use only: numpy (np), pandas (pd), numba, math, "
+        "and functions from strategy_helpers.py via cached_indicator. Check spelling."
+    ),
+    ModuleNotFoundError: (
+        "Module not available. Use only: numpy (np), pandas (pd), numba, math, "
+        "and functions from strategy_helpers.py via cached_indicator. Check spelling."
+    ),
+    TypeError: (
+        "Wrong number of arguments or wrong types passed to a function. "
+        "Check function signatures carefully — indicator functions have "
+        "specific required arguments (e.g., ATR needs high, low, close)."
+    ),
+    NameError: (
+        "Variable or function not defined. Check for typos. "
+        "Available functions are listed in strategy_helpers.py. "
+        "Verify the variable is in scope."
+    ),
+    IndexError: (
+        "Array index out of bounds. Your lookback window exceeds available data. "
+        "Check array lengths before indexing with len() or .shape."
+    ),
+    KeyError: (
+        "Dictionary key not found. Check column names in the DataFrame "
+        "(available: open, high, low, close, volume). Check dict keys."
+    ),
+    ValueError: (
+        "Invalid value — likely NaN, inf, or negative where positive expected. "
+        "Add guards: df.dropna(), np.isfinite(), or max(x, 1e-8) for denominators."
+    ),
+    ZeroDivisionError: (
+        "Division by zero. Add a small epsilon (1e-8) to denominators, "
+        "or check for zero before dividing."
+    ),
+    AttributeError: (
+        "Object has no such attribute. Check the type of the object and "
+        "verify the correct method/attribute name. Common: DataFrame vs Series methods."
+    ),
+}
+
+_DEFAULT_GUIDANCE = (
+    "Analyze the error traceback carefully and fix the root cause. "
+    "Ensure your strategy code is self-contained with all required imports."
+)
+
+
+def get_error_specific_guidance(error: Exception) -> str:
+    """Return targeted repair advice based on the error type.
+
+    Maps common Python exceptions to concise, actionable guidance that helps
+    the LLM fix strategy code more efficiently than a generic "fix this" prompt.
+
+    Args:
+        error: The exception that was raised during strategy execution.
+
+    Returns:
+        A 1-3 line guidance string tailored to the error type.
+    """
+    # Check exact type first, then walk the MRO for subclasses
+    for exc_type, guidance in _REPAIR_GUIDANCE.items():
+        if isinstance(error, exc_type):
+            return guidance
+    return _DEFAULT_GUIDANCE
+
+
 def load_api_config() -> dict:
     """Load z.ai credentials from OpenClaw config.
     
@@ -400,8 +477,16 @@ def call_llm_inventor(
 
         # Phase 6: Inject gate validation retry feedback — critical for fixing code errors
         if context.get("retry_feedback"):
+            # Enhancement 9: Prepend error-type-specific repair guidance
+            error_guidance = ""
+            last_error = context.get("last_execution_error")
+            if last_error is not None:
+                error_guidance = get_error_specific_guidance(last_error)
+                error_guidance = f"**Error-type guidance:** {error_guidance}\n\n"
+
             user_parts.append(
                 f"\n## ⛔ GATE VALIDATION FAILED — FIX THESE ERRORS\n\n"
+                f"{error_guidance}"
                 f"{context['retry_feedback']}\n\n"
                 f"Your previous code was REJECTED by validation gates. You MUST fix the "
                 f"above errors in your new_strategy_code. Do NOT repeat the same mistake.\n"

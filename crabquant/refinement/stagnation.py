@@ -582,3 +582,131 @@ def build_stagnation_recovery(trap_info: dict) -> str:
         )
 
     return recovery_map.get(trap, "")
+
+
+# ── Phase 5.6: Mandate-Aware Forced Exploration on Plateau ─────────────────
+
+
+def _classify_turn_family(turn: dict) -> str:
+    """Classify a single turn's dominant indicator family.
+
+    Inspects the turn dict for a ``code`` field (source code string),
+    a ``code_path`` field (path to read), or ``params_used`` keys to
+    determine the primary indicator family used in that turn.
+
+    Returns the family name or ``"unknown"``.
+    """
+    # 1) Inline source code
+    code = turn.get("code", "")
+    if not code:
+        # 2) File path
+        code_path = turn.get("code_path", "")
+        if code_path:
+            try:
+                from pathlib import Path
+
+                p = Path(code_path)
+                if p.exists():
+                    code = p.read_text()
+            except (OSError, TypeError):
+                pass
+
+    if code:
+        indicators = extract_indicators_from_code(code)
+        if indicators:
+            families: list[str] = [
+                classify_indicator(ind) for ind in indicators
+                if classify_indicator(ind) != "unknown"
+            ]
+            if families:
+                # Return the most common family
+                from collections import Counter
+
+                return Counter(families).most_common(1)[0][0]
+
+    # 3) Fallback: infer from params_used keys
+    params = turn.get("params_used", {})
+    if params:
+        fam_counts: dict[str, int] = {}
+        for key in params:
+            key_lower = key.lower()
+            for family, members in _INDICATOR_FAMILIES.items():
+                for member in members:
+                    if member in key_lower:
+                        fam_counts[family] = fam_counts.get(family, 0) + 1
+        if fam_counts:
+            return max(fam_counts, key=fam_counts.get)
+
+    return "unknown"
+
+
+def check_family_plateau(
+    turn_history: list[dict],
+    mandate: dict,
+    max_same_family: int = 3,
+) -> tuple[bool, Optional[str], Optional[str]]:
+    """Check if the LLM is stuck in a strategy family rut.
+
+    Detects when the last *max_same_family* turns all used the same
+    indicator family **and** none of them had a ``"KEEP"`` status.  When
+    triggered, returns a mandate-aware pivot directive:
+
+    * **within** — the stuck family matches the mandate's
+      ``strategy_archetype`` *and* ``force_diversify`` is not set.  The
+      LLM is told to try different indicators *within* the same family.
+    * **cross** — ``force_diversify`` is ``True`` or the stuck family
+      differs from the mandate archetype.  The LLM must switch to a
+      completely different family.
+
+    Args:
+        turn_history: List of turn dicts (each with ``status``, ``code``,
+            ``code_path``, or ``params_used`` fields).
+        mandate: Mandate dict with ``strategy_archetype`` and optionally
+            ``force_diversify`` keys.
+        max_same_family: Number of consecutive same-family turns that
+            trigger a pivot.
+
+    Returns:
+        ``(should_pivot, pivot_type, message)`` where *pivot_type* is
+        ``"within"`` or ``"cross"``, or ``None`` when no pivot is needed.
+    """
+    if len(turn_history) < max_same_family:
+        return False, None, None
+
+    recent = turn_history[-max_same_family:]
+    families = [_classify_turn_family(t) for t in recent]
+    statuses = [t.get("status", "") for t in recent]
+
+    # All same family AND none are KEEP
+    if not (len(set(families)) == 1 and families[0] != "unknown"
+            and all(s.upper() != "KEEP" for s in statuses)):
+        return False, None, None
+
+    stuck_family = families[0]
+    mandate_arch = mandate.get("strategy_archetype", "")
+    allow_cross = mandate.get("force_diversify", False)
+
+    if stuck_family == mandate_arch and not allow_cross:
+        # Within-archetype: different indicators / logic / timeframe
+        return True, "within", (
+            f"STUCK: All {max_same_family} turns used {stuck_family} "
+            f"indicators with no progress.\n"
+            f"You MUST use a completely different set of {stuck_family} "
+            f"indicators and logic structure.\n"
+            f"Try a different approach within {stuck_family}: "
+            f"if using MACD try ROC/TSI, if using single timeframe "
+            f"try multi-timeframe, if using entry signals try a "
+            f"filter-based approach.\n"
+            f"Do NOT repeat your previous indicator combination."
+        )
+
+    # Cross-archetype: completely different family
+    alternatives = [f for f in _INDICATOR_FAMILIES if f != stuck_family]
+    alt_hint = ", ".join(alternatives[:3])
+    return True, "cross", (
+        f"STUCK: All {max_same_family} turns used {stuck_family} "
+        f"strategies with no progress.\n"
+        f"You must switch to a DIFFERENT strategy family entirely: "
+        f"{alt_hint}.\n"
+        f"Do NOT use any {stuck_family} indicators on the next turn."
+    )

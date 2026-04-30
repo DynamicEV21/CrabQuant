@@ -246,12 +246,14 @@ VALIDATION_CONFIG: dict = {
     "train_window": "18mo",
     "test_window": "6mo",
     "step": "6mo",
-    "min_avg_test_sharpe": 0.3,
-    "min_windows_passed": 1,
-    # rolling sub-config (relaxed defaults matching validation/__init__.py)
+    "min_avg_test_sharpe": 0.4,          # was 0.3 — raised floor to filter flukes
+    "min_windows_passed": 3,              # was 1 — require majority (3/6 windows)
+    # rolling sub-config (tightened to match above)
     "rolling": {
-        "min_avg_test_sharpe": 0.3,
-        "min_windows_passed": 1,
+        "min_avg_test_sharpe": 0.4,
+        "min_windows_passed": 3,
+        "min_window_test_sharpe": 0.1,
+        "max_window_degradation": 0.8,
     },
     "use_rolling_wf": True,
     # legacy walk_forward_test() thresholds (still available, not default)
@@ -260,6 +262,9 @@ VALIDATION_CONFIG: dict = {
     "min_test_sharpe": 0.3,
     "min_test_trades": 10,
     "max_degradation": 0.7,
+    # per-window thresholds for rolling_walk_forward()
+    "min_window_test_sharpe": 0.1,        # was 0.0 (disabled) — each window must be slightly positive
+    "max_window_degradation": 0.8,        # was 1.0 (disabled) — cap train→test drop at 80%
     # cross-ticker validation
     "min_cross_ticker_sharpe": 0.3,
     "min_ct_profitable_pct": 0.3,  # min fraction of tickers profitable for robust=True

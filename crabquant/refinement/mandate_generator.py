@@ -298,6 +298,7 @@ def generate_mandates(
             "seed_strategy": strategy["name"],
             "seed_params": strategy["default_params"],
             "constraints": dict(base_constraints),
+            "force_diversify": True,
         }
         mandates.append(mandate)
 
@@ -358,6 +359,7 @@ def _generate_diverse_mandates(
             "seed_strategy": strategy["name"],
             "seed_params": strategy["default_params"],
             "constraints": dict(base_constraints),
+            "force_diversify": True,
             "_diversity_score": diversity_score(
                 mandate={"seed_strategy": strategy["name"], "primary_ticker": primary_ticker},
                 winners_history=winners_history,

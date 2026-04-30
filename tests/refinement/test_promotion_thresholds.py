@@ -91,14 +91,14 @@ class TestRunFullValidationCheckDefaults:
         import inspect
         sig = inspect.signature(run_full_validation_check)
         default_wf = sig.parameters["min_walk_forward_sharpe"].default
-        config_wf = VALIDATION_CONFIG.get("min_avg_test_sharpe", 0.3)
+        config_wf = VALIDATION_CONFIG.get("min_avg_test_sharpe", 0.4)
 
         # After fix: default is None (resolved at runtime from VALIDATION_CONFIG)
         assert default_wf is None, (
             f"Expected None (runtime-resolved), got {default_wf}"
         )
-        assert config_wf == 0.3, (
-            f"VALIDATION_CONFIG min_avg_test_sharpe={config_wf}, expected 0.3"
+        assert config_wf == 0.4, (
+            f"VALIDATION_CONFIG min_avg_test_sharpe={config_wf}, expected 0.4"
         )
 
     def test_default_ct_threshold_is_none_resolved(self):
@@ -124,21 +124,21 @@ class TestRunFullValidationCheckDefaults:
 
         We verify this by checking the rolling config that gets built internally.
         The rolling config's min_avg_test_sharpe should come from VALIDATION_CONFIG
-        and be 0.3, not 0.5.
+        and be 0.4, not 0.5.
         """
-        # VALIDATION_CONFIG.rolling should have the relaxed values
+        # VALIDATION_CONFIG.rolling should have the current values
         rolling_cfg = VALIDATION_CONFIG.get("rolling", {})
-        rolling_min_sharpe = rolling_cfg.get("min_avg_test_sharpe", 0.3)
+        rolling_min_sharpe = rolling_cfg.get("min_avg_test_sharpe", 0.4)
 
         # This is what the rolling config should use
-        assert rolling_min_sharpe == 0.3, (
-            f"VALIDATION_CONFIG.rolling.min_avg_test_sharpe={rolling_min_sharpe}, expected 0.3"
+        assert rolling_min_sharpe == 0.4, (
+            f"VALIDATION_CONFIG.rolling.min_avg_test_sharpe={rolling_min_sharpe}, expected 0.4"
         )
 
-        # Top-level should also be 0.3
-        top_level = VALIDATION_CONFIG.get("min_avg_test_sharpe", 0.3)
-        assert top_level == 0.3, (
-            f"VALIDATION_CONFIG.min_avg_test_sharpe={top_level}, expected 0.3"
+        # Top-level should also be 0.4
+        top_level = VALIDATION_CONFIG.get("min_avg_test_sharpe", 0.4)
+        assert top_level == 0.4, (
+            f"VALIDATION_CONFIG.min_avg_test_sharpe={top_level}, expected 0.4"
         )
 
     def test_regime_specific_adjustment_uses_config_not_hardcoded(self):

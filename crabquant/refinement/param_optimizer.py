@@ -28,6 +28,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from scipy.optimize import differential_evolution
 
 logger = logging.getLogger(__name__)
 
@@ -580,4 +581,109 @@ def format_trade_count_rescue_for_prompt(
         lines.append(f"⚠️ Still {target_trades - opt_result.optimized_trades} trades short of validation threshold.")
         lines.append("💡 The LLM should further loosen entry conditions or shorten indicator periods.")
 
-    return "\\n".join(lines)
+    return "\\\\n".join(lines)
+
+
+def optimize_with_de(
+    strategy_fn,
+    param_ranges: Dict[str, Tuple[float, float]],
+    data: pd.DataFrame,
+    config: Optional[dict] = None,
+) -> dict:
+    """Optimize strategy parameters using scipy differential evolution.
+
+    Uses a population-based global search to find parameters that maximize
+    the Sharpe ratio. Much more effective than grid search for continuous
+    parameter spaces with many dimensions.
+
+    Args:
+        strategy_fn: generate_signals(df, params) -> (entries, exits) function.
+            Must be compatible with _run_param_backtest (returns entries/exits).
+        param_ranges: Dict mapping param names to (min, max) bounds.
+            E.g. {"rsi_period": (5, 30), "bb_std": (1.0, 3.0)}.
+        data: OHLCV DataFrame for backtesting.
+        config: Optional dict with DE settings. Supported keys:
+            - maxiter (int, default 50): Max generations.
+            - popsize (int, default 15): Population size multiplier.
+            - tol (float, default 1e-4): Convergence tolerance.
+            - workers (int, default -1): Parallel workers (-1 = all CPUs).
+            - polish (bool, default True): Local refinement after DE.
+            - seed (int, default 42): Random seed for reproducibility.
+
+    Returns:
+        Dict with keys:
+            - best_params (dict): Best parameter values found.
+            - best_sharpe (float): Sharpe ratio at best params.
+            - n_evals (int): Number of function evaluations.
+            - success (bool): Whether optimization converged.
+            - method (str): Always "differential_evolution".
+    """
+    cfg = {
+        "maxiter": 50,
+        "popsize": 15,
+        "tol": 1e-4,
+        "workers": -1,
+        "polish": True,
+        "seed": 42,
+    }
+    if config:
+        cfg.update(config)
+
+    param_names = list(param_ranges.keys())
+    bounds = list(param_ranges.values())
+
+    n_evals = [0]  # mutable counter for closure
+
+    def objective(x: np.ndarray) -> float:
+        """Objective function: negative Sharpe ratio (DE minimizes)."""
+        n_evals[0] += 1
+        params = dict(zip(param_names, x.tolist()))
+
+        try:
+            result = _run_param_backtest(data, strategy_fn, params)
+            if result is None:
+                return 100.0  # penalty for failed backtest
+            sharpe = result.get("sharpe", 0.0)
+            # DE minimizes, so negate Sharpe
+            return -sharpe
+        except Exception:
+            logger.debug(
+                "DE objective failed for params %s", params, exc_info=True
+            )
+            return 100.0  # penalty for exceptions
+
+    try:
+        de_result = differential_evolution(
+            objective,
+            bounds=bounds,
+            maxiter=cfg["maxiter"],
+            popsize=cfg["popsize"],
+            tol=cfg["tol"],
+            workers=cfg["workers"],
+            polish=cfg["polish"],
+            seed=cfg["seed"],
+            updating="deferred" if cfg["workers"] != 1 else "immediate",
+        )
+
+        best_params = dict(zip(param_names, de_result.x.tolist()))
+        best_sharpe = -de_result.fun
+
+        return {
+            "best_params": best_params,
+            "best_sharpe": best_sharpe,
+            "n_evals": n_evals[0],
+            "success": de_result.success,
+            "method": "differential_evolution",
+        }
+
+    except Exception as e:
+        logger.warning("differential_evolution failed: %s", e)
+        # Return a graceful failure with midpoint params
+        return {
+            "best_params": {k: (lo + hi) / 2 for k, (lo, hi) in param_ranges.items()},
+            "best_sharpe": 0.0,
+            "n_evals": n_evals[0],
+            "success": False,
+            "method": "differential_evolution",
+            "error": str(e),
+        }

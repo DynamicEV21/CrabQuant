@@ -534,3 +534,118 @@ def full_validation(
         "overall_robust": wf.robust and ct.robust,
         "timestamp": datetime.now().isoformat(),
     }
+
+
+def check_degenerate_strategy(
+    result,
+    *,
+    min_trades: int = 3,
+    min_return_vol: float = 1e-8,
+) -> tuple[bool, str]:
+    """Detect and reject degenerate strategies from their backtest result.
+
+    Catches strategies that would waste validation time by failing obvious
+    quality gates: zero trades, constant position, or flat PnL.
+
+    Args:
+        result: A BacktestResult (or any object with ``num_trades``,
+            ``total_return``, ``max_drawdown`` attributes).
+        min_trades: Minimum number of trades required (default 3).
+        min_return_vol: Minimum standard-deviation of returns to not be
+            considered flat.  Only used when a ``returns`` attribute or
+            ``equity_curve`` attribute is available (default 1e-8).
+
+    Returns:
+        (is_degenerate, reason) — is_degenerate=True means the strategy is
+        degenerate and should be rejected.  reason is a human-readable string
+        explaining why, or empty string when not degenerate.
+    """
+    num_trades = getattr(result, "num_trades", 0)
+    total_return = getattr(result, "total_return", 0)
+    max_drawdown = getattr(result, "max_drawdown", 0)
+
+    # 1. Zero or near-zero trades
+    if num_trades < min_trades:
+        return (
+            True,
+            f"DEGENERATE: strategy executed only {num_trades} trades "
+            f"(minimum {min_trades} required)",
+        )
+
+    # 2. Constant position — entered but never exited (or vice-versa).
+    #    Manifests as zero total return AND zero drawdown despite having trades.
+    if total_return == 0 and max_drawdown == 0:
+        return (
+            True,
+            "DEGENERATE: strategy never changed position "
+            "(zero return and zero drawdown despite trades)",
+        )
+
+    # 3. Flat PnL curve — near-zero volatility in returns.
+    #    Check equity_curve or returns attribute if available.
+    for attr in ("returns", "equity_curve"):
+        series = getattr(result, attr, None)
+        if series is not None and hasattr(series, "std"):
+            vol = float(series.std())
+            if vol < min_return_vol:
+                return (
+                    True,
+                    f"DEGENERATE: near-zero return volatility ({vol:.2e}) "
+                    f"— flat PnL curve",
+                )
+
+    return (False, "")
+
+
+def time_reversed_check(
+    strategy_fn,
+    data: pd.DataFrame,
+    params: dict,
+    threshold: float = 0.3,
+    engine: Optional[BacktestEngine] = None,
+) -> tuple[bool, str]:
+    """Check if strategy is overfit by testing on time-reversed data.
+
+    A strategy that performs similarly on reversed data is likely exploiting
+    a statistical artifact rather than a real edge.
+
+    Args:
+        strategy_fn: Strategy function (df, params) -> (entries, exits)
+        data: OHLCV DataFrame with DatetimeIndex
+        params: Strategy parameters
+        threshold: Max allowed ratio of reversed_score / normal_score (default 0.3)
+        engine: BacktestEngine instance (created if None)
+
+    Returns:
+        (passed, notes) tuple. passed=False means the strategy looks overfit.
+    """
+    if engine is None:
+        engine = BacktestEngine()
+
+    reversed_data = data.iloc[::-1].copy()
+
+    # Run on normal data
+    entries, exits = strategy_fn(data, params)
+    name = getattr(strategy_fn, "__name__", "strategy")
+    normal_result = engine.run(data, entries, exits, name, params=params)
+    normal_score = normal_result.sharpe
+
+    # Run on reversed data
+    rev_entries, rev_exits = strategy_fn(reversed_data, params)
+    reversed_result = engine.run(reversed_data, rev_entries, rev_exits, name, params=params)
+    reversed_score = reversed_result.sharpe
+
+    ratio = reversed_score / max(normal_score, 1e-8)
+
+    if ratio > threshold:
+        return (
+            False,
+            f"Overfit: reversed Sharpe {reversed_score:.2f} is "
+            f"{ratio:.0%} of normal {normal_score:.2f}",
+        )
+
+    return (
+        True,
+        f"Passed time-reversed check (reversed Sharpe {reversed_score:.2f} "
+        f"is {ratio:.0%} of normal {normal_score:.2f})",
+    )
