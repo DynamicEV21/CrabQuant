@@ -67,6 +67,7 @@ def run_full_validation_check(
     is_regime_specific: bool = False,
     n_trials: int = 1,
     observed_sharpe: float | None = None,
+    strategy_code: str | None = None,
 ) -> dict[str, Any]:
     """Run rolling walk-forward + cross-ticker validation before promoting.
 
@@ -74,6 +75,11 @@ def run_full_validation_check(
     step).  This handles regime shifts naturally — a strategy that holds up
     across multiple overlapping windows is robust regardless of regime changes.
     Falls back to single-split walk-forward if ``use_rolling=False``.
+
+    When ``strategy_code`` is provided, a complexity score is computed and the
+    walk-forward Sharpe threshold is adjusted upward via
+    ``complexity_penalty()`` so that more complex strategies face a stricter
+    bar for promotion.
 
     Args:
         strategy_fn: Callable (df, params) -> (entries, exits).
@@ -97,11 +103,14 @@ def run_full_validation_check(
             Default 1 (no correction).
         observed_sharpe: Observed annualised Sharpe ratio.  If not provided,
             derived from walk-forward test Sharpe.
+        strategy_code: Optional strategy source code for complexity scoring.
+            If provided, the walk-forward threshold is adjusted upward for
+            complex strategies.
 
     Returns:
         Dict with keys: passed, walk_forward_robust, cross_ticker_robust,
         walk_forward, cross_ticker, error, validation_method, is_regime_specific,
-        deflated_sharpe.
+        deflated_sharpe, complexity_score.
     """
     from crabquant.validation import (
         walk_forward_test,
@@ -124,6 +133,27 @@ def run_full_validation_check(
         min_walk_forward_sharpe = max(min_walk_forward_sharpe * wf_factor, soft_floor)
         min_cross_ticker_sharpe = max(min_cross_ticker_sharpe * ct_factor, soft_floor)
 
+    # ── Complexity-adjusted threshold ──
+    # More complex strategies face a stricter walk-forward Sharpe bar.
+    cx_result = None
+    if strategy_code:
+        try:
+            from crabquant.refinement.complexity import (
+                complexity_score,
+                complexity_penalty,
+            )
+            cx_result = complexity_score(strategy_code, params)
+            min_walk_forward_sharpe = complexity_penalty(
+                cx_result["complexity"],
+                base_threshold=min_walk_forward_sharpe,
+            )
+            logger.info(
+                "Complexity-adjusted WF threshold: %.3f (score=%.1f, flags=%s)",
+                min_walk_forward_sharpe, cx_result["complexity"], cx_result["flags"],
+            )
+        except Exception as e:
+            logger.warning("Complexity scoring failed, using raw threshold: %s", e)
+
     result: dict[str, Any] = {
         "passed": False,
         "walk_forward_robust": False,
@@ -134,6 +164,7 @@ def run_full_validation_check(
         "validation_method": "rolling" if use_rolling else "single_split",
         "is_regime_specific": is_regime_specific,
         "deflated_sharpe": None,
+        "complexity_score": cx_result,
     }
 
     # Merge rolling config from VALIDATION_CONFIG + caller overrides
@@ -190,6 +221,37 @@ def run_full_validation_check(
                 "train_regime": wf.train_regime,
             }
             wf_pass = wf.robust and wf.test_sharpe >= min_walk_forward_sharpe
+
+        # ── Time-reversed overfit check (Phase 5.6) ──────────────────────
+        # Tests strategy on reversed data to detect overfitting.
+        # This is a signal, not a gate — logs a warning but doesn't
+        # hard-reject the strategy.
+        try:
+            from crabquant.validation import time_reversed_check as _trc
+            from crabquant.data import load_data as _load_data
+
+            _trc_data = _load_data(discovery_ticker, period="2y")
+            if _trc_data is not None and len(_trc_data) >= 100:
+                _trc_passed, _trc_explanation = _trc(
+                    strategy_fn, _trc_data, params,
+                )
+                if not _trc_passed:
+                    logger.warning(
+                        "Time-reversed overfit detected: %s", _trc_explanation
+                    )
+                    result["time_reversed_overfit"] = True
+                else:
+                    result["time_reversed_overfit"] = False
+                result["time_reversed_explanation"] = _trc_explanation
+            else:
+                result["time_reversed_overfit"] = None
+                result["time_reversed_explanation"] = (
+                    "Insufficient data for time-reversed check"
+                )
+        except Exception as _trc_err:
+            logger.warning("Time-reversed check failed: %s", _trc_err)
+            result["time_reversed_overfit"] = None
+            result["time_reversed_explanation"] = f"Check failed: {_trc_err}"
 
         # Cross-ticker (exclude discovery ticker from OOS set)
         oos_tickers = [t for t in validation_tickers if t != discovery_ticker]
@@ -469,6 +531,30 @@ def auto_promote(
 
     response["regime_tags"] = regime_tags
 
+    # ── Enhancement 4: Explainer Agent ──
+    # Generate an LLM explanation of WHY this strategy works
+    explanation = None
+    try:
+        from crabquant.refinement.explainer import explain_strategy
+        bt_metrics = {
+            "sharpe": result.sharpe,
+            "total_return": result.total_return,
+            "max_drawdown": result.max_drawdown,
+            "num_trades": result.num_trades,
+            "win_rate": result.win_rate,
+            "calmar_ratio": getattr(result, "calmar_ratio", None),
+            "sortino_ratio": getattr(result, "sortino_ratio", None),
+            "profit_factor": getattr(result, "profit_factor", None),
+        }
+        explanation = explain_strategy(
+            strategy_code=strategy_code,
+            backtest_result=bt_metrics,
+            ticker=result.ticker,
+        )
+        logger.info("Generated explanation for %s (%d chars)", strategy_name, len(explanation))
+    except Exception as e:
+        logger.warning("Explainer failed for %s: %s (continuing without explanation)", strategy_name, e)
+
     # Promote to winners
     try:
         promote_to_winner(strategy_code, result, validation, state, strategy_module)
@@ -477,10 +563,14 @@ def auto_promote(
         # Add regime tags to the winner entry
         if regime_tags:
             _update_winner_regime_tags(strategy_name, regime_tags)
+        # Add explanation to the winner entry
+        if explanation:
+            _update_winner_field(strategy_name, "explanation", explanation)
     except Exception as e:
         logger.warning("Failed to write to winners file: %s", e)
 
     response["registered"] = True
+    response["explanation"] = explanation
     logger.info("Auto-promoted %s (Sharpe %.2f)", strategy_name, result.sharpe)
     return response
 
@@ -536,6 +626,28 @@ def _update_winner_regime_tags(strategy_name: str, regime_tags: dict) -> None:
                 "weak_regimes": regime_tags.get("weak_regimes", []),
                 "is_regime_specific": regime_tags.get("is_regime_specific", False),
             }
+            updated = True
+            break
+
+    if updated:
+        winners_path.write_text(json.dumps(winners, indent=2))
+
+
+def _update_winner_field(strategy_name: str, field: str, value: Any) -> None:
+    """Set an arbitrary field on the most recent winner entry in winners.json."""
+    winners_path = _get_winners_path()
+    if not winners_path.exists():
+        return
+
+    try:
+        winners = json.loads(winners_path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return
+
+    updated = False
+    for entry in reversed(winners):
+        if entry.get("strategy") == strategy_name:
+            entry[field] = value
             updated = True
             break
 

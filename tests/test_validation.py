@@ -20,6 +20,11 @@ from crabquant.validation import (
     _parse_duration,
     _detect_regime_for_period,
 )
+from crabquant.refinement.scoring import (
+    hodl_baseline,
+    hodl_penalty,
+    check_hodl_outperformance,
+)
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -587,6 +592,196 @@ class TestCheckDegenerateStrategy:
         assert reason == ""
 
 
+# ── Enhancement 11: HODL Baseline Comparison ─────────────────────────────
+
+
+class TestHodlBaseline:
+    """Tests for hodl_baseline, hodl_penalty, and check_hodl_outperformance."""
+
+    # ── hodl_baseline ──────────────────────────────────────────────────
+
+    def test_uptrending_data(self):
+        """HODL on consistently rising prices should yield positive return and Sharpe."""
+        rng = np.random.default_rng(42)
+        n = 252
+        returns = 0.002 + rng.normal(0, 0.01, n)
+        close = 100.0 * np.cumprod(1 + returns)
+        data = pd.DataFrame({"close": close, "open": close * 0.999})
+
+        result = hodl_baseline(data)
+        assert result["hodl_return"] > 0.3, f"Expected positive return, got {result['hodl_return']}"
+        assert result["hodl_sharpe"] > 0, f"Expected positive Sharpe, got {result['hodl_sharpe']}"
+
+    def test_flat_data(self):
+        """HODL on flat prices should yield near-zero return."""
+        n = 252
+        close = np.full(n, 100.0)
+        data = pd.DataFrame({"close": close, "open": close})
+
+        result = hodl_baseline(data)
+        assert abs(result["hodl_return"]) < 1e-10
+        # Flat data has zero volatility → Sharpe should be 0
+        assert result["hodl_sharpe"] == 0.0
+
+    def test_downtrending_data(self):
+        """HODL on falling prices should yield negative return and negative Sharpe."""
+        rng = np.random.default_rng(42)
+        n = 252
+        returns = -0.002 + rng.normal(0, 0.01, n)
+        close = 100.0 * np.cumprod(1 + returns)
+        data = pd.DataFrame({"close": close, "open": close * 1.001})
+
+        result = hodl_baseline(data)
+        assert result["hodl_return"] < -0.1, f"Expected negative return, got {result['hodl_return']}"
+        assert result["hodl_sharpe"] < 0, f"Expected negative Sharpe, got {result['hodl_sharpe']}"
+
+    def test_insufficient_data(self):
+        """DataFrame with fewer than 2 rows should return zeros."""
+        data = pd.DataFrame({"close": [100.0]})
+        result = hodl_baseline(data)
+        assert result["hodl_return"] == 0.0
+        assert result["hodl_sharpe"] == 0.0
+
+    def test_empty_dataframe(self):
+        """Empty DataFrame should return zeros."""
+        data = pd.DataFrame({"close": []})
+        result = hodl_baseline(data)
+        assert result["hodl_return"] == 0.0
+        assert result["hodl_sharpe"] == 0.0
+
+    def test_none_input(self):
+        """None input should return zeros."""
+        result = hodl_baseline(None)
+        assert result["hodl_return"] == 0.0
+        assert result["hodl_sharpe"] == 0.0
+
+    def test_zero_prices(self):
+        """DataFrame with zero prices should return zeros."""
+        data = pd.DataFrame({"close": [0.0, 0.0, 100.0]})
+        result = hodl_baseline(data)
+        assert result["hodl_return"] == 0.0
+        assert result["hodl_sharpe"] == 0.0
+
+    def test_noisy_uptrend(self):
+        """HODL on noisy uptrend should have positive return and reasonable Sharpe."""
+        rng = np.random.default_rng(123)
+        n = 500
+        returns = 0.001 + rng.normal(0, 0.01, n)
+        close = 100.0 * np.cumprod(1 + returns)
+        data = pd.DataFrame({"close": close})
+
+        result = hodl_baseline(data)
+        assert result["hodl_return"] > 0
+        assert result["hodl_sharpe"] > 0
+
+    # ── hodl_penalty ───────────────────────────────────────────────────
+
+    def test_no_penalty_when_beating_hodl(self):
+        """Strategy that beats HODL should get no penalty."""
+        penalty = hodl_penalty(strategy_return=0.20, benchmark_return=0.10)
+        assert penalty == 0.0
+
+    def test_penalty_when_underperforming(self):
+        """Strategy that earns < 80% of HODL should get -0.3 penalty."""
+        penalty = hodl_penalty(strategy_return=0.05, benchmark_return=0.10)
+        assert penalty == -0.3
+
+    def test_no_penalty_at_threshold_boundary(self):
+        """Strategy at exactly 80% of HODL should get no penalty."""
+        benchmark = 0.10
+        threshold = 0.8
+        penalty = hodl_penalty(strategy_return=benchmark * threshold, benchmark_return=benchmark)
+        assert penalty == 0.0
+
+    def test_no_penalty_when_hodl_negative(self):
+        """Negative HODL return → no penalty regardless of strategy return."""
+        penalty = hodl_penalty(strategy_return=-0.05, benchmark_return=-0.10)
+        assert penalty == 0.0
+
+    def test_custom_threshold(self):
+        """Custom threshold should be respected."""
+        # strategy earns 60% of HODL → fails at default 0.8, passes at 0.5
+        assert hodl_penalty(0.06, 0.10, threshold=0.8) == -0.3
+        assert hodl_penalty(0.06, 0.10, threshold=0.5) == 0.0
+
+    # ── check_hodl_outperformance ──────────────────────────────────────
+
+    def test_passes_when_strategy_beats_hodl(self):
+        """Strategy with higher Sharpe than HODL × margin should pass."""
+        n = 252
+        # Mild uptrend → moderate HODL Sharpe
+        close = 100.0 * np.cumprod(1 + np.full(n, 0.001))
+        data = pd.DataFrame({"close": close})
+
+        passed, notes = check_hodl_outperformance(strategy_sharpe=2.0, data=data)
+        assert passed is True
+        assert "Passed" in notes
+
+    def test_flags_when_strategy_barely_beats_hodl(self):
+        """Strategy that barely beats HODL (without margin) should be flagged."""
+        n = 500
+        rng = np.random.default_rng(42)
+        returns = 0.0008 + rng.normal(0, 0.008, n)
+        close = 100.0 * np.cumprod(1 + returns)
+        data = pd.DataFrame({"close": close})
+
+        baseline = hodl_baseline(data)
+        # Set strategy Sharpe just above HODL but below the margin
+        strategy_sharpe = baseline["hodl_sharpe"] * 1.05  # 5% above, needs 10%
+
+        passed, notes = check_hodl_outperformance(
+            strategy_sharpe=strategy_sharpe, data=data, margin=1.1,
+        )
+        assert passed is False
+        assert "Strategy Sharpe" in notes
+
+    def test_passes_when_hodl_negative(self):
+        """When HODL Sharpe is negative, positive strategy should pass."""
+        n = 252
+        close = 100.0 * np.cumprod(1 + np.full(n, -0.002))
+        data = pd.DataFrame({"close": close})
+
+        passed, notes = check_hodl_outperformance(strategy_sharpe=0.5, data=data)
+        assert passed is True
+
+    def test_fails_when_both_negative(self):
+        """When both are negative, strategy should fail."""
+        n = 252
+        close = 100.0 * np.cumprod(1 + np.full(n, -0.002))
+        data = pd.DataFrame({"close": close})
+
+        passed, notes = check_hodl_outperformance(strategy_sharpe=-0.5, data=data)
+        assert passed is False
+
+    def test_skipped_on_empty_data(self):
+        """Empty data should skip the check (pass)."""
+        data = pd.DataFrame({"close": []})
+        passed, notes = check_hodl_outperformance(strategy_sharpe=1.0, data=data)
+        assert passed is True
+        assert "skipped" in notes.lower()
+
+    def test_custom_margin(self):
+        """Custom margin should be respected."""
+        n = 500
+        rng = np.random.default_rng(99)
+        returns = rng.normal(0.001, 0.01, n)
+        close = 100.0 * np.cumprod(1 + returns)
+        data = pd.DataFrame({"close": close})
+
+        baseline = hodl_baseline(data)
+        # Strategy Sharpe exactly at 1.2× HODL → passes at margin=1.2, fails at margin=1.3
+        strategy_sharpe = baseline["hodl_sharpe"] * 1.2
+
+        passed_12, _ = check_hodl_outperformance(
+            strategy_sharpe=strategy_sharpe, data=data, margin=1.2,
+        )
+        passed_13, _ = check_hodl_outperformance(
+            strategy_sharpe=strategy_sharpe, data=data, margin=1.3,
+        )
+        assert passed_12 is True
+        assert passed_13 is False
+
+
 # ── Error-Type-Specific Repair Guidance (Enhancement 9) ─────────────────
 
 class TestErrorSpecificGuidance:
@@ -1133,3 +1328,781 @@ class TestComplexityPenalty:
         """Result should be a float."""
         result = complexity_penalty(50.0)
         assert isinstance(result, float)
+
+
+# ── Enhancement 4: Explainer Agent ─────────────────────────────────────────
+
+
+class TestExplainerAgent:
+    """Tests for the Explainer Agent in explainer.py."""
+
+    SAMPLE_STRATEGY = """\
+DEFAULT_PARAMS = {"period": 20, "std_dev": 2.0}
+
+def generate_signals(df, params):
+    period = params["period"]
+    std = params["std_dev"]
+    mid = df["close"].rolling(period).mean()
+    upper = mid + std * df["close"].rolling(period).std()
+    lower = mid - std * df["close"].rolling(period).std()
+    entries = df["close"] < lower
+    exits = df["close"] > upper
+    return entries, exits
+"""
+
+    SAMPLE_METRICS = {
+        "sharpe": 1.8,
+        "total_return": 0.15,
+        "max_drawdown": -0.06,
+        "num_trades": 45,
+        "win_rate": 0.58,
+        "calmar_ratio": 2.5,
+        "sortino_ratio": 2.8,
+        "profit_factor": 1.6,
+    }
+
+    def _get_fn(self, fn_name):
+        """Import explainer functions via direct module load (avoid heavy deps)."""
+        import importlib.util, sys
+        from pathlib import Path
+
+        mod_path = "crabquant.refinement.explainer"
+        if mod_path not in sys.modules:
+            import crabquant
+            file_path = Path(crabquant.__file__).parent / "refinement" / "explainer.py"
+            spec = importlib.util.spec_from_file_location(mod_path, str(file_path),
+                                                          submodule_search_locations=[])
+            mod = importlib.util.module_from_spec(spec)
+            sys.modules[mod_path] = mod
+            spec.loader.exec_module(mod)
+        return getattr(sys.modules[mod_path], fn_name)
+
+    def test_prompt_contains_strategy_code(self):
+        """The prompt should include the strategy source code."""
+        build_explainer_prompt = self._get_fn("build_explainer_prompt")
+        prompt = build_explainer_prompt(self.SAMPLE_STRATEGY, self.SAMPLE_METRICS, "AAPL")
+        assert "rolling(period).mean()" in prompt
+        assert "generate_signals" in prompt
+
+    def test_prompt_contains_metrics(self):
+        """The prompt should include backtest metrics."""
+        build_explainer_prompt = self._get_fn("build_explainer_prompt")
+        prompt = build_explainer_prompt(self.SAMPLE_STRATEGY, self.SAMPLE_METRICS, "AAPL")
+        assert "Sharpe Ratio: 1.8" in prompt
+        assert "Total Return: 0.15" in prompt
+        assert "Max Drawdown: -0.06" in prompt
+        assert "Number of Trades: 45" in prompt
+        assert "Win Rate: 0.58" in prompt
+
+    def test_prompt_contains_ticker(self):
+        """The prompt should include the ticker symbol."""
+        build_explainer_prompt = self._get_fn("build_explainer_prompt")
+        prompt = build_explainer_prompt(self.SAMPLE_STRATEGY, self.SAMPLE_METRICS, "MSFT")
+        assert "Ticker: MSFT" in prompt
+
+    def test_prompt_asks_three_questions(self):
+        """The prompt should ask about inefficiency, failure conditions, and risks."""
+        build_explainer_prompt = self._get_fn("build_explainer_prompt")
+        prompt = build_explainer_prompt(self.SAMPLE_STRATEGY, self.SAMPLE_METRICS, "AAPL")
+        assert "Market Inefficiency" in prompt
+        assert "Failure Conditions" in prompt
+        assert "Key Risk Factors" in prompt
+
+    def test_explain_strategy_with_mock_llm(self):
+        """explain_strategy should call the LLM and return its response."""
+        explain_strategy = self._get_fn("explain_strategy")
+        mock_response = "This strategy exploits mean-reversion in volatile markets. It would fail in strong trends. Key risk is whipsaw losses."
+        mock_call = MagicMock(return_value=mock_response)
+
+        result = explain_strategy(
+            self.SAMPLE_STRATEGY,
+            self.SAMPLE_METRICS,
+            "AAPL",
+            _llm_call=mock_call,
+        )
+
+        assert result == mock_response
+        mock_call.assert_called_once()
+        # Verify the call contains strategy code in the prompt
+        messages = mock_call.call_args[0][0]
+        user_msg = messages[1]["content"]
+        assert "generate_signals" in user_msg
+
+    def test_explanation_capped_at_word_limit(self):
+        """Long LLM responses should be truncated to ~250 words."""
+        explain_strategy = self._get_fn("explain_strategy")
+        # Generate a response with 500 words
+        long_response = "This strategy works because " + "it has many reasons. " * 100
+        mock_call = MagicMock(return_value=long_response)
+
+        result = explain_strategy(
+            self.SAMPLE_STRATEGY,
+            self.SAMPLE_METRICS,
+            "AAPL",
+            _llm_call=mock_call,
+        )
+
+        word_count = len(result.split())
+        assert word_count <= 250, f"Expected <= 250 words, got {word_count}"
+
+    def test_short_response_unchanged(self):
+        """Short responses should not be truncated."""
+        explain_strategy = self._get_fn("explain_strategy")
+        short = "Short explanation."
+        mock_call = MagicMock(return_value=short)
+
+        result = explain_strategy(
+            self.SAMPLE_STRATEGY,
+            self.SAMPLE_METRICS,
+            "AAPL",
+            _llm_call=mock_call,
+        )
+
+        assert result == short
+
+    def test_llm_failure_returns_fallback(self):
+        """When the LLM call fails, should return a fallback explanation."""
+        explain_strategy = self._get_fn("explain_strategy")
+        mock_call = MagicMock(side_effect=Exception("API down"))
+
+        result = explain_strategy(
+            self.SAMPLE_STRATEGY,
+            self.SAMPLE_METRICS,
+            "AAPL",
+            _llm_call=mock_call,
+        )
+
+        assert "Sharpe ratio of 1.8" in result
+        assert "AAPL" in result
+        assert "45 trades" in result
+
+    def test_missing_metrics_use_na(self):
+        """Missing metrics should show N/A in the prompt, not crash."""
+        build_explainer_prompt = self._get_fn("build_explainer_prompt")
+        prompt = build_explainer_prompt(self.SAMPLE_STRATEGY, {}, "AAPL")
+        assert "Sharpe Ratio: N/A" in prompt
+        assert "Number of Trades: N/A" in prompt
+
+    def test_cap_words_breaks_at_sentence(self):
+        """_cap_words should prefer breaking at sentence boundaries."""
+        _cap_words = self._get_fn("_cap_words")
+        text = "First sentence. Second sentence. Third sentence. Fourth sentence."
+        # Cap at 5 words — should break at "First sentence."
+        result = _cap_words(text, max_words=5)
+        assert result.endswith(".")
+        assert len(result.split()) <= 5
+
+
+# ── Enhancement 5: AST Safety Sanitizer ──────────────────────────────────────
+
+from crabquant.refinement.ast_sanitizer import sanitize_strategy_code
+
+
+SAFE_STRATEGY = """\
+import numpy as np
+import pandas as pd
+
+DEFAULT_PARAMS = {"period": 20, "std_dev": 2.0}
+DESCRIPTION = "Simple mean reversion"
+
+def generate_signals(df, params):
+    period = params["period"]
+    std = params["std_dev"]
+    mid = df["close"].rolling(period).mean()
+    upper = mid + std * df["close"].rolling(period).std()
+    lower = mid - std * df["close"].rolling(period).std()
+    entries = df["close"] < lower
+    exits = df["close"] > upper
+    return entries, exits
+"""
+
+
+class TestASTSanitizerSafeCode:
+    """Safe strategy code should pass with zero violations."""
+
+    def test_clean_strategy_passes(self):
+        is_safe, violations = sanitize_strategy_code(SAFE_STRATEGY)
+        assert is_safe is True
+        assert violations == []
+
+    def test_empty_code_fails(self):
+        is_safe, violations = sanitize_strategy_code("")
+        assert is_safe is False
+        assert len(violations) == 1
+
+    def test_syntax_error_fails(self):
+        is_safe, violations = sanitize_strategy_code("def foo(:\n  pass")
+        assert is_safe is False
+        assert any("SyntaxError" in v for v in violations)
+
+
+class TestASTSanitizerBlockedImports:
+    """Blocked module imports should be caught."""
+
+    def test_import_os(self):
+        code = "import os\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("os" in v and "import" in v for v in violations)
+
+    def test_import_requests(self):
+        code = "import requests\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("requests" in v and "import" in v for v in violations)
+
+    def test_import_subprocess(self):
+        code = "import subprocess\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("subprocess" in v for v in violations)
+
+    def test_from_os_import(self):
+        code = "from os import system\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("os" in v for v in violations)
+
+    def test_from_subprocess_import(self):
+        code = "from subprocess import Popen\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+
+    def test_import_socket(self):
+        code = "import socket\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("socket" in v for v in violations)
+
+    def test_import_pathlib(self):
+        code = "import pathlib\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("pathlib" in v for v in violations)
+
+    def test_import_pickle(self):
+        code = "import pickle\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("pickle" in v for v in violations)
+
+    def test_import_ctypes(self):
+        code = "import ctypes\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("ctypes" in v for v in violations)
+
+    def test_safe_imports_allowed(self):
+        code = "import numpy as np\nimport pandas as pd\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is True
+        assert violations == []
+
+
+class TestASTSanitizerBlockedBuiltins:
+    """Blocked builtin calls should be caught."""
+
+    def test_exec_call(self):
+        code = 'exec("import os")\ndef generate_signals(df, params):\n    pass'
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("exec" in v for v in violations)
+
+    def test_eval_call(self):
+        code = 'eval("2 + 2")\ndef generate_signals(df, params):\n    pass'
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("eval" in v for v in violations)
+
+    def test_compile_call(self):
+        code = 'compile("print(1)", "<string>", "exec")\ndef generate_signals(df, params):\n    pass'
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("compile" in v for v in violations)
+
+    def test_dunder_import_call(self):
+        code = "__import__('os')\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("__import__" in v for v in violations)
+
+    def test_open_call(self):
+        code = 'open("/etc/passwd")\ndef generate_signals(df, params):\n    pass'
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("open" in v for v in violations)
+
+    def test_globals_call(self):
+        code = "globals()\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("globals" in v for v in violations)
+
+    def test_getattr_call(self):
+        code = "getattr(os, 'system')\nimport os\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("getattr" in v for v in violations)
+
+
+class TestASTSanitizerBlockedAttributeAccess:
+    """Dangerous attribute calls like os.system() should be caught."""
+
+    def test_os_system(self):
+        code = "import os\nos.system('ls')\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("os.system" in v for v in violations)
+
+    def test_os_popen(self):
+        code = "import os\nos.popen('whoami')\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("os.popen" in v for v in violations)
+
+    def test_subprocess_call(self):
+        code = "import subprocess\nsubprocess.call(['ls'])\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("subprocess.call" in v for v in violations)
+
+    def test_subprocess_popen(self):
+        code = "import subprocess\nsubprocess.Popen(['ls'])\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("subprocess.Popen" in v for v in violations)
+
+    def test_sys_exit(self):
+        code = "import sys\nsys.exit(0)\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("sys.exit" in v for v in violations)
+
+
+class TestASTSanitizerLookAheadBias:
+    """Look-ahead bias patterns should be detected."""
+
+    def test_negative_shift(self):
+        code = "def generate_signals(df, params):\n    future = df['close'].shift(-5)"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("look-ahead" in v.lower() for v in violations)
+
+    def test_negative_slice(self):
+        code = "def generate_signals(df, params):\n    future = df['close'][:-5]"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("look-ahead" in v.lower() for v in violations)
+
+    def test_positive_shift_allowed(self):
+        code = "def generate_signals(df, params):\n    past = df['close'].shift(5)"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is True
+
+
+class TestASTSanitizerDunderAccess:
+    """Suspicious dunder attribute access should be flagged."""
+
+    def test_dunder_subclass_hook(self):
+        code = "obj.__subclasshook__\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("dunder" in v.lower() for v in violations)
+
+    def test_dunder_bases(self):
+        code = "cls.__bases__\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("dunder" in v.lower() for v in violations)
+
+    def test_safe_dunder_allowed(self):
+        code = "obj.__init__()\nobj.__name__\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is True
+
+
+class TestASTSanitizerNestedDangerous:
+    """Nested/obfuscated dangerous patterns should be caught."""
+
+    def test_nested_os_system_in_function(self):
+        code = """\
+import os
+def generate_signals(df, params):
+    def helper():
+        os.system('rm -rf /')
+    entries = pd.Series(False, index=df.index)
+    exits = pd.Series(False, index=df.index)
+    return entries, exits
+"""
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("os.system" in v for v in violations)
+
+    def test_exec_inside_function(self):
+        code = """\
+def generate_signals(df, params):
+    exec("import os; os.system('ls')")
+    entries = pd.Series(False, index=df.index)
+    exits = pd.Series(False, index=df.index)
+    return entries, exits
+"""
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("exec" in v for v in violations)
+
+    def test_import_in_if_block(self):
+        code = """\
+def generate_signals(df, params):
+    if True:
+        import requests
+    entries = pd.Series(False, index=df.index)
+    exits = pd.Series(False, index=df.index)
+    return entries, exits
+"""
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("requests" in v for v in violations)
+
+    def test_multiple_violations(self):
+        code = """\
+import os
+import subprocess
+def generate_signals(df, params):
+    os.system('ls')
+    exec("print('hello')")
+    open('/etc/passwd')
+    entries = pd.Series(False, index=df.index)
+    exits = pd.Series(False, index=df.index)
+    return entries, exits
+"""
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert len(violations) >= 5  # 2 imports + os.system + exec + open
+
+    def test_obfuscated_import_via_dunder_import(self):
+        code = """\
+def generate_signals(df, params):
+    mod = __import__('os')
+    mod.system('ls')
+    entries = pd.Series(False, index=df.index)
+    exits = pd.Series(False, index=df.index)
+    return entries, exits
+"""
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        assert any("__import__" in v for v in violations)
+
+
+class TestASTSanitizerLineNumbers:
+    """Violations should include accurate line numbers."""
+
+    def test_line_number_accuracy(self):
+        code = "import numpy as np\nimport os\nimport pandas as pd\ndef generate_signals(df, params):\n    pass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        # os import is on line 2
+        os_violation = [v for v in violations if "os" in v and "import" in v][0]
+        assert "Line 2" in os_violation
+
+    def test_exec_line_number(self):
+        code = "def generate_signals(df, params):\n    pass\nexec('bad')\npass"
+        is_safe, violations = sanitize_strategy_code(code)
+        assert is_safe is False
+        exec_violation = [v for v in violations if "exec" in v][0]
+        assert "Line 3" in exec_violation
+
+
+# ── Enhancement 6: Shadow Replay + Family Labeling ────────────────────────
+
+from crabquant.refinement.stagnation import label_strategy_family
+from crabquant.refinement.shadow_replay import shadow_replay, _compile_strategy
+
+
+MOMENTUM_CODE = """\
+DEFAULT_PARAMS = {"fast": 12, "slow": 26, "signal": 9}
+
+def simulate(df, params):
+    ema_fast = cached_indicator("ema", df["close"], params["fast"])
+    ema_slow = cached_indicator("ema", df["close"], params["slow"])
+    macd_line = ema_fast - ema_slow
+    signal_line = cached_indicator("ema", macd_line, params["signal"])
+    entries = macd_line > signal_line
+    exits = macd_line < signal_line
+    return entries, exits
+"""
+
+MEAN_REVERSION_CODE = """\
+DEFAULT_PARAMS = {"period": 14, "overbought": 70, "oversold": 30}
+
+def simulate(df, params):
+    rsi = cached_indicator("rsi", df["close"], params["period"])
+    entries = rsi < params["oversold"]
+    exits = rsi > params["overbought"]
+    return entries, exits
+"""
+
+VOLATILITY_CODE = """\
+DEFAULT_PARAMS = {"period": 14, "multiplier": 2.0}
+
+def simulate(df, params):
+    atr = cached_indicator("atr", df["high"], df["low"], df["close"], params["period"])
+    supertrend = cached_indicator("supertrend", df["high"], df["low"], df["close"],
+                                   params["period"], params["multiplier"])
+    entries = supertrend == 1
+    exits = supertrend == -1
+    return entries, exits
+"""
+
+NO_INDICATOR_CODE = """\
+DEFAULT_PARAMS = {"threshold": 0.02}
+
+def simulate(df, params):
+    threshold = params.get("threshold", 0.02)
+    returns = df["close"].pct_change()
+    entries = returns > threshold
+    exits = returns < -threshold
+    return entries, exits
+"""
+
+
+class TestLabelStrategyFamily:
+    """Tests for label_strategy_family in stagnation.py."""
+
+    def test_momentum_code(self):
+        """Code using EMA/MACD should be classified as 'momentum'."""
+        family = label_strategy_family(MOMENTUM_CODE)
+        assert family == "momentum"
+
+    def test_mean_reversion_code(self):
+        """Code using RSI should be classified as 'mean_reversion'."""
+        family = label_strategy_family(MEAN_REVERSION_CODE)
+        assert family == "mean_reversion"
+
+    def test_volatility_code(self):
+        """Code using ATR/supertrend should be classified as 'volatility'."""
+        family = label_strategy_family(VOLATILITY_CODE)
+        assert family == "volatility"
+
+    def test_no_indicators_returns_unknown(self):
+        """Code with no recognized indicators should return 'unknown'."""
+        family = label_strategy_family(NO_INDICATOR_CODE)
+        assert family == "unknown"
+
+    def test_empty_code_returns_unknown(self):
+        """Empty code should return 'unknown'."""
+        family = label_strategy_family("")
+        assert family == "unknown"
+
+    def test_trend_indicators(self):
+        """Code using DEMA/TEMA should be classified as 'trend'."""
+        code = 'cached_indicator("dema", close, 20)\ncached_indicator("tema", close, 10)'
+        family = label_strategy_family(code)
+        assert family == "trend"
+
+    def test_volume_indicators(self):
+        """Code using OBV/VWAP should be classified as 'volume'."""
+        code = 'cached_indicator("obv", close, volume)\ncached_indicator("vwap", high, low, close, volume)'
+        family = label_strategy_family(code)
+        assert family == "volume"
+
+    def test_dominant_family_wins(self):
+        """When multiple families are present, the most common one wins."""
+        # 2 momentum (ema) vs 1 mean_reversion (rsi)
+        code = 'cached_indicator("ema", close, 10)\ncached_indicator("ema", close, 20)\ncached_indicator("rsi", close, 14)'
+        family = label_strategy_family(code)
+        assert family == "momentum"
+
+    def test_direct_ta_calls(self):
+        """Indicators called via ta.name() should also be detected."""
+        code = 'ta.rsi(close, 14)\nta.macd(close)'
+        family = label_strategy_family(code)
+        # RSI = mean_reversion, MACD = momentum → one each, either is valid
+        assert family in ("mean_reversion", "momentum")
+
+
+class TestCompileStrategy:
+    """Tests for the _compile_strategy helper."""
+
+    def test_compile_simulate(self):
+        """Strategy with 'simulate' function should compile."""
+        fn = _compile_strategy(NO_INDICATOR_CODE, "test")
+        assert callable(fn)
+
+    def test_compile_generate_signals(self):
+        """Strategy with 'generate_signals' function should compile."""
+        code = """\
+def generate_signals(df, params):
+    entries = pd.Series(False, index=df.index)
+    exits = pd.Series(False, index=df.index)
+    return entries, exits
+"""
+        fn = _compile_strategy(code, "test")
+        assert callable(fn)
+
+    def test_missing_function_raises(self):
+        """Code without simulate/generate_signals should raise RuntimeError."""
+        code = "x = 42"
+        with pytest.raises(RuntimeError, match="No 'simulate' or 'generate_signals'"):
+            _compile_strategy(code, "bad_strategy")
+
+    def test_syntax_error_raises(self):
+        """Invalid Python should raise RuntimeError with 'Syntax error'."""
+        with pytest.raises(RuntimeError, match="Syntax error"):
+            _compile_strategy("def foo(:\n  pass", "bad")
+
+
+class TestShadowReplay:
+    """Tests for shadow_replay with mocked BacktestEngine."""
+
+    @patch("crabquant.engine.BacktestEngine")
+    def test_detects_degradation(self, mock_engine_cls):
+        """Strategy whose new Sharpe drops below 50% of old should be degraded."""
+        mock_engine = MagicMock()
+        mock_engine.run.return_value = _make_backtest_result(sharpe=0.2)
+        mock_engine_cls.return_value = mock_engine
+
+        new_data = _make_df(n=500)
+        winners = [{
+            "name": "momentum_alpha",
+            "ticker": "AAPL",
+            "strategy_code": NO_INDICATOR_CODE,
+            "params": {},
+            "old_sharpe": 1.5,
+        }]
+
+        results = shadow_replay(winners, new_data)
+        assert len(results) == 1
+        assert results[0]["old_sharpe"] == 1.5
+        assert results[0]["new_sharpe"] == 0.2
+        assert results[0]["degraded"] is True
+        assert results[0]["error"] == ""
+
+    @patch("crabquant.engine.BacktestEngine")
+    def test_stable_strategy_not_degraded(self, mock_engine_cls):
+        """Strategy maintaining Sharpe should NOT be degraded."""
+        mock_engine = MagicMock()
+        mock_engine.run.return_value = _make_backtest_result(sharpe=1.2)
+        mock_engine_cls.return_value = mock_engine
+
+        new_data = _make_df(n=500)
+        winners = [{
+            "name": "stable_strategy",
+            "ticker": "MSFT",
+            "strategy_code": NO_INDICATOR_CODE,
+            "params": {},
+            "old_sharpe": 1.5,
+        }]
+
+        results = shadow_replay(winners, new_data)
+        assert results[0]["new_sharpe"] == 1.2
+        # 1.2 >= 1.5 * 0.5 (0.75) AND 1.2 >= 0.3 → not degraded
+        assert results[0]["degraded"] is False
+
+    @patch("crabquant.engine.BacktestEngine")
+    def test_below_min_sharpe_degraded(self, mock_engine_cls):
+        """Strategy above 50% ratio but below min_sharpe is still degraded."""
+        mock_engine = MagicMock()
+        mock_engine.run.return_value = _make_backtest_result(sharpe=0.1)
+        mock_engine_cls.return_value = mock_engine
+
+        new_data = _make_df(n=500)
+        winners = [{
+            "name": "marginal_strategy",
+            "ticker": "TSLA",
+            "strategy_code": NO_INDICATOR_CODE,
+            "params": {},
+            "old_sharpe": 0.15,  # 0.1 >= 0.15 * 0.5 = 0.075, but 0.1 < 0.3
+        }]
+
+        results = shadow_replay(winners, new_data)
+        # 0.1 >= 0.075 but 0.1 < min_sharpe 0.3 → degraded
+        assert results[0]["degraded"] is True
+
+    @patch("crabquant.engine.BacktestEngine")
+    def test_bad_code_returns_error(self, mock_engine_cls):
+        """Strategy code that fails to compile should report error."""
+        new_data = _make_df(n=500)
+        winners = [{
+            "name": "broken",
+            "ticker": "AAPL",
+            "strategy_code": "def foo(:\n  pass",
+            "params": {},
+            "old_sharpe": 1.0,
+        }]
+
+        results = shadow_replay(winners, new_data)
+        assert len(results) == 1
+        assert results[0]["degraded"] is True
+        assert results[0]["error"] != ""
+
+    def test_empty_winners_list(self):
+        """Empty winners list should return empty results."""
+        new_data = _make_df(n=500)
+        results = shadow_replay([], new_data)
+        assert results == []
+
+    def test_missing_code_reports_error(self):
+        """Winner without strategy_code should report error."""
+        new_data = _make_df(n=500)
+        winners = [{
+            "name": "no_code",
+            "ticker": "AAPL",
+            "params": {},
+        }]
+
+        results = shadow_replay(winners, new_data)
+        assert results[0]["degraded"] is True
+        assert "No strategy_code" in results[0]["error"]
+
+    @patch("crabquant.engine.BacktestEngine")
+    def test_multiple_winners(self, mock_engine_cls):
+        """Multiple winners should each get their own result."""
+        mock_engine = MagicMock()
+        mock_engine.run.side_effect = [
+            _make_backtest_result(sharpe=0.1),  # degraded
+            _make_backtest_result(sharpe=1.8),  # stable
+        ]
+        mock_engine_cls.return_value = mock_engine
+
+        new_data = _make_df(n=500)
+        winners = [
+            {"name": "s1", "ticker": "A", "strategy_code": NO_INDICATOR_CODE,
+             "params": {}, "old_sharpe": 1.5},
+            {"name": "s2", "ticker": "B", "strategy_code": NO_INDICATOR_CODE,
+             "params": {}, "old_sharpe": 1.5},
+        ]
+
+        results = shadow_replay(winners, new_data)
+        assert len(results) == 2
+        assert results[0]["degraded"] is True
+        assert results[1]["degraded"] is False
+
+    @patch("crabquant.engine.BacktestEngine")
+    def test_custom_min_sharpe(self, mock_engine_cls):
+        """Custom min_sharpe should be respected."""
+        mock_engine = MagicMock()
+        mock_engine.run.return_value = _make_backtest_result(sharpe=0.4)
+        mock_engine_cls.return_value = mock_engine
+
+        new_data = _make_df(n=500)
+        winners = [{
+            "name": "s", "ticker": "A", "strategy_code": NO_INDICATOR_CODE,
+            "params": {}, "old_sharpe": 1.0,
+        }]
+
+        # With min_sharpe=0.5, 0.4 < 0.5 → degraded (also 0.4 < 1.0*0.5)
+        results = shadow_replay(winners, new_data, min_sharpe=0.5)
+        assert results[0]["degraded"] is True
+
+        # With min_sharpe=0.3 and old_sharpe=1.0: 0.4 >= 1.0*0.5=0.5? No, 0.4 < 0.5
+        # So we need a scenario where ratio is OK but min_sharpe gate matters.
+        # old_sharpe=0.5, new_sharpe=0.4: ratio 0.4/0.5=0.8, >= 0.5 → ratio OK
+        # With min_sharpe=0.45: 0.4 < 0.45 → degraded
+        winners[0]["old_sharpe"] = 0.5
+        mock_engine.run.return_value = _make_backtest_result(sharpe=0.4)
+        results = shadow_replay(winners, new_data, min_sharpe=0.45)
+        assert results[0]["degraded"] is True
+
+        # With min_sharpe=0.3: 0.4 >= 0.3 and 0.4 >= 0.5*0.5=0.25 → not degraded
+        results = shadow_replay(winners, new_data, min_sharpe=0.3)
+        assert results[0]["degraded"] is False

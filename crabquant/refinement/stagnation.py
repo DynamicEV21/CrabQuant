@@ -142,6 +142,40 @@ def get_stagnation_response(iteration: int, score: float) -> dict:
     return {"constraint": "normal", "prompt_suffix": ""}
 
 
+# ── Enhancement 6: Strategy Family Labeling ──────────────────────────────────
+
+
+def label_strategy_family(code: str) -> str:
+    """Return the dominant indicator family for a strategy's source code.
+
+    Extracts all indicator function names from *code* using
+    :func:`extract_indicators_from_code`, classifies each via
+    :func:`classify_indicator`, and returns the most common family.
+
+    Args:
+        code: Strategy source code string.
+
+    Returns:
+        One of ``"momentum"``, ``"mean_reversion"``, ``"volatility"``,
+        ``"volume"``, ``"trend"``, or ``"unknown"``.
+    """
+    from collections import Counter
+
+    indicators = extract_indicators_from_code(code)
+    if not indicators:
+        return "unknown"
+
+    families: list[str] = [
+        classify_indicator(ind)
+        for ind in indicators
+        if classify_indicator(ind) != "unknown"
+    ]
+    if not families:
+        return "unknown"
+
+    return Counter(families).most_common(1)[0][0]
+
+
 # ── Phase 5.6: Stagnation Recovery System ─────────────────────────────────
 
 

@@ -584,6 +584,24 @@ def build_llm_context(
     if stagnation_recovery:
         context["stagnation_recovery"] = stagnation_recovery
 
+    # Phase 5.6: Indicator family plateau detection — detect when LLM is
+    # stuck using the same indicator family and inject a pivot directive.
+    try:
+        from crabquant.refinement.stagnation import check_family_plateau
+        history = getattr(state, "history", [])
+        should_pivot, pivot_type, plateau_message = check_family_plateau(
+            history, mandate
+        )
+        if should_pivot and plateau_message:
+            plateau_section = (
+                f"## 🔄 INDICATOR FAMILY PLATEAU DETECTED\n\n"
+                f"**Pivot type:** {pivot_type}\n\n"
+                f"{plateau_message}"
+            )
+            context["family_plateau_section"] = plateau_section
+    except Exception:
+        logger.debug("Family plateau check failed, skipping", exc_info=True)
+
     # Phase 6: Recent crash error feedback — help LLM learn from failures
     crash_feedback = _build_crash_error_feedback(state)
     if crash_feedback:
@@ -828,6 +846,8 @@ def build_llm_context(
             append_sections.append(context["action_analytics"])
         if context.get("stagnation_recovery"):
             append_sections.append(context["stagnation_recovery"])
+        if context.get("family_plateau_section"):
+            append_sections.append(context["family_plateau_section"])
         if context.get("failure_pattern_section"):
             append_sections.append(context["failure_pattern_section"])
         if context.get("param_optimization_section"):
@@ -853,6 +873,64 @@ def build_llm_context(
                 f"You MUST fix the above anti-patterns in your new_strategy_code. "
                 f"Do NOT repeat the same mistakes."
             )
+        # Complexity analysis — flag overcomplicated strategies for the LLM
+        try:
+            from crabquant.refinement.complexity import complexity_score
+            history = getattr(state, "history", [])
+            latest_turn = history[-1] if history else {}
+            strategy_code = (
+                latest_turn.get("code")
+                or context.get("current_strategy_code")
+                or ""
+            )
+            params = latest_turn.get("params_used") or context.get("current_params") or {}
+            if strategy_code:
+                cx = complexity_score(strategy_code, params)
+                if cx["complexity"] > 60 or cx["flags"]:
+                    warn_lines = [
+                        "## ⚠️ STRATEGY COMPLEXITY WARNING",
+                        "",
+                        f"Complexity score: **{cx['complexity']:.1f}**/100",
+                    ]
+                    if cx["complexity"] > 60:
+                        warn_lines.append(
+                            "Your strategy is overly complex and at high risk of "
+                            "overfitting. Simpler strategies generalize better."
+                        )
+                    flag_suggestions = {
+                        "high_complexity": (
+                            "Reduce overall code size. Remove unnecessary helper "
+                            "functions and consolidate logic."
+                        ),
+                        "too_many_params": (
+                            "Reduce the number of tunable parameters. Each extra "
+                            "parameter increases overfitting risk. Target ≤8 params."
+                        ),
+                        "deep_nesting": (
+                            "Flatten deeply nested if/for blocks. Deep nesting "
+                            "makes the strategy fragile and hard to reason about."
+                        ),
+                        "too_many_branches": (
+                            "Reduce the number of conditional branches. Excessive "
+                            "branching leads to sparse data per path."
+                        ),
+                        "too_many_functions": (
+                            "Consolidate helper functions. Too many functions "
+                            "increase code surface area without proportional benefit."
+                        ),
+                        "invalid_python": (
+                            "Your strategy code has syntax errors. Fix them before "
+                            "proceeding."
+                        ),
+                    }
+                    for flag in cx["flags"]:
+                        suggestion = flag_suggestions.get(
+                            flag, f"Address the `{flag}` issue."
+                        )
+                        warn_lines.append(f"- **{flag}**: {suggestion}")
+                    append_sections.append("\n\n".join(warn_lines))
+        except Exception:
+            logger.debug("Complexity analysis failed, skipping", exc_info=True)
         # Phase 6: Auto-revert notice — tell the LLM its change was reverted
         revert_notice = getattr(state, "revert_notice", "")
         if revert_notice:
