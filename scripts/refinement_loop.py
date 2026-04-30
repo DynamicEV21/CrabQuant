@@ -1281,6 +1281,73 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             state.best_composite_score = composite
             state.best_turn = turn
             state.best_code_path = str(strategy_path)
+            # Save the full strategy code for auto-revert
+            state.best_strategy_code = strategy_code
+            # Reset consecutive regression counter on new best
+            state.consecutive_regressions = 0
+            # Clear any revert notice since we improved
+            state.revert_notice = ""
+        elif state.best_composite_score > -900:
+            # ── Auto-Revert: Regression Detection (Phase 6) ──────────
+            # If the LLM's change made things significantly worse, revert
+            # to the best strategy code so the next turn starts from a
+            # known-good baseline instead of cascading from a worse version.
+            state.consecutive_regressions += 1
+
+            # Compute relative regression: how much worse is current vs best?
+            # Use max to handle negative composite scores gracefully
+            abs_best = abs(state.best_composite_score)
+            abs_current = abs(composite)
+            if abs_best > 0.01:
+                relative_drop = (abs_best - abs_current) / abs_best
+            else:
+                relative_drop = 0.0
+
+            # Revert if: (a) significant relative drop (>30%), OR
+            # (b) 2+ consecutive regressions, OR
+            # (c) Sharpe went negative when best was positive
+            should_revert = (
+                relative_drop > 0.30
+                or state.consecutive_regressions >= 2
+                or (state.best_sharpe > 0.5 and result.sharpe < 0)
+            )
+
+            if should_revert and state.best_strategy_code:
+                print(f"  🔄 REGRESSION DETECTED (turn {turn}): "
+                      f"composite {composite:.2f} vs best {state.best_composite_score:.2f} "
+                      f"(drop: {relative_drop:.0%}, consecutive: {state.consecutive_regressions})")
+                print(f"  ↩️  Reverting to best strategy from turn {state.best_turn} "
+                      f"(Sharpe {state.best_sharpe:.2f})")
+
+                # Build a clear notice for the LLM
+                state.revert_notice = (
+                    f"⚠️ AUTO-REVERT: Your modification in turn {turn} caused a regression. "
+                    f"Composite dropped from {state.best_composite_score:.2f} to {composite:.2f} "
+                    f"(Sharpe: {state.best_sharpe:.2f} → {result.sharpe:.2f}). "
+                    f"I have reverted the strategy code to the best version (turn {state.best_turn}). "
+                    f"You MUST try a COMPLETELY DIFFERENT approach. "
+                    f"Do NOT repeat the same type of change that caused this regression. "
+                    f"Consider: changing signal logic entirely, using different indicators, "
+                    f"or fundamentally restructuring the entry/exit conditions."
+                )
+
+                # Write reverted code to a file for reference
+                revert_path = run_dir / f"strategy_v{turn}_reverted.py"
+                revert_path.write_text(state.best_strategy_code)
+
+                # Append regression event to history
+                state.history.append({
+                    "turn": turn,
+                    "event": "auto_revert",
+                    "composite_before_revert": composite,
+                    "composite_best": state.best_composite_score,
+                    "consecutive_regressions": state.consecutive_regressions,
+                    "reverted_to_turn": state.best_turn,
+                })
+            elif state.consecutive_regressions >= 3 and not state.best_strategy_code:
+                # No best code to revert to, but we're stuck — log it
+                print(f"  ⚠️ {state.consecutive_regressions} consecutive regressions, "
+                      f"no best code to revert to")
         
         # 9. Check stagnation-based early exit
         stag_response = get_stagnation_response(turn, stagnation_score)

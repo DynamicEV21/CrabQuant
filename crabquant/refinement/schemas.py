@@ -31,6 +31,11 @@ class RunState:
     best_turn: int = 0
     best_code_path: str = ""
 
+    # Auto-revert state (Phase 6)
+    best_strategy_code: str = ""  # Full code of best strategy (not just path)
+    consecutive_regressions: int = 0  # Count of turns that regressed from best
+    revert_notice: str = ""  # Message for LLM when strategy was reverted
+
     # History (append-only)
     history: list = field(default_factory=list)
 

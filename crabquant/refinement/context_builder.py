@@ -443,6 +443,14 @@ def build_llm_context(
         context["current_strategy_code"] = getattr(report, "current_strategy_code", None)
         context["current_params"] = getattr(report, "current_params", None)
         
+        # Phase 6: Auto-revert — if strategy was reverted, inject the BEST code
+        # instead of the regressed code so the LLM refines from a good baseline
+        revert_notice = getattr(state, "revert_notice", "")
+        if revert_notice:
+            best_code = getattr(state, "best_strategy_code", "")
+            if best_code:
+                context["current_strategy_code"] = best_code
+        
         # Phase 5.6: Multi-ticker backtest feedback
         mt_results = getattr(report, "multi_ticker_results", None)
         if mt_results is not None:
@@ -705,6 +713,12 @@ def build_llm_context(
             append_sections.append(context["stagnation_recovery"])
         if context.get("failure_pattern_section"):
             append_sections.append(context["failure_pattern_section"])
+        # Phase 6: Auto-revert notice — tell the LLM its change was reverted
+        revert_notice = getattr(state, "revert_notice", "")
+        if revert_notice:
+            append_sections.append(
+                f"\n## ⚠️ STRATEGY REVERTED\n\n{revert_notice}\n"
+            )
         if append_sections:
             prompt = prompt.rstrip() + "\n\n" + "\n\n".join(append_sections)
             context["prompt"] = prompt
