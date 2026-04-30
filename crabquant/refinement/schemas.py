@@ -122,6 +122,9 @@ class BacktestReport:
     # ── Feature importance (Phase 5.6) ────────────────────────────────────
     feature_importance: dict | None = None  # From compute_feature_importance()
 
+    # ── Parameter optimization (Phase 6) ────────────────────────────────
+    param_optimization: dict | None = None  # From optimize_parameters()
+
     # ── serialisation ──────────────────────────────────────────────────────
 
     def to_dict(self) -> dict:

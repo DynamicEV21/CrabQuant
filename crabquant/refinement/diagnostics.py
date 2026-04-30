@@ -43,6 +43,7 @@ def run_backtest_safely(
     ticker: str,
     period: str = "2y",
     return_portfolio: bool = False,
+    override_params: dict | None = None,
 ) -> tuple:
     """Load data, generate signals, and run a backtest.
 
@@ -66,7 +67,7 @@ def run_backtest_safely(
             }
             return None, None, None, error_info
 
-        params = strategy_module.DEFAULT_PARAMS
+        params = override_params if override_params is not None else strategy_module.DEFAULT_PARAMS
         entries, exits = strategy_module.generate_signals(df, params)
 
         # ── Signal density pre-check (Phase 6) ───────────────────────────

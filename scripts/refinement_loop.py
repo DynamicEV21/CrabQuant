@@ -909,9 +909,13 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         # best-performing set. This turns many "low_sharpe" failures into
         # successes without wasting LLM turns on parameter tuning.
         param_opt_result = None
+        param_opt_dict = None
         if config.param_optimization and strategy_module:
             try:
-                from crabquant.refinement.param_optimizer import optimize_parameters
+                from crabquant.refinement.param_optimizer import (
+                    format_optimization_for_context,
+                    optimize_parameters,
+                )
                 po_start = time.time()
                 base_params = strategy_module.DEFAULT_PARAMS.copy()
                 if result.params:
@@ -931,6 +935,19 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                           f"trades {param_opt_result.default_trades} → "
                           f"{param_opt_result.optimized_trades}",
                           flush=True)
+                    # Re-run backtest with optimized params if significantly better
+                    if param_opt_result.optimized_sharpe > result.sharpe * 1.1:
+                        opt_output = run_backtest_safely(
+                            strategy_module, primary_ticker, state.period,
+                            return_portfolio=True,
+                            override_params=param_opt_result.optimized_params,
+                        )
+                        if opt_output and opt_output[0] is not None:
+                            result, df, portfolio, _ = opt_output
+                            print(f"  ✅ Re-ran backtest with optimized params: "
+                                  f"Sharpe={result.sharpe:.3f}, "
+                                  f"trades={result.num_trades}", flush=True)
+                    param_opt_dict = format_optimization_for_context(param_opt_result)
                 else:
                     print(f"  ⚡ Param optimization ({po_elapsed:.1f}s): no improvement "
                           f"({param_opt_result.combinations_tested} combos)", flush=True)
@@ -1068,6 +1085,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             previous_attempts=state.history[-3:],
             multi_ticker_results=multi_ticker_results,
             feature_importance=feature_importance,
+            param_optimization=param_opt_dict,
         )
         
         save_report(run_dir, turn, report)
