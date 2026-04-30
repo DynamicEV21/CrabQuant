@@ -10,6 +10,10 @@ import pandas as pd
 
 from crabquant.data import load_data
 from crabquant.engine.backtest import BacktestEngine, BacktestResult
+from crabquant.refinement.signal_analysis import (
+    analyze_signal_density,
+    check_signal_density_early_exit,
+)
 from crabquant.regime import detect_regime
 
 logger = logging.getLogger(__name__)
@@ -64,6 +68,46 @@ def run_backtest_safely(
 
         params = strategy_module.DEFAULT_PARAMS
         entries, exits = strategy_module.generate_signals(df, params)
+
+        # ── Signal density pre-check (Phase 6) ───────────────────────────
+        # Skip the expensive backtest engine if signals are clearly broken.
+        should_skip, skip_reason = check_signal_density_early_exit(
+            entries, exits, len(df)
+        )
+        if should_skip:
+            logger.info("Signal density pre-check: %s", skip_reason)
+            # Return a synthetic result with 0 trades so the classifier
+            # picks up the right failure mode.
+            strategy_name = getattr(strategy_module, "DESCRIPTION", "unknown")[:30]
+            result = BacktestResult(
+                ticker=ticker,
+                strategy_name=strategy_name,
+                iteration=0,
+                sharpe=0.0,
+                total_return=0.0,
+                max_drawdown=0.0,
+                num_trades=0,
+                win_rate=0.0,
+                avg_trade_return=0.0,
+                calmar_ratio=0.0,
+                sortino_ratio=0.0,
+                profit_factor=0.0,
+                avg_holding_bars=0.0,
+                best_trade=0.0,
+                worst_trade=0.0,
+                passed=False,
+                score=0.0,
+                notes=skip_reason,
+            )
+            error_info = {
+                "error_type": "SignalDensityError",
+                "error_message": skip_reason,
+                "error_traceback": "",
+                "signal_analysis": analyze_signal_density(
+                    entries, exits, len(df)
+                ),
+            }
+            return result, df, None, error_info
 
         strategy_name = getattr(strategy_module, "DESCRIPTION", "unknown")[:30]
         engine = BacktestEngine()

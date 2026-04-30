@@ -905,6 +905,22 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         
         result, df, portfolio, _ = backtest_output
         
+        # ── Signal density analysis (Phase 6) ────────────────────────────
+        # If the backtest returned signal analysis (from pre-check), log it
+        # and attach to report for LLM feedback.
+        signal_analysis = None
+        backtest_error_full = backtest_output[3] if backtest_output and len(backtest_output) > 3 else {}
+        if backtest_error_full and isinstance(backtest_error_full, dict):
+            signal_analysis = backtest_error_full.get("signal_analysis")
+            if signal_analysis:
+                diag = signal_analysis.get("diagnosis", "")
+                fix = signal_analysis.get("fix_suggestion", "")
+                print(f"  📊 Signal analysis: {diag}", flush=True)
+                if fix:
+                    # Show first line of fix suggestion
+                    first_line = fix.split("\n")[0] if fix else ""
+                    print(f"     Fix hint: {first_line}", flush=True)
+        
         # ── Multi-ticker backtest (Phase 5.6) ────────────────────────────
         # If enabled, backtest on secondary tickers to detect single-ticker overfit.
         multi_ticker_results = None
