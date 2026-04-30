@@ -108,27 +108,73 @@ The pipeline runs end-to-end. Strategies get invented and backtested. Some hit S
 
 ## Governance System
 
-The system has a three-layer governance architecture:
+Three-layer autonomous development pipeline, modeled on a professional engineering org:
 
-### Layer 1: Monitor (every 5 min)
-Lightweight health check. Is the system alive? Are tests green? Any crashes? Alerts immediately on failure. Does NOT make strategic decisions.
+```
+CEO (Tristan/Telegram)
+  ├── Director (every 2h)  — VP of Strategy. KPIs, trends, steering.
+  ├── Orchestrator (every 30m) — Engineering Manager. Mandates, code, commits.
+  └── Operations (every 5m) — SRE/DevOps. Health checks, alerts, KPI computation.
+```
+
+### Layer 1: Operations (every 5 min — script-based, not LLM)
+Runs a Python health-check script (`~/.hermes/scripts/crabquant-health-check.py`) that:
+- Computes KPIs from real data (registry, winners, run_history, API budget)
+- Writes KPIs to `.hermes/plans/ops-kpis.json` (Director reads this)
+- Detects state changes (stalled orchestrator, test failures, API errors, repo dirty)
+- Reads `.hermes/plans/escalations.json` for Director-escalated alerts
+- Outputs `[SILENT]` when healthy (LLM agent does nothing), or a problem report
+- If a problem is found, the LLM agent investigates and fixes it
 
 ### Layer 2: Orchestrator (every 30 min)
-The doer. Reads priorities, executes them, commits, pushes. Has execution context (codebase, test suite, current branch). Should NOT make strategic decisions about what matters — it follows directives.
+The doer. Reads Director directives from `.hermes/plans/supervisor-review.md`, executes mandates, writes code, runs tests, commits, pushes. Reports KPIs and progress to Telegram. Does NOT set strategy.
 
-### Layer 3: Supervisor (every 2h)
-The thinker. Does NOT write code or run tests. Performs a deep assessment of whether the system is aligned with VISION.md goals. Checks metric integrity, detects waste, identifies stale tasks, and writes directives to `.hermes/plans/supervisor-review.md` that the Orchestrator reads at the start of each cycle.
+### Layer 3: Director (every 2h)
+The strategist. Does NOT write code or run tests. Reads pre-computed KPIs, analyzes trends, assesses progress toward VISION.md goals, writes directives for Orchestrator, delivers KPI briefing to Telegram. Can escalate critical issues via `escalations.json` (Operations picks up within 5 min).
 
-**Communication flow:**
+**Communication channels:**
 ```
-Supervisor → .hermes/plans/supervisor-review.md → Orchestrator reads at cycle start
+Operations → ops-kpis.json → Director reads (every 2h)
+Director → supervisor-review.md → Orchestrator reads (every 30m)
+Director → escalations.json → Operations reads (every 5m) → Telegram alert
+All three → Telegram briefings to CEO
 ```
 
-**The Supervisor catches what the Orchestrator can't:**
+**The Director catches what the Orchestrator can't:**
 - "You've been wiring modules for 3 cycles. You have 31 components. Run a mandate."
-- "182 winners with no walk-forward data. The success rate metric is misleading."
-- "The pre-commit hook points to the wrong venv."
-- "Task 0 says 'audit registry' but that was completed in Cycle 19."
+- "173/182 winners have no walk-forward data. WF Robustness Rate is 2%. This is the real metric."
+- "Mandate success rate dropped from 70% to 45% this period. Investigate."
+- "Infrastructure ratio is 35%. Get back to alpha research."
+
+### KPI Framework (tracked by Operations, reviewed by Director)
+
+**PRIMARY** (measure VISION.md goal directly):
+| KPI | What It Measures | Target |
+|-----|-----------------|--------|
+| WF Robustness Rate | Registry strategies passing walk-forward | >50% |
+| WF Coverage Gap | Winners promoted without WF testing | 0 |
+| Registry Keep Rate | Strategies kept vs demoted | >80% |
+| Avg Registry Sharpe | Mean Sharpe of robust strategies | >1.0 |
+
+**SECONDARY** (leading indicators):
+| KPI | What It Measures | Target |
+|-----|-----------------|--------|
+| Mandate Success Rate | Code gen quality (not strategy robustness) | >50% |
+| Infra Ratio | Runs spent on infra vs mandates | <20% |
+| Pipeline Velocity | Runs per hour | Track trend |
+
+**COST** (budget awareness):
+| KPI | What It Measures | Target |
+|-----|-----------------|--------|
+| API Cost/call | Average cost per API call | Track trend |
+| API Error Rate | Infrastructure health | <1% |
+
+**SYSTEM** (liveness):
+| KPI | What It Measures | Target |
+|-----|-----------------|--------|
+| Orchestrator Liveness | Minutes since last output | <30 min |
+| Director Review Cadence | Minutes since last review | <150 min |
+| Test Suite Health | Total test count | Track (↑ only) |
 
 ### How the Priority System Works
 
