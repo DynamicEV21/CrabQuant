@@ -5891,5 +5891,97 @@
       "weak_regimes": [],
       "is_regime_specific": false
     }
+  },
+  {
+    "strategy": "refined_momentum_spy",
+    "ticker": "SPY",
+    "sharpe": 2.1265440930550534,
+    "return": 0.24411449715740263,
+    "max_drawdown": -0.04681705238151243,
+    "trades": 10,
+    "params": {
+      "macd_fast": 12,
+      "macd_slow": 26,
+      "macd_signal": 9,
+      "adx_len": 14,
+      "adx_threshold": 20
+    },
+    "refinement_run": "momentum_spy_20260430_111246",
+    "refinement_turns": 7,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": false,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": -0.4190942654757755,
+        "min_test_sharpe": -1.627697212388751,
+        "avg_degradation": 1.1873258162989626,
+        "num_windows": 6,
+        "windows_passed": 2,
+        "robust": false,
+        "notes": "Windows: 6, passed: 2 | Avg test Sharpe: -0.42 (min: -1.63) | Avg degradation: 118.7% | \u26a0\ufe0f Avg test Sharpe -0.42 < 0.4 | \u26a0\ufe0f Only 2/6 windows passed (need >= 3)",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.19984563192481394,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.13928267841464945,
+            "test_sharpe": -1.627697212388751,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.5383405805154694,
+            "test_sharpe": -0.5395051607654243,
+            "degradation": 2.0021632778432563,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.7750785580574058,
+            "test_sharpe": 0.29698589751317084,
+            "degradation": 0.6168312302981104,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 0.9318031667886989,
+            "test_sharpe": -0.4705236901809701,
+            "degradation": 1.504960389652409,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": -0.19195436357852913,
+            "test_sharpe": -0.1738254270326785,
+            "degradation": 1.0,
+            "passed": false
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.5449153043991858,
+        "median_sharpe": 1.1470013795117389,
+        "robust": true,
+        "tickers_profitable": 1,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 1/2 (50%) | Passed: 0/2 | Avg Sharpe: 0.54 (\u03c3=0.60) | Median Sharpe: 1.15 | Avg Return: 9.1%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": -0.4191,
+      "complexity_score": null,
+      "time_reversed_overfit": null,
+      "time_reversed_explanation": "Check failed: BacktestEngine.run() missing 1 required positional argument: 'ticker'"
+    },
+    "promoted_at": "2026-04-30T18:26:05.817694+00:00",
+    "validation_status": "backtest_only"
   }
 ]
