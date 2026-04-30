@@ -464,6 +464,21 @@ def build_llm_context(
     if crash_feedback:
         context["crash_error_feedback"] = crash_feedback
 
+    # Phase 6: Action analytics — show which actions historically work best
+    # MUST be computed here (inside build_llm_context) so the append section
+    # at the end of this function can inject it into the prompt string.
+    try:
+        from crabquant.refinement.action_analytics import (
+            generate_analytics_context,
+            load_run_history,
+        )
+        from crabquant.refinement.action_analytics import RUN_HISTORY_FILE
+        run_history = load_run_history(RUN_HISTORY_FILE)
+        analytics_text = generate_analytics_context(run_history)
+        context["action_analytics"] = analytics_text
+    except Exception:
+        context["action_analytics"] = "No historical action data available."
+
     # ── CRITICAL: Build the formatted prompt for call_llm_inventor ──────
     # This ensures the prompt builders (build_turn1_prompt / build_refinement_prompt)
     # are actually used, which enables failure guidance, sharpe diagnosis,
@@ -672,19 +687,25 @@ def build_llm_context(
     # build_turn1_prompt / build_refinement_prompt produce context["prompt"]
     # which call_llm_inventor uses directly (line 314-315), bypassing the
     # fallback branch that would consume these keys individually.
-    # Without this, multi_ticker_feedback, crash_error_feedback, and
-    # action_analytics are computed but silently dropped — never reach the LLM.
+    # Without this, multi_ticker_feedback, crash_error_feedback,
+    # action_analytics, and stagnation_recovery are computed but silently
+    # dropped — never reach the LLM.
+    # Only append when a prompt was already built; if prompt building failed,
+    # let call_llm_inventor use its own per-field fallback instead.
     prompt = context.get("prompt", "")
-    append_sections = []
-    if context.get("multi_ticker_feedback"):
-        append_sections.append(context["multi_ticker_feedback"])
-    if context.get("crash_error_feedback"):
-        append_sections.append(context["crash_error_feedback"])
-    if context.get("action_analytics"):
-        append_sections.append(context["action_analytics"])
-    if append_sections:
-        prompt = prompt.rstrip() + "\n\n" + "\n\n".join(append_sections)
-        context["prompt"] = prompt
+    if prompt:
+        append_sections = []
+        if context.get("multi_ticker_feedback"):
+            append_sections.append(context["multi_ticker_feedback"])
+        if context.get("crash_error_feedback"):
+            append_sections.append(context["crash_error_feedback"])
+        if context.get("action_analytics"):
+            append_sections.append(context["action_analytics"])
+        if context.get("stagnation_recovery"):
+            append_sections.append(context["stagnation_recovery"])
+        if append_sections:
+            prompt = prompt.rstrip() + "\n\n" + "\n\n".join(append_sections)
+            context["prompt"] = prompt
 
     return context
 

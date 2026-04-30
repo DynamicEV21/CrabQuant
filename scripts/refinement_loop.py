@@ -687,14 +687,10 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         context = build_llm_context(state, prev_report, mandate,
                                    effective_target=effective_target)
         
-        # Phase 3: Append action analytics context to LLM prompt
-        try:
-            run_history = load_run_history(str(results_dir / "run_history.jsonl"))
-            analytics_text = generate_analytics_context(run_history)
-            # Inject analytics into the context as an additional section
-            context["action_analytics"] = analytics_text
-        except Exception:
-            context["action_analytics"] = "No historical action data available."
+        # NOTE: action_analytics is now computed INSIDE build_llm_context()
+        # (context_builder.py) so it's available during prompt assembly.
+        # The old post-hoc injection here was a bug — the prompt was already
+        # built and action_analytics was never appended to it.
         
         context_path = run_dir / f"context_v{turn}.json"
         write_json(context_path, context)
@@ -1233,6 +1229,10 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                     "num_windows": wf_result.get("num_windows"),
                     "window_results": wf_result.get("window_results", []),
                 }
+                # Re-persist state so the overridden failure_mode is saved to disk.
+                # Without this, the state file would show the old failure_mode
+                # and the LLM would get stale feedback on the next turn.
+                save_state(run_dir, state)
 
                 # Phase 5.6.3: Soft-promote near-miss strategies to candidates pool
                 if config.soft_promote:
