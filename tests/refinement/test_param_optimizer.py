@@ -491,3 +491,79 @@ class TestEdgeCases:
         assert isinstance(result, OptimizationResult)
         if result.default_sharpe == 0 and result.was_optimized:
             assert result.improvement_pct >= 0
+
+    # ── Sharpe target (gap rescue) tests ──────────────────────────
+
+    def test_sharpe_target_none_does_not_affect_was_optimized(self, sample_df, simple_strategy_fn):
+        """When sharpe_target is None (default), behavior is unchanged."""
+        result_default = optimize_parameters(
+            sample_df, simple_strategy_fn, {"period": 20},
+            max_combinations=5, min_improvement=0.1,
+        )
+        result_none = optimize_parameters(
+            sample_df, simple_strategy_fn, {"period": 20},
+            max_combinations=5, min_improvement=0.1, sharpe_target=None,
+        )
+        # Both should have the same was_optimized status
+        assert result_default.was_optimized == result_none.was_optimized
+
+    def test_sharpe_target_marks_optimized_when_target_reached(self, sample_df, simple_strategy_fn):
+        """When best Sharpe >= sharpe_target, was_optimized should be True
+        even if improvement is below min_improvement."""
+        # First, find what Sharpe the strategy achieves
+        probe = optimize_parameters(
+            sample_df, simple_strategy_fn, {"period": 20},
+            max_combinations=5, min_improvement=0.0,
+        )
+        best_sharpe = max(probe.default_sharpe, probe.optimized_sharpe)
+
+        # Set target slightly below the best achievable Sharpe
+        # so that some variant will reach it
+        target = best_sharpe - 0.01
+        if target <= 0:
+            return  # Skip if strategy has no positive Sharpe
+
+        result = optimize_parameters(
+            sample_df, simple_strategy_fn, {"period": 20},
+            max_combinations=5,
+            min_improvement=999.0,  # Impossible to reach via improvement
+            sharpe_target=target,
+        )
+        # Even though min_improvement is impossible, reaching the target
+        # should make was_optimized True
+        if result.optimized_sharpe >= target and result.optimized_trades >= 5:
+            assert result.was_optimized, (
+                f"Should be optimized when target reached: "
+                f"optimized_sharpe={result.optimized_sharpe:.3f} >= "
+                f"target={target:.3f}"
+            )
+
+    def test_sharpe_target_too_high_does_not_force_optimization(self, sample_df, simple_strategy_fn):
+        """When sharpe_target is impossibly high, was_optimized should
+        follow the normal min_improvement logic."""
+        result = optimize_parameters(
+            sample_df, simple_strategy_fn, {"period": 20},
+            max_combinations=5,
+            min_improvement=0.1,
+            sharpe_target=999.0,  # Impossible to reach
+        )
+        # Should behave exactly as without sharpe_target
+        result_baseline = optimize_parameters(
+            sample_df, simple_strategy_fn, {"period": 20},
+            max_combinations=5,
+            min_improvement=0.1,
+        )
+        assert result.was_optimized == result_baseline.was_optimized
+
+    def test_sharpe_target_with_insufficient_trades(self, sample_df, simple_strategy_fn):
+        """Even when target is reached, was_optimized should be False
+        if trades are below min_trades."""
+        result = optimize_parameters(
+            sample_df, simple_strategy_fn, {"period": 20},
+            max_combinations=5,
+            min_improvement=0.0,
+            min_trades=99999,  # Impossible trade count
+            sharpe_target=0.0,  # Always reachable
+        )
+        # Should NOT be optimized because trade count is too low
+        assert not result.was_optimized

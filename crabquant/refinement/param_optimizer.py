@@ -230,12 +230,18 @@ def optimize_parameters(
     max_combinations: int = 20,
     min_improvement: float = 0.1,
     min_trades: int = 5,
+    sharpe_target: Optional[float] = None,
 ) -> OptimizationResult:
     """Run parameter optimization sweep on a strategy.
 
     Tests nearby parameter combinations and returns the best one found.
     Only reports improvement if the optimized Sharpe is at least
     min_improvement better than the default, AND meets the min_trades threshold.
+
+    When sharpe_target is set, optimization also counts as successful if
+    the best Sharpe meets or exceeds the target, even if the improvement
+    is below min_improvement. This enables "gap rescue" mode where the
+    optimizer specifically tries to push a strategy above a threshold.
 
     Args:
         df: OHLCV DataFrame (already loaded).
@@ -245,6 +251,7 @@ def optimize_parameters(
         max_combinations: Maximum param combinations to test.
         min_improvement: Minimum Sharpe improvement to count as optimized.
         min_trades: Minimum trades required for a valid result.
+        sharpe_target: If set, optimization also succeeds when best_sharpe >= target.
 
     Returns:
         OptimizationResult with default and optimized metrics.
@@ -297,8 +304,9 @@ def optimize_parameters(
     # Determine if optimization found something meaningfully better
     improvement = best_sharpe - default_sharpe
     improvement_pct = (improvement / abs(default_sharpe) * 100) if default_sharpe != 0 else 0
+    target_reached = sharpe_target is not None and best_sharpe >= sharpe_target
     was_optimized = (
-        improvement >= min_improvement
+        (improvement >= min_improvement or target_reached)
         and best_trades >= min_trades
         and best_params != base_params
     )

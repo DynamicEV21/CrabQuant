@@ -951,7 +951,10 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                           f"{param_opt_result.optimized_trades}",
                           flush=True)
                     # Re-run backtest with optimized params if significantly better
-                    if param_opt_result.optimized_sharpe > result.sharpe * 1.1:
+                    # OR if optimized Sharpe meets/exceeds the effective target
+                    # (even if improvement is small, reaching target is what matters)
+                    if (param_opt_result.optimized_sharpe > result.sharpe * 1.1 or
+                            param_opt_result.optimized_sharpe >= effective_target):
                         opt_output = run_backtest_safely(
                             strategy_module, primary_ticker, state.period,
                             return_portfolio=True,
@@ -968,6 +971,64 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
                           f"({param_opt_result.combinations_tested} combos)", flush=True)
             except Exception as e:
                 print(f"  ⚠️ Param optimization error: {e}", flush=True)
+
+        # ── Sharpe Gap Rescue (Phase 6.1) ──────────────────────────
+        # When the strategy is close to the effective target but didn't reach it,
+        # try a wider parameter sweep specifically targeting the gap.
+        # This catches cases where the default sweep (9 combos, factor 0.5) was
+        # too conservative but a wider sweep (20 combos, factor 0.7) can close it.
+        gap = effective_target - result.sharpe
+        if (config.param_optimization and strategy_module
+                and 0 < gap < 1.5
+                and (param_opt_result is None
+                     or not param_opt_result.was_optimized
+                     or param_opt_result.optimized_sharpe < effective_target)):
+            try:
+                from crabquant.refinement.param_optimizer import (
+                    format_optimization_for_context,
+                    optimize_parameters,
+                )
+                gr_start = time.time()
+                rescue_base = strategy_module.DEFAULT_PARAMS.copy()
+                if result.params:
+                    rescue_base = result.params.copy()
+                gap_rescue = optimize_parameters(
+                    df, strategy_module.generate_signals, rescue_base,
+                    sweep_factor=0.7,
+                    max_combinations=20,
+                    min_improvement=0.05,
+                    min_trades=config.min_trades,
+                    sharpe_target=effective_target,
+                )
+                gr_elapsed = time.time() - gr_start
+                if gap_rescue.was_optimized and gap_rescue.optimized_sharpe >= effective_target:
+                    print(f"  🎯 Sharpe gap rescue ({gr_elapsed:.1f}s): "
+                          f"Sharpe {result.sharpe:.3f} → "
+                          f"{gap_rescue.optimized_sharpe:.3f} "
+                          f"(target {effective_target:.2f} REACHED, "
+                          f"{gap_rescue.combinations_tested} combos, "
+                          f"trades {gap_rescue.optimized_trades})",
+                          flush=True)
+                    # Re-run full backtest with rescued params
+                    opt_output = run_backtest_safely(
+                        strategy_module, primary_ticker, state.period,
+                        return_portfolio=True,
+                        override_params=gap_rescue.optimized_params,
+                    )
+                    if opt_output and opt_output[0] is not None:
+                        result, df, portfolio, _ = opt_output
+                        print(f"  ✅ Gap rescue re-run: Sharpe={result.sharpe:.3f}, "
+                              f"trades={result.num_trades}", flush=True)
+                        # Update param_opt_dict with rescue results
+                        param_opt_dict = format_optimization_for_context(gap_rescue)
+                else:
+                    print(f"  🎯 Sharpe gap rescue ({gr_elapsed:.1f}s): "
+                          f"no rescue (best {gap_rescue.optimized_sharpe:.3f} "
+                          f"vs target {effective_target:.2f}, "
+                          f"{gap_rescue.combinations_tested} combos)",
+                          flush=True)
+            except Exception as e:
+                print(f"  ⚠️ Sharpe gap rescue error: {e}", flush=True)
 
         # ── Signal density analysis (Phase 6) ────────────────────────────
         # If the backtest returned signal analysis (from pre-check), log it
