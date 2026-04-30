@@ -951,6 +951,30 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         
         result, df, portfolio, _ = backtest_output
 
+        # ── Degenerate strategy check (Phase 5.6) ────────────────────────
+        # Reject strategies that produce zero/flat results before wasting
+        # time on validation, feature importance, and other expensive checks.
+        try:
+            from crabquant.validation import check_degenerate_strategy
+            is_degenerate, degenerate_reason = check_degenerate_strategy(result)
+            if is_degenerate:
+                print(f"  ⚠️ Degenerate strategy detected: {degenerate_reason}", flush=True)
+                state.history.append({
+                    "turn": turn, "status": "degenerate_strategy",
+                    "sharpe": result.sharpe,
+                    "num_trades": result.num_trades,
+                    "action": action,
+                    "hypothesis": getattr(modification, "hypothesis", ""),
+                    "degenerate_reason": degenerate_reason,
+                })
+                update_cooldowns(cosmetic_state, "degenerate_strategy", action, success=False)
+                _sync_cooldowns_to_state(state, cosmetic_state)
+                save_state(run_dir, state)
+                _write_dashboard(run_dir)
+                continue
+        except Exception as e:
+            print(f"  ⚠️ Degenerate check error: {e}", flush=True)
+
         # ── Parameter optimization (Phase 6) ─────────────────────────────
         # Automatically sweep nearby parameter combinations to find the
         # best-performing set. This turns many "low_sharpe" failures into

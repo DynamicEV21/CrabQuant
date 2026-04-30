@@ -485,7 +485,9 @@ class TestRunFullValidationCheck:
             )
         expected_keys = {"passed", "walk_forward_robust", "cross_ticker_robust",
                          "walk_forward", "cross_ticker", "error",
-                         "validation_method", "is_regime_specific"}
+                         "validation_method", "is_regime_specific",
+                         "deflated_sharpe", "complexity_score",
+                         "time_reversed_overfit", "time_reversed_explanation"}
         assert set(result.keys()) == expected_keys
 
     def test_passed_when_both_pass(self):
