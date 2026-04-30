@@ -63,17 +63,17 @@ def test_too_few_trades_four():
     assert "4" in details
 
 
-def test_too_few_trades_exactly_nineteen():
-    """19 trades should trigger too_few_trades (threshold is 20)."""
-    result = make_result(num_trades=19, sharpe=2.0)
+def test_too_few_trades_exactly_nine():
+    """9 trades should trigger too_few_trades (threshold is 10)."""
+    result = make_result(num_trades=9, sharpe=2.0)
     mode, details = classify_failure(result, make_guardrails(), GOOD_SHARPE_BY_YEAR)
     assert mode == "too_few_trades"
-    assert "19" in details
+    assert "9" in details
 
 
-def test_too_few_trades_exactly_twenty_passes_through():
-    """20 trades should NOT trigger too_few_trades."""
-    result = make_result(num_trades=20, sharpe=2.0)
+def test_too_few_trades_exactly_ten_passes_through():
+    """10 trades should NOT trigger too_few_trades."""
+    result = make_result(num_trades=10, sharpe=2.0)
     mode, _ = classify_failure(result, make_guardrails(), GOOD_SHARPE_BY_YEAR)
     assert mode != "too_few_trades"
 

@@ -1,8 +1,8 @@
 {
-  "running_count": 52,
-  "total_mandates": 117,
-  "convergence_rate": 0.3230769230769231,
-  "wave_progress": 0.7065934065934067,
+  "running_count": 53,
+  "total_mandates": 121,
+  "convergence_rate": 0.3235294117647059,
+  "wave_progress": 0.7080283353010628,
   "best_strategies": [
     {
       "mandate_name": "momentum_googl",
@@ -337,6 +337,12 @@
       "best_sharpe": 0.5491819416343808
     },
     {
+      "mandate_name": "momentum_spy",
+      "current_turn": 0,
+      "max_turns": 7,
+      "best_sharpe": -999.0
+    },
+    {
       "mandate_name": "e2e_stress_test",
       "current_turn": 1,
       "max_turns": 7,
@@ -349,5 +355,5 @@
       "best_sharpe": 1.0504761504747684
     }
   ],
-  "timestamp": "2026-04-30T20:05:52.077818+00:00"
+  "timestamp": "2026-04-30T21:01:02.995647+00:00"
 }

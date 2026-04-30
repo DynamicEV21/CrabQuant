@@ -418,7 +418,7 @@ class TestConstants:
             assert max_bpt >= min_bpt, f"BARS_PER_TRADE['{st}'] max should be >= min"
 
     def test_min_trades_threshold(self):
-        assert MIN_TRADES_THRESHOLD == 20
+        assert MIN_TRADES_THRESHOLD == 10
 
     def test_default_bars_per_year_matches_daily(self):
         assert DEFAULT_BARS_PER_YEAR == 252

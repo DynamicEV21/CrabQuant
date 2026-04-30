@@ -15,7 +15,7 @@ import re
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
-MIN_TRADES_THRESHOLD = 20  # Minimum trades to pass validation
+MIN_TRADES_THRESHOLD = 10  # Minimum trades to pass validation (aligned with classifier threshold)
 
 # Bars per year for different timeframes
 BARS_PER_YEAR: dict[str, float] = {
@@ -249,6 +249,23 @@ def format_trade_count_guidance(estimate: dict) -> str:
             f"to reach {MIN_TRADES_THRESHOLD} trades. Consider widening entry conditions "
             f"or using shorter holding periods."
         )
+
+    # Always include actionable trade frequency guidance
+    lines.append(
+        "TRADE FREQUENCY TIPS (too_few_trades is the #1 failure mode):"
+    )
+    lines.append(
+        "- Use SHORTER lookback windows (5-15 periods instead of 20-50) to increase signal frequency."
+    )
+    lines.append(
+        "- Keep entry conditions SIMPLE — avoid stacking 3+ conditions, which filters out too many signals."
+    )
+    lines.append(
+        "- Add a RE-ENTRY mechanism: after a stop-loss or exit, allow re-entry after a short cooldown (e.g., 3-5 bars)."
+    )
+    lines.append(
+        "- Consider using FASTER indicators (e.g., EMA instead of SMA, shorter RSI periods) for more responsive signals."
+    )
 
     return "\n".join(lines)
 

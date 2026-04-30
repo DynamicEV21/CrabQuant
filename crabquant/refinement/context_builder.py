@@ -649,6 +649,7 @@ def build_llm_context(
 
     # Phase 6: Compute failure pattern analysis for adaptive prompts
     failure_pattern_section = ""
+    dominant_failure_mode = None  # Track for trade frequency hints
     try:
         from crabquant.refinement.failure_patterns import (
             analyze_failure_patterns,
@@ -663,8 +664,24 @@ def build_llm_context(
         pattern_data = analyze_failure_patterns(history)
         if pattern_data.get("total_failures", 0) > 0:
             failure_pattern_section = format_failure_patterns_for_prompt(pattern_data)
+            dominant_failure_mode = pattern_data.get("dominant_mode")
     except Exception:
         pass  # Non-critical — don't block prompt building
+
+    # Phase 6.1: Inject too_few_trades specific hint when it's the dominant
+    # failure mode. This directly addresses the Director's Directive 1:
+    # add context-specific guidance to encourage higher trade frequency.
+    if dominant_failure_mode == "too_few_trades":
+        trade_count_guidance += (
+            "\n\n### ⚠️ CRITICAL: too_few_trades is the #1 failure mode right now\n"
+            "Recent strategies are generating too few signals. You MUST:\n"
+            "1. Use SHORT lookback windows (5-12 periods) — long lookbacks filter out too many signals.\n"
+            "2. Keep entry logic to 1-2 conditions MAX — each additional condition cuts trade count.\n"
+            "3. Add a RE-ENTRY mechanism after exits (3-5 bar cooldown), so you can catch repeated opportunities.\n"
+            "4. Target 10-15+ trades minimum. A strategy with 3 trades is NOT acceptable regardless of Sharpe.\n"
+            "5. Prefer EMA over SMA (faster response), shorter RSI periods (7-10 instead of 14), "
+            "and wider threshold bands (RSI < 35 instead of < 20).\n"
+        )
 
     if report is None:
         # Turn 1: Use build_turn1_prompt for invention
