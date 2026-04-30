@@ -903,7 +903,40 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             continue
         
         result, df, portfolio, _ = backtest_output
-        
+
+        # ── Parameter optimization (Phase 6) ─────────────────────────────
+        # Automatically sweep nearby parameter combinations to find the
+        # best-performing set. This turns many "low_sharpe" failures into
+        # successes without wasting LLM turns on parameter tuning.
+        param_opt_result = None
+        if config.param_optimization and strategy_module:
+            try:
+                from crabquant.refinement.param_optimizer import optimize_parameters
+                po_start = time.time()
+                base_params = strategy_module.DEFAULT_PARAMS.copy()
+                if result.params:
+                    base_params = result.params.copy()
+                param_opt_result = optimize_parameters(
+                    df, strategy_module.generate_signals, base_params,
+                    max_combinations=9,
+                    min_trades=config.min_trades,
+                )
+                po_elapsed = time.time() - po_start
+                if param_opt_result.was_optimized:
+                    print(f"  ⚡ Param optimization ({po_elapsed:.1f}s): "
+                          f"Sharpe {param_opt_result.default_sharpe:.3f} → "
+                          f"{param_opt_result.optimized_sharpe:.3f} "
+                          f"(+{param_opt_result.improvement_pct:.1f}%), "
+                          f"{param_opt_result.combinations_tested} combos, "
+                          f"trades {param_opt_result.default_trades} → "
+                          f"{param_opt_result.optimized_trades}",
+                          flush=True)
+                else:
+                    print(f"  ⚡ Param optimization ({po_elapsed:.1f}s): no improvement "
+                          f"({param_opt_result.combinations_tested} combos)", flush=True)
+            except Exception as e:
+                print(f"  ⚠️ Param optimization error: {e}", flush=True)
+
         # ── Signal density analysis (Phase 6) ────────────────────────────
         # If the backtest returned signal analysis (from pre-check), log it
         # and attach to report for LLM feedback.

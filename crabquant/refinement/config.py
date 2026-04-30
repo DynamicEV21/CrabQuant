@@ -66,6 +66,11 @@ class RefinementConfig:
     # back to the LLM so it can make data-driven code changes.
     feature_importance: bool = True
 
+    # Parameter optimization during refinement.
+    # After backtest, sweeps nearby parameter combinations to find better settings.
+    # Frees LLM turns from parameter tuning so it can focus on structural changes.
+    param_optimization: bool = True
+
     # ── Adaptive Sharpe targeting (Phase 6) ────────────────────────────
     # Starts with a lower target on early turns and ramps up to the
     # full target. Makes early turns productive instead of always wasted.
