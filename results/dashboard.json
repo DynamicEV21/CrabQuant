@@ -1,8 +1,8 @@
 {
   "running_count": 52,
-  "total_mandates": 110,
-  "convergence_rate": 0.3103448275862069,
-  "wave_progress": 0.6879220779220782,
+  "total_mandates": 117,
+  "convergence_rate": 0.3230769230769231,
+  "wave_progress": 0.7065934065934067,
   "best_strategies": [
     {
       "mandate_name": "momentum_googl",
@@ -29,10 +29,10 @@
       "status": "success"
     },
     {
-      "mandate_name": "e2e_test_momentum",
-      "best_sharpe": 1.8728166181760793,
-      "best_turn": 2,
-      "status": "max_turns_exhausted"
+      "mandate_name": "mean_reversion_xom",
+      "best_sharpe": 2.0350680143031052,
+      "best_turn": 7,
+      "status": "success"
     }
   ],
   "running_mandates": [
@@ -349,5 +349,5 @@
       "best_sharpe": 1.0504761504747684
     }
   ],
-  "timestamp": "2026-04-30T18:31:50.522896+00:00"
+  "timestamp": "2026-04-30T20:05:52.077818+00:00"
 }
