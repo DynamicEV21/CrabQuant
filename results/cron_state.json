@@ -696,7 +696,8 @@
     "QQQ|roc_ema_volume_qqq|1842d975aff6",
     "AAPL|refined_cycle17_verify_aapl|7cbfa71f4344",
     "GOOGL|refined_momentum_googl|a8b93ba51f7f",
-    "MSFT|refined_momentum_msft|fe2763d80665"
+    "MSFT|refined_momentum_msft|fe2763d80665",
+    "GOOGL|refined_Momentum Strategy for GOOGL|44136fa355b3"
   ],
   "total_runs": 459,
   "total_winners": 8156,
