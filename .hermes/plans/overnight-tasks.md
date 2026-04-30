@@ -30,22 +30,19 @@ If supervisor-review.md says "run mandates" and this file says "wire modules" �
 ## Active Tasks (ordered by priority)
 
 ### P0: Commit staged work immediately
-- [ ] Commit the 12 staged files as atomic commits | priority: HIGH | cycles: 0 | directive: #7
-  - Group 1 (strategy + promotion): `crabquant/refinement/promotion.py`, `crabquant/strategies/refined_mean_reversion_xom.py`, `crabquant/validation/__init__.py` → "orch: promote mean_reversion_xom (Sharpe 1.73, 21 trades)"
-  - Group 2 (state files): `.hermes/plans/orchestrator-status.json`, `ops-*.json` → "orch: update state files"
-  - Group 3 (results): `results/*.json`, `results/winners/winners.json`, `results/run_history.jsonl` → "orch: update results"
+- [x] Commit the 12 staged files as atomic commits | priority: HIGH | cycles: 1 | directive: #7
+  - Files were committed in Director review commit 689c3fe + orch commit 3376c9c
 
 ### P0: Run remaining 2 mandates (Directive 2 continuation)
-- [ ] Run volume_nvda mandate (7 turns) | priority: HIGH | cycles: 1 | directive: #8
-- [ ] Run momentum_msft mandate (7 turns) | priority: HIGH | cycles: 1 | directive: #8
-  - After each: log trade count, Sharpe, and failure modes in orchestrator-status.json
-  - Target: at least 1 more convergence with ≥5 trades and Sharpe >1.5
+- [x] Run volume_nvda mandate (7 turns) | priority: HIGH | cycles: 1 | directive: #8
+  - Result: Best Sharpe 1.21, composite 1.51, max_turns_exhausted. Dominant failure: excessive_drawdown (3/7). Turn 6 hit Sharpe 1.65 but only 6 trades. NVDA volatility too high for 25% drawdown constraint.
+- [x] Run momentum_msft mandate (7 turns) | priority: HIGH | cycles: 1 | directive: #8
+  - Result: Best Sharpe 1.05, composite 0.79, max_turns_exhausted. Dominant failure: low_sharpe (4/7). Turn 6 best with param optimization rescue (0.42→1.05). MSFT low volatility makes high Sharpe targets difficult.
+  - Neither mandate converged. 0/2 converged (0/5 total with mean_reversion_xom = 1/5 = 20%).
 
 ### P1: Fix KPI prev/current rotation (carryover from Review #2 Directive 3)
-- [ ] Fix the health check script rotation bug | priority: MEDIUM | cycles: 1 | directive: #9
-  - The script must: (a) copy ops-kpis.json → ops-kpis-prev.json, (b) compute new KPIs, (c) write to ops-kpis.json
-  - Currently both files are written ~5 min apart with identical values — no trend data
-  - Target: `~/.hermes/scripts/crabquant-health-check.py`
+- [x] Fix the health check script rotation bug | priority: MEDIUM | cycles: 0 | directive: #9
+  - VERIFIED: The rotation IS working correctly. ops-kpis-prev.json shows 22:14 UTC data, ops-kpis.json shows 23:10 UTC data with different values (winners_total 188→189, history_real_mandates 195→182, etc.). The fix was already in place in the script (shutil.copy2 at line 451). The Director was likely looking at stale data from before the fix.
 
 ### P2: Update VISION.md (carryover from Review #1 & #2)
 - [ ] Update VISION.md "Current Reality" table | priority: LOW | cycles: 0 | directive: #10
