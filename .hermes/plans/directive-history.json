@@ -1,6 +1,39 @@
 {
   "reviews": [
     {
+      "timestamp": "2026-04-30T22:15:00Z",
+      "review_number": 3,
+      "status": "ON COURSE",
+      "directives_issued": [
+        {"id": 7, "action": "commit", "target": "12 staged files", "budget_cycles": 0, "description": "Commit all staged work immediately — governance violation"},
+        {"id": 8, "action": "run_mandates", "target": "mandates/volume_nvda.json, momentum_msft.json", "budget_cycles": 2, "description": "Run remaining 2 mandates from Directive 2"},
+        {"id": 9, "action": "fix_bug", "target": "~/.hermes/scripts/crabquant-health-check.py", "budget_cycles": 1, "description": "Fix KPI prev/current rotation — 3rd time flagged, escalates if not fixed"},
+        {"id": 10, "action": "behavioral", "target": "VISION.md", "budget_cycles": 0, "description": "Do NOT modify VISION.md — it is a protected file (CEO-only)"}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Fix too_few_trades prompts", "outcome": "completed", "evidence": "Commit 3a93513 — threshold 20→10 across classifier, estimator, context builder"},
+        {"directive": "Run 3 mandates", "outcome": "in_progress", "evidence": "1/3 done — mean_reversion_xom SUCCESS (Sharpe 1.73, 21 trades, turn 2)"},
+        {"directive": "Fix KPI rotation bug", "outcome": "not_done", "evidence": "prev/current still written 5 min apart with same values"},
+        {"directive": "Update status file", "outcome": "following", "evidence": "orchestrator-status.json now has non-null last_updated"},
+        {"directive": "Commit + update VISION.md", "outcome": "partial", "evidence": "12 files staged but not committed. VISION.md is protected — directive was inappropriate."}
+      ],
+      "key_findings": [
+        "too_few_trades fix VALIDATED — mean_reversion_xom converged with 21 trades (was 56% failure mode)",
+        "Mandate success rate improving: 32.6% → 36.9%",
+        "winners_with_wf bug fixed: 0 → 136/188",
+        "12 files staged but uncommitted — governance violation",
+        "KPI prev/current rotation STILL broken after 3 reviews — escalation threshold",
+        "4353 tests pass, 0 failures"
+      ],
+      "orchestrator_compliance": "improving",
+      "qa_results": {
+        "tests": "4353 passed, 0 failures, 1 skipped",
+        "imports": "OK",
+        "orchestrator_status": "non-null, meaningful",
+        "git_state": "12 staged files uncommitted"
+      }
+    },
+    {
       "timestamp": "2026-04-30T20:25:00Z",
       "review_number": 2,
       "status": "OFF COURSE",

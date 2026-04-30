@@ -6331,5 +6331,177 @@
     },
     "promoted_at": "2026-04-30T19:19:45.180229+00:00",
     "validation_status": "promoted"
+  },
+  {
+    "strategy": "refined_volume_nvda",
+    "ticker": "NVDA",
+    "sharpe": 1.730102512472377,
+    "return": 0.6642562360967058,
+    "max_drawdown": -0.08372029352264121,
+    "trades": 37,
+    "params": {},
+    "refinement_run": "volume_nvda_20260430_143633",
+    "refinement_turns": 2,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": false,
+      "walk_forward": {
+        "avg_test_sharpe": 1.1655642079270163,
+        "min_test_sharpe": -1.9661767835807482,
+        "avg_degradation": 0.43863103175134405,
+        "num_windows": 6,
+        "windows_passed": 5,
+        "robust": true,
+        "notes": "Windows: 6, passed: 5 | Avg test Sharpe: 1.17 (min: -1.97) | Avg degradation: 43.9%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 2.6247391194897864,
+            "test_sharpe": 1.135319420463147,
+            "degradation": 0.5674543759290495,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": 0.8674857971096446,
+            "test_sharpe": 1.6712993758473895,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 3,
+            "train_sharpe": 1.04498740867149,
+            "test_sharpe": 1.0815033191323333,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 1.2528762500212487,
+            "test_sharpe": 3.086482095119028,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 1.847334408920632,
+            "test_sharpe": -1.9661767835807482,
+            "degradation": 2.064331814579015,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.2164428801262002,
+            "test_sharpe": 1.9849578205809482,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": -0.054729327363745854,
+        "median_sharpe": 0.06238369082667623,
+        "robust": false,
+        "tickers_profitable": 0,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 0/2 (0%) | Passed: 0/2 | Avg Sharpe: -0.05 (\u03c3=0.12) | Median Sharpe: 0.06 | Avg Return: -18.1%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": 1.1656,
+      "complexity_score": null,
+      "time_reversed_overfit": null,
+      "time_reversed_explanation": "Check failed: BacktestEngine.run() missing 1 required positional argument: 'ticker'"
+    },
+    "promoted_at": "2026-04-30T21:37:27.092394+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_mean_reversion_xom",
+    "ticker": "XOM",
+    "sharpe": 1.7300460854066992,
+    "return": 0.5092639858779969,
+    "max_drawdown": -0.10643784770978644,
+    "trades": 21,
+    "params": {},
+    "refinement_run": "mean_reversion_xom_20260430_152114",
+    "refinement_turns": 2,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 1.1831427525890785,
+        "min_test_sharpe": -0.5690745773162323,
+        "avg_degradation": 0.6317200895043257,
+        "num_windows": 6,
+        "windows_passed": 4,
+        "robust": true,
+        "notes": "Windows: 6, passed: 4 | Avg test Sharpe: 1.18 (min: -0.57) | Avg degradation: 63.2%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 1.062320247958996,
+            "test_sharpe": 2.3088787948205907,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": 1.9435270409739445,
+            "test_sharpe": -0.280249967795389,
+            "degradation": 1.144196587897717,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.732063652603505,
+            "test_sharpe": -0.5690745773162323,
+            "degradation": 1.7773566892610777,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.6901000878998672,
+            "test_sharpe": 2.561442242635565,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 0.4260174875781499,
+            "test_sharpe": 0.055907442239388934,
+            "degradation": 0.8687672598671595,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 0.8852813368625789,
+            "test_sharpe": 3.0219525809505483,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 1.248747686346526,
+        "median_sharpe": 1.2683418578611791,
+        "robust": true,
+        "tickers_profitable": 2,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 2/2 (100%) | Passed: 0/2 | Avg Sharpe: 1.25 (\u03c3=0.02) | Median Sharpe: 1.27 | Avg Return: 40.7%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": true,
+      "deflated_sharpe": 1.1831,
+      "complexity_score": null,
+      "time_reversed_overfit": null,
+      "time_reversed_explanation": "Check failed: BacktestEngine.run() missing 1 required positional argument: 'ticker'"
+    },
+    "promoted_at": "2026-04-30T22:22:13.196583+00:00",
+    "validation_status": "promoted"
   }
 ]

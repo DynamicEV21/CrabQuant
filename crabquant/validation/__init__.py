@@ -602,6 +602,7 @@ def time_reversed_check(
     data: pd.DataFrame,
     params: dict,
     threshold: float = 0.3,
+    ticker: str = "UNKNOWN",
     engine: Optional[BacktestEngine] = None,
 ) -> tuple[bool, str]:
     """Check if strategy is overfit by testing on time-reversed data.
@@ -614,6 +615,7 @@ def time_reversed_check(
         data: OHLCV DataFrame with DatetimeIndex
         params: Strategy parameters
         threshold: Max allowed ratio of reversed_score / normal_score (default 0.3)
+        ticker: Ticker symbol (required by BacktestEngine.run)
         engine: BacktestEngine instance (created if None)
 
     Returns:
@@ -627,12 +629,12 @@ def time_reversed_check(
     # Run on normal data
     entries, exits = strategy_fn(data, params)
     name = getattr(strategy_fn, "__name__", "strategy")
-    normal_result = engine.run(data, entries, exits, name, params=params)
+    normal_result = engine.run(data, entries, exits, name, ticker, params=params)
     normal_score = normal_result.sharpe
 
     # Run on reversed data
     rev_entries, rev_exits = strategy_fn(reversed_data, params)
-    reversed_result = engine.run(reversed_data, rev_entries, rev_exits, name, params=params)
+    reversed_result = engine.run(reversed_data, rev_entries, rev_exits, name, ticker, params=params)
     reversed_score = reversed_result.sharpe
 
     ratio = reversed_score / max(normal_score, 1e-8)

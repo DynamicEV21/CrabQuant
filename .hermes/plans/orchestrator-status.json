@@ -1,8 +1,1 @@
-{
-  "status": "working",
-  "current_directive": "Directive 1: Fix too_few_trades bottleneck in context_builder.py and validation_gates.py",
-  "completed_this_cycle": [],
-  "next_planned_action": "After Directive 1: Execute Directive 3 (fix KPI computation bugs) or Directive 5 (commit cleanup + VISION.md update)",
-  "last_updated": "2026-04-30T13:54:00Z",
-  "notes": "Starting fresh cycle. Director Review #2 identified too_few_trades as #1 bottleneck (56% of failures). Priority: Directive 1 (prompt fix), then Directive 3 (KPI bugs), then Directive 5 (cleanup)."
-}
+{"status": "working", "current_directive": "Directive 2: Run 3 mandates (mean_reversion_xom, volume_nvda, momentum_msft) to validate too_few_trades fix", "completed_this_cycle": ["mean_reversion_xom: SUCCESS Sharpe 1.73, 21 trades, turn 2 — auto-promoted to registry"], "next_planned_action": "Run volume_nvda mandate (7 turns)", "last_updated": "2026-04-30T15:22:00Z", "notes": "mean_reversion_xom converged on turn 2. 21 trades — no too_few_trades issue. The threshold fix is working. Minor bugs: time-reversed check missing ticker arg, JSON serialization in winners write."}

@@ -23,9 +23,36 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 from crabquant.validation import WalkForwardResult, CrossTickerResult
 
 logger = logging.getLogger(__name__)
+
+# Numpy bool scalar types vary across versions (np.bool_ always exists,
+# np.bool8 may not).  Build a tuple once at import time.
+_NP_BOOL_TYPES: tuple[type, ...] = (np.bool_,)
+try:
+    _NP_BOOL_TYPES += (np.bool8,)  # type: ignore[attr-defined]
+except AttributeError:
+    pass
+
+
+def _json_safe(obj: Any) -> Any:
+    """Recursively convert numpy types to Python-native types for JSON serialization."""
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, _NP_BOOL_TYPES):
+        return bool(obj)
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return obj
 
 
 # ---------------------------------------------------------------------------
@@ -234,6 +261,7 @@ def run_full_validation_check(
             if _trc_data is not None and len(_trc_data) >= 100:
                 _trc_passed, _trc_explanation = _trc(
                     strategy_fn, _trc_data, params,
+                    ticker=discovery_ticker,
                 )
                 if not _trc_passed:
                     logger.warning(
@@ -367,7 +395,7 @@ def promote_to_winner(
             winners = []
 
     winners.append(entry)
-    winners_path.write_text(json.dumps(winners, indent=2))
+    winners_path.write_text(json.dumps(_json_safe(winners), indent=2))
 
     logger.info("Promoted %s to winners (Sharpe %.2f)", strategy_name, result.sharpe)
     return {"strategy_name": strategy_name, "winners_file": str(winners_path)}

@@ -2,28 +2,23 @@ import pandas as pd
 from crabquant.indicator_cache import cached_indicator
 
 DEFAULT_PARAMS = {
-    "rsi_period": 14,
-    "rsi_entry": 60,
-    "rsi_exit": 68,
-    "bb_period": 18,
-    "bb_std": 1.8,
+    "rsi_period": 10,
+    "rsi_entry": 55,
+    "rsi_exit": 60,
 }
 
-DESCRIPTION = "Mean reversion entering when RSI turns up from below 60 or price falls below lower Bollinger Band (1.8 std). Exits at BB midline or RSI above 68. Uses proven RSI+BBands indicator family for XOM instead of negatively-correlated EMA/SMA. Wider RSI threshold and tighter bands boost trade frequency to 30-40 while preserving mean-reversion edge."
+DESCRIPTION = "Fast RSI mean reversion for energy stocks. Enters when RSI(10) turns up from below 55, exits at RSI above 60. Wider entry threshold captures more mean-reversion oscillations in the 42-55 RSI band that the previous version missed."
 
 def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:
     p = {**DEFAULT_PARAMS, **(params or {})}
     close = df["close"]
 
     rsi = cached_indicator("rsi", close, length=p["rsi_period"])
-    bb = cached_indicator("bbands", close, length=p["bb_period"], std=p["bb_std"])
-    bb_lower = bb.iloc[:, 0]
-    bb_mid = bb.iloc[:, 1]
 
-    rsi_pullback = (rsi < p["rsi_entry"]) & (rsi > rsi.shift(1))
-    below_band = close < bb_lower
+    rsi_oversold = rsi < p["rsi_entry"]
+    rsi_turning_up = rsi > rsi.shift(1)
 
-    entries = (rsi_pullback | below_band).fillna(False)
-    exits = ((close > bb_mid) | (rsi > p["rsi_exit"])).fillna(False)
+    entries = (rsi_oversold & rsi_turning_up).fillna(False)
+    exits = (rsi > p["rsi_exit"]).fillna(False)
 
     return entries, exits
