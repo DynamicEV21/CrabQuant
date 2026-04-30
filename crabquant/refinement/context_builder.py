@@ -469,12 +469,12 @@ def build_llm_context(
     # at the end of this function can inject it into the prompt string.
     try:
         from crabquant.refinement.action_analytics import (
-            generate_analytics_context,
+            generate_llm_context,
             load_run_history,
         )
         from crabquant.refinement.action_analytics import RUN_HISTORY_FILE
         run_history = load_run_history(RUN_HISTORY_FILE)
-        analytics_text = generate_analytics_context(run_history)
+        analytics_text = generate_llm_context(run_history)
         context["action_analytics"] = analytics_text
     except Exception:
         context["action_analytics"] = "No historical action data available."
@@ -703,6 +703,8 @@ def build_llm_context(
             append_sections.append(context["action_analytics"])
         if context.get("stagnation_recovery"):
             append_sections.append(context["stagnation_recovery"])
+        if context.get("failure_pattern_section"):
+            append_sections.append(context["failure_pattern_section"])
         if append_sections:
             prompt = prompt.rstrip() + "\n\n" + "\n\n".join(append_sections)
             context["prompt"] = prompt
