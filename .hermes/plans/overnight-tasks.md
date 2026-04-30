@@ -60,6 +60,8 @@ This runs as a repeating cron job (every 45 min). Each run:
 
 ### Tier 1: Directly Improves Invention Speed
 
+- [ ] **0. Registry Data Integrity Audit** — CRITICAL. Load strategies/production/registry.json. For each entry, check if walk_forward_test_sharpe > 0. Flag entries where walk_forward_robust=True but walk_forward_test_sharpe=0.0. Re-run rolling_walk_forward() on flagged entries with 6 windows, min_avg_test_sharpe=0.5, min_windows_passed=3. Remove entries that fail from registry.json. Update winners.json validation_status accordingly. Commit results.
+
 - [x] 1. **Cross-Run Learning (5.6.1)** ✅ DONE
   - Winners feed into LLM context. On main.
 

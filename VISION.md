@@ -129,13 +129,22 @@ The orchestrator should recalculate priorities every cycle by looking at actual 
 - **excessive_drawdown (10%)** — Minor. Existing guidance is adequate.
 - **Wiring bugs fixed (Cycle 17)**: `detect_regime` imported from wrong module, `analyze_failure_patterns` called with wrong arg type, 2 silent `except-pass` blocks now log warnings. All 3 bugs would have caused dead-code paths in the Turn 1 and Turn 2+ prompt builders.
 - **Full wiring audit (Cycle 17)**: Zero new bugs found across all 17 modules. All function signatures match their call sites.
+- **Positive Feedback Analyzer (a3dc168)**: Added to prevent LLM regression — tracks what works and feeds successful patterns back into prompts. Agent should verify this is wired and not regressed.
 - Action: Run live mandates to verify all diagnosis systems work end-to-end (now P1).
+
+**🟠 P0.5 — Registry Data Integrity Audit**
+- 116/118 strategies in `strategies/production/registry.json` have `walk_forward_test_sharpe=0.000` but `walk_forward_robust=True`.
+- `sweep_promote_remaining.py` hardcoded `robust=True` without re-running validation — data integrity bug, not strategy quality bug.
+- Re-run rolling walk-forward on all flagged entries (6 windows, min_avg_test_sharpe=0.5, min_windows_passed=3).
+- Remove entries that fail. Update `winners.json` validation_status accordingly.
+- Commit results with detailed before/after counts.
 
 **🟡 P1 — Run Live Mandates to Verify Improvements**
 - The diagnosis systems (sharpe, regime) were built based on historical data analysis
 - Need to run actual mandates to verify they improve the per-turn success rate
 - Run explorer mode mandates on diverse tickers (not just SPY)
 - Verify the feedback loop actually changes LLM behavior
+- **param_optimizer** (wired in commits c8ee32b, 1900a12): Automated parameter optimization tool that rescued a mandate to Sharpe 1.54 (saved 3 turns). The agent should use `param_optimizer` more aggressively — it's a fast, deterministic alternative to LLM-driven refinement when a strategy's logic is sound but parameters need tuning. Try it before spending LLM turns on parameter tweaks.
 
 **🟢 P2 — Polish (only after P0/P1 are significantly improved)**
 - Mandate convergence rate (33% → >50%)
@@ -193,6 +202,36 @@ Discovery workers should commit with prefix `discovery:` so their work is distin
 - ❌ Refactoring code that's already working and not blocking anything
 - ❌ Repeating a task that failed 3+ times without changing approach
 - ❌ Writing code without understanding why previous attempts failed
+
+### Data Integrity Checks
+
+The agent MUST verify data integrity in production files. The batch promotion system (`sweep_promote_remaining.py`) has been observed hardcoding `walk_forward_robust=True` without re-running validation — 116/118 registry entries have `walk_forward_test_sharpe=0.000` despite being marked robust. This is a data integrity bug, not a strategy quality bug (the strategies passed rolling WF with median Sharpe 0.947 during the sweep).
+
+**Minimum sanity checks (apply to ALL registry operations):**
+- `walk_forward_test_sharpe > 0` — entries with sharpe=0.0 and robust=True are suspect
+- `walk_forward_robust=True` must correspond to actual rolling walk-forward results
+- `validation_status` in winners.json must match registry.json status
+
+**Periodic audit task:** Load `strategies/production/registry.json`. Flag entries where `walk_forward_robust=True` but `walk_forward_test_sharpe=0.0`. Re-run `rolling_walk_forward()` on flagged entries (6 windows, min_avg_test_sharpe=0.5, min_windows_passed=3). Remove entries that fail. Update winners.json accordingly.
+
+### Quality Score
+
+Track outcome-based quality per cycle to measure whether the cron agent's contributions actually improve over time:
+
+```
+quality_score = (new strategies passing validation) / (total strategies attempted)
+```
+
+Store in `results/quality_score.json`:
+```json
+{
+  "cycles": [
+    {"cycle": 18, "attempted": 10, "passed": 3, "score": 0.3, "timestamp": "2026-04-30T01:00:00Z"}
+  ]
+}
+```
+
+The agent should read this file at the start of each cycle. If score is declining over 3+ cycles, stop and investigate why (prompt drift, threshold changes, data staleness).
 
 ---
 
