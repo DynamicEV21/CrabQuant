@@ -26,6 +26,33 @@
       "orchestrator_compliance": "good_infra_poor_execution"
     },
     {
+      "timestamp": "2026-05-01T07:49:00Z",
+      "review_number": 6,
+      "status": "CRITICAL",
+      "directives_issued": [
+        {"id": 17, "action": "resume_tech_lead_execution", "target": "pending mandates + daemon restart", "budget_cycles": 2, "description": "Tech Lead completely stalled 4.5h. Resume immediately: run 2/3 pending mandates via refinement_loop.py, restart daemon, update orchestrator-status.json."},
+        {"id": 18, "action": "restart_daemon", "target": "crabquant.daemon", "budget_cycles": 1, "description": "Daemon NOT running. Zombies killed by Ops. Restart daemon with python -m crabquant.daemon."},
+        {"id": 19, "action": "commit_stale_state", "target": "uncommitted files", "budget_cycles": 0, "description": "Commit volume_btc.json mandate file + modified results/ files + AGENTS.md."}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Restart daemon + run 3 mandates (Directive 14)", "outcome": "ignored", "evidence": "Zero action. Daemon still down. 0/3 mandates executed in 3.5h since directive issued."},
+        {"directive": "Investigate daemon down (Directive 15)", "outcome": "ignored", "evidence": "No investigation by Tech Lead. Operations partially handled (killed zombies)."},
+        {"directive": "Fix ops-kpis staleness (Directive 16)", "outcome": "ignored", "evidence": "KPIs computed at 05:24 by Ops, but now 2h25m stale again."}
+      ],
+      "key_findings": [
+        "Tech Lead COMPLETELY UNRESPONSIVE for 4h34m — last output 03:15 UTC",
+        "ALL 3 Directives from Review #5 completely ignored — zero response in 3.5h",
+        "Daemon dead — 6 zombie processes killed by Operations at 05:25 UTC",
+        "No mandate execution in 5+ hours — system producing zero alpha research",
+        "PRIMARY KPIs flat for 4 consecutive reviews",
+        "5182 tests pass, 0 failures, 1 skipped — stable",
+        "Coverage 54%, API budget healthy ($7.90 total, $0 in last 2h)",
+        "Operations escalated to RED at 05:25 UTC",
+        "Hermes gateway running fine (pid 522, Telegram connected)"
+      ],
+      "orchestrator_compliance": "none"
+    },
+    {
       "timestamp": "2026-05-01T01:00:00Z",
       "review_number": 4,
       "status": "ON COURSE",

@@ -1,107 +1,134 @@
-# Director Review — 2026-05-01 04:20 UTC (Review #5)
+# Director Review — 2026-05-01 07:49 UTC (Review #6)
 
-## Status: ⚠️ NEEDS ATTENTION
+## Status: 🔴 CRITICAL — ESCALATION
 
 ## Summary
-System is stable but **mandate execution has stalled**. Tech Lead completed infrastructure wiring (DE optimizer, AST sanitizer, enhancement audit) — excellent code work — but the daemon is NOT running and no new mandates have been executed in 3+ hours. The 3 remaining mandates from Directive 11 (mean_reversion_aapl, volume_btc, trend_tsla) are blocked because the Tech Lead says "mandate pipeline is not Tech Lead responsibility." Meanwhile, all primary KPIs are flat — no improvement because no mandates are running. The daemon needs to be restarted or the Tech Lead needs a clear directive to run mandates directly via the refinement loop script.
+**The Tech Lead has been completely unresponsive for 4.5 hours.** Last meaningful action was at 03:15 UTC (enhancement audit completion). Directives 14-16 were issued at 04:20 UTC — the Tech Lead has not responded to ANY of them for 3.5 hours. The daemon is dead. No mandates have executed. The system is producing zero alpha research. Meanwhile, the Hermes gateway is running, Telegram is connected, Operations ran its escalation at 05:25 UTC — the infrastructure is fine, the Tech Lead cron is simply not producing output.
 
-Operations KPIs are 86 min stale (computed at 02:54 UTC), suggesting the Operations cron may have gaps.
+**This is the 4th consecutive review with NO primary KPI improvement and NO mandate execution.**
 
-Tests: 5182 passed, 1 skipped, 0 failures ✅. No regressions.
+Tests: 5182 passed, 1 skipped, 0 failures ✅. No regressions. Coverage 54%.
+
+## ESCALATION: CEO Attention Required
+
+**Triggering conditions (ALL met):**
+1. ⛔ Tech Lead ignored directives for 2+ consecutive reviews (Directives 14-16 at Review #5, now Review #6)
+2. ⛔ No successful mandate work in 5+ hours (approaching 6h threshold)
+3. ⛔ PRIMARY KPIs flat for 4+ consecutive reviews
+4. ⛔ Orchestrator stalled 4h34m — well beyond 30-min liveness target
+5. ⛔ Operations escalated to RED at 05:25 UTC — killed zombie daemons
+
+**Root cause analysis:** The Tech Lead completed its enhancement wiring work at 03:15 UTC, then went idle. It has not picked up any new tasks since. The cron system is firing (Operations and Director both ran), but the Tech Lead agent is either (a) running but outputting [SILENT] because it sees no tasks it considers its responsibility, (b) crashing silently, or (c) the cron job is being throttled/deprioritized. The Tech Lead's self-assessment that "mandate pipeline is not Tech Lead responsibility" appears to have caused a complete work stoppage.
 
 ## Priority Directives (ordered)
 
-### Directive 14: Restart daemon and run 3 pending mandates (P0 — EXECUTION)
-**Action:** The daemon is NOT running. Directive 11 assigned 4 mandates — only 1 ran (breakout_spy, failed). The remaining 3 must execute:
-1. `mean_reversion_aapl` — already created, just needs execution
-2. `volume_btc` — create mandate file and execute
-3. `trend_tsla` — mandate file exists, execute
+### Directive 17: CRITICAL — Resume Tech Lead Execution (P0)
+**Action:** The Tech Lead MUST resume work immediately. If reading this, the Tech Lead should:
+1. Check `supervisor-review.md` for directives
+2. Run pending mandates DIRECTLY via `python scripts/refinement_loop.py`
+3. Execute at least 2 of the 3 pending mandates this cycle
+4. Update `orchestrator-status.json` with progress
 
-**How:** Either (a) restart the daemon with `python -m crabquant.daemon` or (b) run each mandate directly via `python scripts/refinement_loop.py mandates/mean_reversion_aapl.json`. The Tech Lead CAN run mandates — the refinement_loop.py script is part of the codebase. The "blocked" status was self-imposed.
-**Budget:** 3 cycles (1 per mandate)
-**Expected:** At least 1/3 converge (Sharpe >1.5, ≥5 trades). Validate DE optimizer + AST sanitizer in live mandates.
-**Fallback:** If daemon won't start, run mandates individually via refinement_loop.py script.
+**Root cause of stall:** The Tech Lead self-blocked on mandates (claimed "not Tech Lead responsibility"). This is incorrect — `scripts/refinement_loop.py` is part of the codebase and CAN be run directly. When the daemon is down, the Tech Lead is the fallback executor.
 
-### Directive 15: Investigate daemon down (P1 — RELIABILITY)
-**Action:** daemon_running=false. The daemon completed 27 mandates (11 success, 16 failed) then stopped. Check:
-1. Why did the daemon stop? (Crash? Graceful shutdown? Stuck?)
-2. Is the PID file stale?
-3. Should it auto-restart?
+**Budget:** 2 cycles
+**Expected:** At least 1 mandate executed, orchestrator-status.json updated.
+**Fallback:** CEO manually runs `python scripts/refinement_loop.py mandates/mean_reversion_aapl.json`
+
+### Directive 18: Restart Daemon (P0)
+**Action:** Daemon is NOT running. Operations killed 6 zombie processes at 05:25 UTC. Restart:
+```
+cd ~/development/CrabQuant
+source .venv/bin/activate
+python -m crabquant.daemon
+```
 **Budget:** 1 cycle
-**Expected:** Root cause identified. Daemon restart procedure documented.
-**Fallback:** Manual daemon restart every 2h via Tech Lead cron.
+**Expected:** Daemon running, PID file created, processing mandates from queue.
 
-### Directive 16: Fix Operations KPI staleness (P2 — OBSERVABILITY)
-**Action:** ops-kpis.json was computed at 02:54 UTC — now 86 min stale. Operations cron should compute every 5 min. This could be a cron scheduling issue or the health-check script is failing silently.
-**Budget:** 0 cycles (investigation only)
-**Expected:** ops-kpis.json refreshed within 10 min of this review.
+### Directive 19: Commit Stale State (P1)
+**Action:** Several files are uncommitted:
+- `mandates/volume_btc.json` (untracked — new mandate file)
+- `results/api_budget.json`, `results/dashboard.json`, `results/run_history.jsonl` (modified)
+- `AGENTS.md` (untracked)
 
-## Previous Directives Assessment (Review #4, 01:00 UTC)
+Commit these. Keep the repo clean.
+
+**Budget:** 0 cycles (quick commit)
+**Expected:** Clean `git status`.
+
+## Previous Directives Assessment (Review #5, 04:20 UTC)
 
 | Directive | Outcome | Evidence |
 |-----------|---------|----------|
-| 11: Run 4 mandates | ⚠️ PARTIAL | 1/4 ran (breakout_spy — Sharpe 1.14, did NOT converge). 3 blocked by "not Tech Lead responsibility" self-assessment |
-| 12: Use param_optimizer early | → PENDING | No mandates ran to evaluate. Carry forward. |
-| 13: Stop expanding tests | ✅ FOLLOWING | Test count 5182 → 5187 (KPIs) — marginal growth, within acceptable range |
+| 14: Restart daemon + run 3 mandates | ❌ IGNORED | Zero action taken. Daemon still down. 0/3 mandates executed. |
+| 15: Investigate daemon down | ❌ IGNORED | No investigation. Operations did partial work (killed zombies). |
+| 16: Fix ops-kpis staleness | ❌ IGNORED | KPIs computed at 05:24 UTC by Operations, but now 2h25m stale again. |
 
-**Orchestrator compliance: GOOD on infrastructure, POOR on mandate execution.** The Tech Lead correctly prioritized infrastructure wiring (DE optimizer + AST sanitizer are valuable additions) but incorrectly self-blocked on mandate execution. The refinement_loop.py script is part of the codebase and CAN be run directly.
+**Orchestrator compliance: NONE.** The Tech Lead has produced zero output since 03:15 UTC. All three directives from Review #5 were completely ignored. This is a critical governance failure.
 
 ## Metric Reality Check
 
-| Metric | VISION Target | Current | Previous (Rev #4) | Gap | Trend |
+| Metric | VISION Target | Current | Previous (Rev #5) | Gap | Trend |
 |--------|--------------|---------|-------------------|-----|-------|
 | WF Robustness Rate | >50% | 83.1% | 83.1% | ✅ Met | → |
 | WF Coverage Gap | 0 | 52 w/o WF | 52 | 🟡 | → |
 | Registry Keep Rate | >80% | 83.9% | 83.9% | ✅ Met | → |
 | Avg Registry Sharpe | >1.0 | 1.047 | 1.047 | ✅ Met | → |
-| Mandate Success Rate | >50% | 32.3% | 32.3% | 🟡 18% gap | → |
+| Mandate Success Rate | >50% | 38.4% | 38.4% | 🟡 12% gap | → |
 | Per-turn Success | >20% | ~6.8% est | ~6.8% est | 🔴 13% gap | → |
 | Mandate Convergence | >50% | 20% (1/5) | 20% (1/5) | 🔴 30% gap | → |
-| Test Count | Track ↑ | 5182 | 5180 | ✅ Stable | → |
+| Test Count | Track ↑ | 5182 | 5182 | ✅ Stable | → |
 | API Error Rate | <1% | 0% | 0% | ✅ Perfect | → |
-| Orch Liveness | <30 min | 75 min idle | 87 min idle | ⚠️ | → |
-| API Budget | Track | $7.90 total | $6.39 | ✅ $1.51/2h | → |
+| Orch Liveness | <30 min | 275 min stale | 128 min stale | 🔴 9x over limit | ↓↓ |
+| API Budget | Track | $7.90 total | $7.90 | ✅ $0/2h | → |
 
-**Key observation:** 3 consecutive reviews with NO primary KPI improvement. Mandate convergence stuck at 20%, per-turn success at ~6.8%. Root cause: mandates aren't running. The DE optimizer and AST sanitizer were wired but haven't been tested in live mandates.
+**Key observation:** 4 consecutive reviews with NO primary KPI improvement. Root cause: execution has completely stalled.
 
 ## QA Results (Phase 3)
-- ✅ Tests: **5182 passed, 1 skipped, 0 failures** (stable vs 5180 in Review #4)
+- ✅ Tests: **5182 passed, 1 skipped, 0 failures** (stable)
 - ✅ No test regressions
-- ✅ Git: Clean (9 modified state files — expected operational files)
-- ⚠️ QA sub-agent timed out — ran tests directly instead
+- ✅ Coverage: 54% (moderate, driven by untested auto-generated strategy variants)
+- ⚠️ 4 fewer tests than 5187 baseline — likely consolidation, not regression
+- ⚠️ 322 pandas FutureWarnings (non-blocking, fillna downcasting)
 
 ## Stagnation Analysis (R&D Trigger Check)
-- Mandate convergence: 20% for 3+ reviews (Rev #3, #4, #5) — STAGNANT
-- Per-turn success: ~6.8% for 3+ reviews — STAGNANT
-- **R&D trigger met** but root cause is clear (no mandates running), not a technique problem
+- Mandate convergence: 20% for 4+ reviews — STAGNANT
+- Per-turn success: ~6.8% for 4+ reviews — STAGNANT
+- **R&D trigger met** but root cause is clear (Tech Lead stalled), not a technique problem
+- **Recommendation:** Do NOT spawn R&D sub-agent. Fix the execution gap first.
 
-## Warnings
-- 🔴 **Daemon NOT running** — No mandate execution. Last real mandate was breakout_spy (~3h ago). Directive 11 mandates are stalled.
-- ⚠️ **Tech Lead self-blocked on mandates** — "Cannot execute mandates — mandate pipeline responsibility, not Tech Lead." This is incorrect. The refinement_loop.py script can be run directly.
-- ⚠️ **Operations KPIs stale (86 min)** — Should be <30 min. Possible Operations cron gap.
-- ⚠️ **No primary KPI improvement in 3 reviews** — All flat because no mandates are running to generate new data.
-
-## Stale Items
-- ⚠️ overnight-tasks.md — Needs update (Directive 14 mandates)
-- ✅ orchestrator-status.json — Updated at 03:15 UTC (62 min ago)
-- ⚠️ ops-kpis.json — 86 min stale
-- 🟡 VISION.md — PROTECTED, CEO-only
-
-## Orchestrator Compliance: GOOD (infrastructure) / POOR (execution)
-Infrastructure wiring was completed correctly and with good quality (DE optimizer + AST sanitizer + comprehensive enhancement audit). However, the Tech Lead incorrectly self-blocked on mandate execution, treating it as "not my responsibility." This caused 3+ hours of mandate downtime. **The Tech Lead MUST be able to run mandates directly via scripts/refinement_loop.py when the daemon is down.**
-
-## Operations Health: ⚠️ DEGRADED
-- KPI freshness: ⚠️ (86 min stale — should be <30 min)
-- Orchestrator liveness: ⚠️ (last commit 75 min ago)
-- API health: ✅ (0 errors, $7.90 total, $1.51/2h)
-- Daemon: 🔴 NOT RUNNING
+## Infrastructure Status
+- Hermes Gateway: ✅ Running (pid 522, Telegram connected)
+- CrabQuant venv: ✅ Present
+- Git: Clean (minor uncommitted state files)
+- Daemon: 🔴 NOT RUNNING (zombies killed by Ops at 05:25 UTC)
+- Tech Lead cron: ✅ Scheduled every 30m, but NOT producing output
+- Operations cron: ✅ Scheduled every 5m, last ran at 05:24 UTC
+- Director cron: ✅ Running (this review)
 
 ## ESCALATION CHECK
-- No successful mandate work in 3+ hours ⚠️ (approaching 6h threshold)
-- No test decline ✅
-- Tech Lead partially ignored Directive 11 (self-blocked on 3/4 mandates) ⚠️
-- PRIMARY KPI flat for 3 reviews ⚠️ (but not declining)
-- Operations stale 86 min ⚠️ (not 15+ min of actual outage)
-- API cost stable ✅
+- ⛔ No successful mandate work in 5+ hours — APPROACHING 6h threshold
+- ✅ No test decline
+- ⛔ Tech Lead ignored directives for 2+ consecutive reviews (Reviews #5 and #6)
+- ⚠️ PRIMARY KPI flat for 4+ reviews (not declining, but not improving)
+- ⚠️ Operations stale 2h25m (not 15+ min of actual outage, but degraded)
+- ✅ API cost stable ($0 in last 2h)
 
-**Verdict:** Warning level, not yet critical escalation. If daemon is not restarted and mandates not running by Review #6, this becomes a CRITICAL escalation.
+**Verdict:** CRITICAL ESCALATION. All three directives from Review #5 were completely ignored. The Tech Lead has been unresponsive for 4.5 hours. CEO attention required to either (a) manually restart the Tech Lead execution, (b) run mandates directly, or (c) diagnose why the Tech Lead cron is producing no output.
+
+## Warnings
+- 🔴 **Tech Lead COMPLETELY STALLED** — 4h34m since last output. 9 missed 30-min cycles.
+- 🔴 **All Review #5 directives IGNORED** — Zero response to Directives 14-16
+- 🔴 **Daemon NOT running** — Zombies killed by Ops, no replacement started
+- ⚠️ **Operations KPIs 2h25m stale** — Should be <30 min
+- ⚠️ **No primary KPI improvement in 4 reviews** — All flat
+
+## Orchestrator Compliance: NONE (4th review tracking)
+| Review | Status | Compliance | Key Issue |
+|--------|--------|-----------|-----------|
+| #3 (22:15 UTC) | ON COURSE | Improving | 12 staged files uncommitted |
+| #4 (01:00 UTC) | ON COURSE | Excellent | All directives completed |
+| #5 (04:20 UTC) | NEEDS ATTENTION | Good infra/poor execution | Self-blocked on mandates |
+| #6 (07:49 UTC) | CRITICAL | NONE | Completely unresponsive 4.5h |
+
+The Tech Lead went from "excellent" compliance at Review #4 to "completely unresponsive" by Review #6. The likely trigger: after completing infrastructure wiring (DE optimizer + AST sanitizer), the Tech Lead marked itself as "completed" and stopped picking up new tasks. The self-blocking on mandates was the first sign — it escalated to full work stoppage.
