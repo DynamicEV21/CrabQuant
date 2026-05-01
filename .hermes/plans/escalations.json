@@ -1,4 +1,11 @@
 {
-  "active_alerts": [],
-  "last_processed": "2026-05-01T09:57:45.296976+00:00"
+  "active_alerts": [
+    {
+      "severity": "RED",
+      "timestamp": "2026-05-01T09:50:00Z",
+      "source": "Operations",
+      "description": "Orchestrator/Tech Lead stalled 6h+. No crontab found. Ops executed 3 pending mandates directly: mean_reversion_aapl (Sharpe 2.15 ✅), volume_btc (Sharpe 0.51 ❌), trend_tsla (Sharpe 1.92 ✅). Daemon module crabquant.daemon does not exist. CEO must diagnose why Tech Lead cron stopped producing output and restart it."
+    }
+  ],
+  "last_processed": "2026-05-01T08:31:49.161931+00:00"
 }
