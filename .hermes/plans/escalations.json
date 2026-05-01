@@ -1,4 +1,13 @@
 {
-  "active_alerts": [],
-  "last_processed": "2026-05-01T05:24:10.406924+00:00"
+  "active_alerts": [
+    {
+      "severity": "RED",
+      "timestamp": "2026-05-01T05:25:00Z",
+      "source": "operations",
+      "description": "Orchestrator stalled 128+ min. Tech Lead cron has not produced output since ~03:15 UTC. Director issued Directives 14-16 (daemon restart + 3 mandates) but Tech Lead did not act on them. Daemon was zombie (shutdown_requested=true, 6 processes idle) — killed by Ops. Uncommitted state preserved in commit 7c1850b.",
+      "action_taken": "Committed uncommitted state (7c1850b). Killed 6 zombie daemon processes. Removed stale PID file. Orchestrator needs to restart daemon and queue pending mandates per Directives 14-16.",
+      "requires_tech_lead": true
+    }
+  ],
+  "last_processed": "2026-05-01T05:25:00Z"
 }
