@@ -1,8 +1,8 @@
 {
-  "running_count": 55,
-  "total_mandates": 130,
-  "convergence_rate": 0.3333333333333333,
-  "wave_progress": 0.724945054945055,
+  "running_count": 62,
+  "total_mandates": 141,
+  "convergence_rate": 0.31645569620253167,
+  "wave_progress": 0.7129685916919961,
   "best_strategies": [
     {
       "mandate_name": "momentum_googl",
@@ -47,6 +47,12 @@
       "current_turn": 2,
       "max_turns": 7,
       "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": 0.031411321303138125
     },
     {
       "mandate_name": "breakout_aapl",
@@ -97,6 +103,12 @@
       "best_sharpe": -999.0
     },
     {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -999.0
+    },
+    {
       "mandate_name": "momentum_msft",
       "current_turn": 2,
       "max_turns": 3,
@@ -119,6 +131,12 @@
       "current_turn": 1,
       "max_turns": 2,
       "best_sharpe": 1.2307632985168413
+    },
+    {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 4,
+      "max_turns": 7,
+      "best_sharpe": 1.086704351846176
     },
     {
       "mandate_name": "Momentum Strategy for SPY",
@@ -259,10 +277,22 @@
       "best_sharpe": 0.30367174762480287
     },
     {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.37301632772361804
+    },
+    {
       "mandate_name": "Momentum Strategy for SPY",
       "current_turn": 1,
       "max_turns": 7,
       "best_sharpe": 0.009294983310790754
+    },
+    {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 1.2233517215567644
     },
     {
       "mandate_name": "Momentum Strategy for SPY",
@@ -361,11 +391,23 @@
       "best_sharpe": 0.04050369591743596
     },
     {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 0.8842886722790422
+    },
+    {
       "mandate_name": "mean_reversion_nvda",
       "current_turn": 2,
       "max_turns": 7,
       "best_sharpe": 1.0504761504747684
+    },
+    {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": -999.0
     }
   ],
-  "timestamp": "2026-05-01T00:17:20.309446+00:00"
+  "timestamp": "2026-05-01T05:16:07.956925+00:00"
 }

@@ -1,1 +1,21 @@
-{"last_yellow": "api-cost-spike", "alert_time": "2026-04-30T21:56:00Z", "api_cost_2h": 1.151}
+{
+  "timestamp": "2026-05-01T05:14:00Z",
+  "severity": "RED",
+  "summary": "Orchestrator stalled 119 min — system idle, daemon down, 3 mandates blocked",
+  "investigation": {
+    "root_cause": "Tech Lead completed infrastructure wiring cycle at 03:15 UTC, marked status 'completed', then self-blocked on mandate execution claiming it's not their responsibility. Has been idle since.",
+    "director_action": "Review #5 (04:20 UTC) issued Directives 14-16 to restart daemon and run mandates, but Tech Lead has not acted on them.",
+    "daemon_status": "NOT running. 6 stale run_pipeline.py processes from 13:31 but no active mandate execution.",
+    "api_activity": "$0.00 in last 2h — confirms zero work being done.",
+    "test_health": "5187 tests, stable, no regressions.",
+    "git_activity": "1 commit in last 2h (Director review only)."
+  },
+  "actions_taken": [
+    "Filed RED escalation in escalations.json for Director/CEO attention",
+    "Confirmed Director Directives 14-16 are in place and correct",
+    "Verified no code changes needed — this is a scheduling/execution gap, not a bug"
+  },
+  "recommended_action": "Wait for Tech Lead next cron cycle (should pick up Directives 14-16). If no action within 45 min, CEO should intervene to restart daemon manually.",
+  "ops_healthy": false,
+  "computed_at": "2026-05-01 05:14 UTC"
+}
