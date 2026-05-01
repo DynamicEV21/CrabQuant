@@ -223,6 +223,35 @@ def _run_param_backtest(
         return None
 
 
+def _compute_param_ranges(
+    base_params: dict,
+    sweep_factor: float = 0.5,
+) -> Dict[str, Tuple[float, float]]:
+    """Compute DE-compatible param ranges from base params.
+
+    For each numeric param, generates (lo, hi) bounds using the same
+    logic as _generate_param_variants: base*(1-factor) to base*(1+factor).
+    Non-numeric params are excluded (DE only handles continuous params).
+
+    Args:
+        base_params: The original DEFAULT_PARAMS dict.
+        sweep_factor: How far to sweep around base values (default 0.5).
+
+    Returns:
+        Dict mapping param names to (min, max) bounds for DE.
+    """
+    param_ranges = {}
+    for k, v in base_params.items():
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            lo = v * (1 - sweep_factor)
+            hi = v * (1 + sweep_factor)
+            if v > 0:
+                floor = 1.0 if isinstance(v, float) else 1
+                lo = max(floor, lo)
+            param_ranges[k] = (float(lo), float(hi))
+    return param_ranges
+
+
 def optimize_parameters(
     df: pd.DataFrame,
     strategy_fn,
@@ -232,10 +261,16 @@ def optimize_parameters(
     min_improvement: float = 0.1,
     min_trades: int = 5,
     sharpe_target: Optional[float] = None,
+    use_de: bool = True,
 ) -> OptimizationResult:
     """Run parameter optimization sweep on a strategy.
 
-    Tests nearby parameter combinations and returns the best one found.
+    By default, uses scipy differential_evolution (DE) as the primary
+    optimization method for strategies with >= 2 numeric params. DE explores
+    the parameter space much more thoroughly than grid search and reliably
+    finds better optima. Falls back to grid search if DE fails or if there
+    are fewer than 2 numeric params.
+
     Only reports improvement if the optimized Sharpe is at least
     min_improvement better than the default, AND meets the min_trades threshold.
 
@@ -249,10 +284,11 @@ def optimize_parameters(
         strategy_fn: generate_signals function from strategy module.
         base_params: The DEFAULT_PARAMS dict from the strategy module.
         sweep_factor: How far to sweep around base values (default 0.5).
-        max_combinations: Maximum param combinations to test.
+        max_combinations: Maximum param combinations for grid fallback.
         min_improvement: Minimum Sharpe improvement to count as optimized.
         min_trades: Minimum trades required for a valid result.
         sharpe_target: If set, optimization also succeeds when best_sharpe >= target.
+        use_de: Whether to use differential evolution (default True).
 
     Returns:
         OptimizationResult with default and optimized metrics.
@@ -270,7 +306,101 @@ def optimize_parameters(
     default_sharpe = default_result["sharpe"]
     default_trades = default_result["num_trades"]
 
-    # Generate variants
+    # ── Phase 1: Try scipy DE (if enabled and enough numeric params) ──
+    de_used = False
+    de_n_evals = 0
+    if use_de:
+        param_ranges = _compute_param_ranges(base_params, sweep_factor)
+        if len(param_ranges) >= 2:
+            try:
+                de_config = {
+                    "maxiter": 15,
+                    "popsize": 10,
+                    "workers": 1,  # serial to avoid multiprocessing issues
+                    "seed": 42,
+                    "tol": 1e-4,
+                }
+                de_result = optimize_with_de(
+                    strategy_fn, param_ranges, df, de_config,
+                )
+                de_n_evals = de_result["n_evals"]
+                de_used = True
+
+                if de_result["best_sharpe"] > default_sharpe:
+                    # Verify the DE result meets min_trades
+                    de_params = de_result["best_params"]
+                    # Preserve int types for int params
+                    for k, v in de_params.items():
+                        if isinstance(base_params.get(k), int):
+                            de_params[k] = int(round(v))
+                    de_verify = _run_param_backtest(df, strategy_fn, de_params)
+
+                    if (de_verify is not None
+                            and de_verify["num_trades"] >= min_trades):
+                        elapsed = time.time() - t0
+                        improvement = de_result["best_sharpe"] - default_sharpe
+                        improvement_pct = (
+                            improvement / abs(default_sharpe) * 100
+                            if default_sharpe != 0 else 0
+                        )
+                        target_reached = (
+                            sharpe_target is not None
+                            and de_result["best_sharpe"] >= sharpe_target
+                        )
+                        was_optimized = (
+                            (improvement >= min_improvement or target_reached)
+                            and de_verify["num_trades"] >= min_trades
+                            and de_params != base_params
+                        )
+                        logger.info(
+                            "DE optimization: Sharpe %.3f → %.3f (+%.1f%%), "
+                            "%d evals in %.1fs, %d trades",
+                            default_sharpe, de_result["best_sharpe"],
+                            improvement_pct, de_n_evals, elapsed,
+                            de_verify["num_trades"],
+                        )
+                        return OptimizationResult(
+                            default_sharpe=default_sharpe,
+                            optimized_sharpe=de_result["best_sharpe"],
+                            default_params=base_params,
+                            optimized_params=(
+                                de_params if was_optimized
+                                else dict(base_params)
+                            ),
+                            default_trades=default_trades,
+                            optimized_trades=de_verify["num_trades"],
+                            combinations_tested=de_n_evals,
+                            improvement_pct=improvement_pct,
+                            was_optimized=was_optimized,
+                            sweep_time_seconds=elapsed,
+                        )
+
+                # DE ran but didn't improve — return early, skip grid
+                elapsed = time.time() - t0
+                logger.info(
+                    "DE optimization: no improvement (Sharpe %.3f, %d evals "
+                    "in %.1fs), skipping grid fallback",
+                    default_sharpe, de_n_evals, elapsed,
+                )
+                return OptimizationResult(
+                    default_sharpe=default_sharpe,
+                    optimized_sharpe=default_sharpe,
+                    default_params=base_params,
+                    optimized_params=dict(base_params),
+                    default_trades=default_trades,
+                    optimized_trades=default_trades,
+                    combinations_tested=de_n_evals,
+                    improvement_pct=0.0,
+                    was_optimized=False,
+                    sweep_time_seconds=elapsed,
+                )
+            except Exception:
+                logger.warning(
+                    "DE optimization failed, falling back to grid search",
+                    exc_info=True,
+                )
+
+    # ── Phase 2: Grid search fallback (DE disabled/failed/<2 params) ──
     variants = _generate_param_variants(base_params, sweep_factor, max_combinations)
 
     best_sharpe = default_sharpe
@@ -312,6 +442,15 @@ def optimize_parameters(
         and best_params != base_params
     )
 
+    method = "differential_evolution" if de_used and was_optimized else "grid"
+    logger.info(
+        "%s optimization: Sharpe %.3f → %.3f (%s), %d evals in %.1fs",
+        method, default_sharpe, best_sharpe,
+        "improved" if was_optimized else "no improvement",
+        de_n_evals + len(variants) if de_used else len(variants),
+        elapsed,
+    )
+
     return OptimizationResult(
         default_sharpe=default_sharpe,
         optimized_sharpe=best_sharpe,
@@ -319,7 +458,7 @@ def optimize_parameters(
         optimized_params=best_params if was_optimized else dict(base_params),
         default_trades=default_trades,
         optimized_trades=best_trades,
-        combinations_tested=len(variants),
+        combinations_tested=de_n_evals + len(variants) if de_used else len(variants),
         improvement_pct=improvement_pct,
         was_optimized=was_optimized,
         sweep_time_seconds=elapsed,
