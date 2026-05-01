@@ -1,94 +1,86 @@
-# Director Review — 2026-04-30 22:15 UTC (Review #3)
+# Director Review — 2026-05-01 01:00 UTC (Review #4)
 
 ## Status: ON COURSE
 
 ## Summary
-Significant progress since Review #2. The too_few_trades fix (threshold 20→10) is validated — mean_reversion_xom converged on turn 2 with Sharpe 1.73 and **21 trades**. This is a major improvement from the 56% too_few_trades failure rate we saw 2 hours ago. The orchestrator is following directives more consistently: status file updated, bug fix committed, mandate running. Two concerns remain: 12 files staged but uncommitted (governance violation), and KPI prev/current rotation still broken (no trend data). Overall trajectory is positive.
+System is stable and healthy. All previous P0-P1 tasks completed by the orchestrator. QA: 5180 tests pass (up from 4353), imports clean, working tree clean. The orchestrator went idle at 00:34 UTC after finishing all assigned tasks — this is the gap to close. Test count jumped +834, which is concerning per VISION.md anti-patterns (test expansion on well-tested modules). KPI rotation mechanism is working (different timestamps confirmed). No new mandates have been run in ~2.5 hours. The critical need is execution tempo — we need to run mandates to validate the 14 pipeline enhancements that were built but haven't been tested in live mandates.
 
 ## Priority Directives (ordered)
 
-### Directive 7: Commit all staged work immediately (GOVERNANCE)
-**Action:** The orchestrator has 12 staged files including production code changes (promotion.py, refined_mean_reversion_xom.py, validation/__init__.py). These MUST be committed with `orch:` prefix and pushed. Group logically:
-1. Strategy + promotion code → "orch: promote mean_reversion_xom (Sharpe 1.73, 21 trades)"
-2. State files (orchestrator-status, ops-*.json) → "orch: update state files"
-3. Results (run_history, winners, api_budget, dashboard) → "orch: update results"
-**Budget:** 0 cycles (immediate)
-**Expected:** Clean working tree within 10 minutes.
+### Directive 11: Run 4 new mandates to validate pipeline enhancements (P0 — EXECUTION)
+**Action:** The orchestrator has been idle since 00:34 UTC. The 14 pipeline enhancements (DE optimizer, deflated Sharpe, complexity scoring, forced exploration, time-reversed validation, etc.) were built but only 3 mandates have run since they were implemented. We need execution data. Run 4 mandates:
+1. `breakout_spy` — breakout archetype on SPY
+2. `mean_reversion_aapl` — mean reversion on AAPL (different ticker from successful xom)
+3. `volume_btc` — volume on BTC (high volatility = frequent signals)
+4. `trend_tsla` — trend following on TSLA
+Each gets a full 7-turn refinement loop. Log ALL failure modes, trade counts, and whether param_optimizer was used.
+**Budget:** 4 cycles (1 mandate per cycle)
+**Expected:** At least 2/4 converge (≥1 turn with Sharpe >1.5 and ≥5 trades). Previous convergence was 1/5 = 20%; the pipeline enhancements should improve this.
+**Why this is P0:** We've spent 3 reviews building infrastructure. The VISION.md says "minutes between strategy discoveries, not hours." We need mandate runs to know if our improvements work.
 
-### Directive 8: Run remaining 2 mandates (volume_nvda, momentum_msft)
-**Action:** Continue Directive 2 from Review #2. mean_reversion_xom succeeded — now run the other 2:
-1. `mandates/volume_nvda.json` — volatile ticker, should produce frequent signals
-2. `mandates/momentum_msft.json` — different momentum approach
-Run full 7-turn loops. Log trade counts and failure modes in orchestrator-status.json.
-**Budget:** 2 cycles
-**Expected:** At least 1/2 converges with ≥5 trades. If too_few_trades is truly fixed, we should see higher trade counts across both.
-**Fallback:** If both fail with too_few_trades despite the threshold fix, the problem is in the strategy invention prompts, not validation. Report specific trade counts and failure patterns.
+### Directive 12: Use param_optimizer aggressively (P1 — OPTIMIZATION)
+**Action:** Per VISION.md, param_optimizer rescued a mandate to Sharpe 1.54 (saved 3 turns). The orchestrator should use it EARLY in the refinement loop (turn 2-3), not as a last resort. This applies to ALL mandates from Directive 11.
+**Budget:** 0 cycles (behavioral — applies to all mandate runs)
+**Expected:** Higher Sharpe scores earlier in loops, fewer wasted LLM turns on parameter tweaks.
 
-### Directive 9: Fix KPI prev/current rotation (CARRYOVER — Directive 3 from Review #2)
-**Action:** This was assigned last review and NOT completed. The health check script at `~/.hermes/scripts/crabquant-health-check.py` must:
-1. Copy `ops-kpis.json` → `ops-kpis-prev.json` BEFORE computing new KPIs
-2. Compute new KPIs
-3. Write to `ops-kpis.json`
-Currently both files are written ~5 min apart with identical values. I have zero trend data across 3 reviews.
-**Budget:** 1 cycle
-**Expected:** Next KPI snapshot has prev/current with different timestamps AND different values where metrics changed.
-**Note:** This is the THIRD time this has been flagged. If not fixed this cycle, it becomes an escalation.
-
-### Directive 10: Do NOT modify VISION.md
-**Action:** VISION.md is a PROTECTED file. Only the CEO (Tristan) may modify it. Stop attempting to update it per previous directive.
+### Directive 13: Stop expanding test count without feature work (BEHAVIORAL)
+**Action:** Test count jumped from 4353 to 5187 (+834 tests, +19%) since Review #3 (~2.5h ago). VISION.md explicitly states: "Stop adding tests to that module — diminishing returns" for modules with >50 tests, and "Expanding test files for well-tested modules" is an anti-pattern. Unless these tests correspond to new feature/fix work from the 14 pipeline enhancements, this is wasted effort.
 **Budget:** 0 cycles
-**Expected:** No changes to VISION.md.
+**Expected:** No further test expansion unless directly tied to active feature/fix work on P0/P1 goals.
 
-## Previous Directives Assessment (Review #2, 20:25 UTC)
+## Previous Directives Assessment (Review #3, 22:15 UTC)
 
 | Directive | Outcome | Evidence |
 |-----------|---------|----------|
-| 1: Fix too_few_trades prompts | ✅ COMPLETED | Commit 3a93513 — threshold 20→10 across classifier, estimator, context builder |
-| 2: Run 3 mandates | 🔄 IN PROGRESS | 1/3 done — mean_reversion_xom SUCCESS (Sharpe 1.73, 21 trades). 2 remaining. |
-| 3: Fix KPI rotation bug | ❌ NOT DONE | prev/current still written 5 min apart with same values. Third time flagged. |
-| 4: Update status file | ✅ FOLLOWING | orchestrator-status.json now has non-null last_updated and meaningful content |
-| 5: Commit + update VISION.md | ⚠️ PARTIAL | 12 files staged but NOT committed. VISION.md is protected — should not have been assigned. |
+| 7: Commit staged work | ✅ COMPLETED | Commits 689c3fe, 3376c9c — all 12 files committed |
+| 8: Run 2 mandates (nvda, msft) | ✅ COMPLETED | nvda: Sharpe 1.21 (7t, excessive_drawdown), msft: Sharpe 1.05 (7t, low_sharpe) |
+| 9: Fix KPI rotation | ✅ VERIFIED WORKING | prev shows 00:46, current shows 00:52 — different timestamps. Rotation confirmed. |
+| 10: Do NOT modify VISION.md | ✅ FOLLOWING | No VISION.md changes in git log since Review #3 |
 
-**Orchestrator compliance: IMPROVING** — Main directive (too_few_trades fix) completed successfully. Status file now updated. Commit discipline still lacking (12 staged files). KPI script fix ignored for 2nd cycle.
+**Orchestrator compliance: EXCELLENT** — All 4 directives completed. Status file updated. Clean working tree. KPI rotation verified. No protected file violations.
 
 ## Metric Reality Check
 
-| Metric | VISION Target | KPI Says | Actual (Verified) | Gap | Trend |
-|--------|--------------|----------|-------------------|-----|-------|
-| WF Robustness Rate | >50% | 83.1% | 83.1% (98/118) | ✅ Met | → |
-| WF Coverage Gap | 0 | 52 w/o WF | 136/188 have WF (bug fixed) | 🟡 Improving | ↑ |
-| Registry Keep Rate | >80% | 83.9% | 83.9% (99/118) | ✅ Met | → |
+| Metric | VISION Target | Current | Previous (Rev #3) | Gap | Trend |
+|--------|--------------|---------|-------------------|-----|-------|
+| WF Robustness Rate | >50% | 83.1% | 83.1% | ✅ Met | → |
+| WF Coverage Gap | 0 | 52 w/o WF | 52 | 🟡 Improving | → |
+| Registry Keep Rate | >80% | 83.9% | 83.9% | ✅ Met | → |
 | Avg Registry Sharpe | >1.0 | 1.047 | 1.047 | ✅ Met | → |
-| Mandate Success Rate | >50% | 36.9% | 36.9% (72/195 real) | 🟡 13% gap | ↑ (was 32.6%) |
-| Per-turn Success | >20% | N/A | ~15-20% est. | 🟡 Near target | ↑ |
-| Mandate Convergence | >50% | N/A | ~50% (2/4 recent) | 🟡 Near target | ↑ |
-| Infra Ratio | <20% | 61% | Inflated by synthetic entries | ⚠️ Misleading | → |
+| Mandate Success Rate | >50% | 36.7% | 36.9% | 🟡 13% gap | → |
+| Per-turn Success | >20% | ~15-20% est | ~15-20% est | 🟡 Near target | → |
+| Mandate Convergence | >50% | 20% (1/5) | 20% (1/5) | 🔴 30% gap | → |
+| Test Count | Track ↑ | 5187 | 4353 | ⚠️ +834 | ↑ (too fast) |
 | API Error Rate | <1% | 0% | 0% | ✅ Perfect | → |
-| Orch Liveness | <30 min | 25 min | Active | ✅ | → |
-| Test Count | Track ↑ | 4353 | 4353 (0 failures) | ✅ | → |
+| Orch Liveness | <30 min | idle (87min) | 25 min | ⚠️ Idle | ↓ |
+| API Budget | Track | $6.39 total | $4.79 | ✅ $0.93/2h | → |
+
+**Key observation:** No mandates ran this period. Orchestrator went idle after completing all tasks. Mandate convergence is 20% — below 50% target — but we need more data points to know if pipeline enhancements helped.
 
 ## QA Results (Phase 2)
-- ✅ Tests: **4353 passed, 0 failures, 1 skipped**
+- ✅ Tests: **5180 passed, 1 skipped, 2 deselected** (baseline 4353 → +827 tests)
 - ✅ Imports: `from crabquant import *` works
-- ✅ Orchestrator status: non-null, meaningful content
-- ⚠️ Git: 12 files staged but uncommitted (promotion.py, strategy file, validation code, results, state files)
+- ✅ Orchestrator status: non-null, updated 00:34 UTC
+- ✅ Git: Clean working tree (4 modified state files only — ops-kpis, dashboard, run_history)
+- ✅ All 5 QA gates green
 
 ## Warnings
-- ⚠️ **KPI rotation bug persists** — This is the 3rd review flagging it. No trend data available. If not fixed this cycle, escalates.
-- ⚠️ **12 staged files uncommitted** — Production code changes sitting in staging area. Governance violation.
-- ⚠️ **Orchestrator status timestamp** — Shows 15:22 UTC but review is at 22:15 UTC. Status may be stale (orchestrator mid-mandate).
+- ⚠️ **Orchestrator idle for 87 minutes** — Completed all tasks at 00:34, no new work since. Director review gap was ~2.5h. The system should always be running mandates, not sitting idle.
+- ⚠️ **Test count jumped +834 in 2.5h** — This is 19% growth. Unless tied to feature work, this violates the anti-pattern rule. Need to verify these tests correspond to the 14 pipeline enhancements.
+- ⚠️ **KPI rotation works but both snapshots are nearly identical** — Only liveness metrics changed (seconds-based). The actual KPIs (registry counts, success rates) are stable because no mandates ran. Not a bug — just no new data.
 
 ## Stale Items
 - ✅ overnight-tasks.md — Updated this review
-- ✅ orchestrator-status.json — Now populated (Directive 4 success)
-- ⚠️ VISION.md — Still shows April 29 date. But it's PROTECTED — I cannot direct the orchestrator to modify it. This is CEO-only.
-- ⚠️ KPI rotation — Broken for 3 reviews. Escalation threshold reached.
+- ✅ orchestrator-status.json — Populated, recent
+- ✅ KPI rotation — Working (confirmed this review)
+- 🟡 VISION.md — Shows April 29 date. PROTECTED — CEO-only. Cannot direct orchestrator to update.
+- ✅ All P0-P1 from previous reviews — Completed
 
-## Orchestrator Compliance: IMPROVING
-The orchestrator executed the critical fix (too_few_trades), ran a successful mandate, and updated its status file. Commit discipline is the main gap. The KPI script fix was ignored but the orchestrator may have prioritized mandates over script fixes — understandable given the P0 focus.
+## Orchestrator Compliance: EXCELLENT
+All 4 directives from Review #3 completed. No protected file violations. Clean commits. Status file maintained. The orchestrator followed instructions precisely and went idle only because there were no remaining tasks — that's a Director planning gap, not an orchestrator problem.
 
 ## Operations Health: ✅ FUNCTIONAL
-- KPI freshness: ✅ (5 min old)
-- Orchestrator liveness: ✅ (25 min)
-- API health: ✅ (0 errors, $4.79 total spend, $0.93/2h)
-- KPI accuracy: ⚠️ (rotation bug persists, mandate_success_rate may still include synthetic entries)
+- KPI freshness: ✅ (8 min old)
+- Orchestrator liveness: ⚠️ (idle 87min — expected, no tasks assigned)
+- API health: ✅ (0 errors, $6.39 total, $0.93/2h)
+- KPI accuracy: ✅ (rotation working)
