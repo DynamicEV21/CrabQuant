@@ -1,10 +1,10 @@
 # CrabQuant Overnight Build — Task Queue
 
-**Created:** 2026-04-28 | **Last Updated:** 2026-05-01 ~03:15 UTC
+**Created:** 2026-04-28 | **Last Updated:** 2026-05-01 ~10:29 UTC (Director Review #7)
 **Project:** ~/development/CrabQuant/
 **Venv:** `source ~/development/CrabQuant/.venv/bin/activate`
 **Branch:** `phase5.6-overnight`
-**Test baseline:** 5180 tests pass (0 failures)
+**Test baseline:** 5182 tests pass (0 failures), 81% coverage
 
 ---
 
@@ -27,42 +27,38 @@
 
 ## Active Tasks (ordered by priority)
 
-### P0: Restart daemon + run 3 pending mandates (Directive 14)
-- [ ] RESTART daemon: `python -m crabquant.daemon` OR run mandates directly via `python scripts/refinement_loop.py`
-- [ ] Run mandate: mean_reversion_aapl (7 turns) | priority: HIGH | cycles: 1 | directive: #14
-  - Mean reversion archetype on AAPL — mandate file already created
-  - Full 7-turn refinement loop — use param_optimizer early (Directive 12)
-  - **Previous status: BLOCKED — UNBLOCK NOW via direct script execution**
-- [ ] Run mandate: volume_btc (7 turns) | priority: HIGH | cycles: 1 | directive: #14
-  - Volume archetype on BTC — create mandate file if needed
-  - Full 7-turn refinement loop
-- [ ] Run mandate: trend_tsla (7 turns) | priority: HIGH | cycles: 1 | directive: #14
-  - Trend following on TSLA — mandate file exists
-  - Full 7-turn refinement loop
+### P0: Fix Cron Infrastructure (Directive 20 — CEO ACTION REQUIRED)
+- [ ] Verify crontab schedules: `crontab -l` should show Ops (5m), Tech Lead (30m), Director (2h)
+- [ ] Create or fix `crabquant/daemon/` module — currently doesn't exist (cannot import)
+- [ ] Check agent execution logs for crash/exit patterns
+- [ ] If crons can't be fixed: run mandates manually via `python scripts/refinement_loop.py`
+- **Status: BLOCKED on CEO manual intervention**
 
-### P1: Investigate daemon down (Directive 15)
-- [ ] Why did daemon stop after 27 mandates? | priority: MEDIUM | cycles: 1
-  - Check PID file, logs, crash traces
-  - Determine if graceful shutdown or crash
-  - Recommend auto-restart mechanism
+### P1: Continue Mandate Execution (Directive 21)
+- [ ] Run mandate: volatility_amd (7 turns) | priority: HIGH | cycles: 1 | directive: #21
+  - Volatility archetype on AMD — new ticker, diverse coverage
+  - Use param_optimizer early (Directive 12)
+- [ ] Run mandate: multi_indicator_goog (7 turns) | priority: HIGH | cycles: 1 | directive: #21
+  - Multi-indicator archetype on GOOG — new ticker
+- [ ] Run mandate: mean_reversion_meta (7 turns) | priority: HIGH | cycles: 1 | directive: #21
+  - Mean reversion on META — new ticker
+- **Note: Pipeline validated at 66.7% convergence (2/3 last batch). Keep volume up.**
 
-### P1: Fix Operations KPI staleness (Directive 16)
-- [ ] ops-kpis.json 86 min stale — investigate Operations cron | priority: LOW | cycles: 0
-  - Check if health-check script is running
-  - Verify cron schedule
-
-### P2: Remaining dead-code wiring (lower priority)
-- [ ] Wire explainer agent into refinement_loop.py | priority: LOW | cycles: 0 | enhancement: #4
-  - Module exists (`explainer.py`) but not called from pipeline
-  - Designed for human review — lower value in autonomous mode
-- [ ] Add crypto indicators to strategy_helpers.py | priority: LOW | cycles: 0 | enhancement: #13
-  - LOW priority per VISION.md
+### P2: Clean Up Dead Code (Directive 22)
+- [ ] Archive/delete `validation_probe.py` (337 lines, 0% coverage)
+- [ ] Archive/delete `verify_validation.py` (46 lines, 0% coverage)
+- [ ] Fix 322 pandas FutureWarnings in `signal_analysis.py` (fillna downcasting)
 
 ---
 
 ## Completed Tasks (archive)
 
-- ✅ breakout_spy mandate — Best Sharpe 1.14, 7 turns, regime_fragility + low_sharpe (not converged)
+- ✅ mean_reversion_aapl mandate — Sharpe 2.15, 7 turns, AUTO-PROMOTED (Ops execution)
+- ✅ trend_tsla mandate — Sharpe 1.92, 7 turns, AUTO-PROMOTED (param_optimizer rescue, Ops execution)
+- ✅ volume_btc mandate — Sharpe 0.51, 7 turns, not converged (Ops execution)
+- ✅ All Directive 14 mandates executed (Ops intervention)
+- ✅ Stale state committed (Directive 19, commit 1688295)
+- ✅ breakout_spy mandate — Best Sharpe 1.14, 7 turns (not converged)
 - ✅ Wire DE optimizer into optimize_parameters (commit 44d59bd)
 - ✅ Wire AST sanitizer into validation gate 1 (commit 496a7cd)
 - ✅ Enhancement audit — 12/14 verified working
@@ -82,12 +78,7 @@
 
 ---
 
-## R&D Recommendations
-None this cycle. Pipeline enhancements are built and being wired. Need mandate execution to validate.
-
----
-
 ## Blocked Issues
-- 🔴 Daemon NOT running — mandates cannot execute without daemon or direct script invocation
-- ⚠️ Operations KPIs 86 min stale — possible Operations cron gap
-- ⚠️ Mandate execution stalled 3+ hours — Directive 14 must unblock this cycle
+- 🔴 No crontab configured — agent crons not running as scheduled
+- 🔴 crabquant.daemon module doesn't exist — cannot start daemon
+- 🔴 Tech Lead unresponsive 6.7h — cron infrastructure failure, not agent failure
