@@ -1,6 +1,32 @@
 {
   "reviews": [
     {
+      "timestamp": "2026-05-01T15:15:00Z",
+      "review_number": 8,
+      "status": "ON COURSE",
+      "directives_issued": [
+        {"id": 23, "action": "run_mandates", "target": "volatility_amd, multi_indicator_goog, mean_reversion_meta", "budget_cycles": 3, "description": "Tech Lead MUST run 3 mandates. This is not optional. Pipeline validated at 66.7% convergence. Execute now."},
+        {"id": 24, "action": "update_status", "target": "orchestrator-status.json", "budget_cycles": 0, "description": "Update orchestrator-status.json every cycle. Currently 10.75h stale."},
+        {"id": 25, "action": "fix_ops_cron", "target": "Operations health check", "budget_cycles": 0, "description": "Ops KPIs 5.3h stale. Verify Operations cron is scheduled. Manually run health check if needed."}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Fix cron infrastructure (Directive 20)", "outcome": "blocked", "evidence": "Correctly requires CEO manual intervention."},
+        {"directive": "Run 3 mandates (Directive 21)", "outcome": "refused", "evidence": "Tech Lead marked mandates as 'NOT Tech Lead job'. Zero mandates executed."},
+        {"directive": "Clean dead code (Directive 22)", "outcome": "completed", "evidence": "Deleted validation_probe.py, verify_validation.py. Fixed pandas FutureWarnings."}
+      ],
+      "key_findings": [
+        "Tech Lead back online — 3 workers spawned, all merged successfully",
+        "Test count grew 5187 → 5366 (+179 tests, all passing)",
+        "Directive 21 (mandates) explicitly refused by Tech Lead — execution gap",
+        "Ops KPIs 5.3h stale — Operations cron may not be firing",
+        "Coverage discrepancy: Review #7 reported 81%, QA measures 54%",
+        "Primary KPIs slightly improving: mandate success 38.4% → 39.4%",
+        "No new mandates in 4.5h despite validated pipeline",
+        "5366 tests pass, 0 failures, 1 skipped — stable"
+      ],
+      "orchestrator_compliance": "partial"
+    },
+    {
       "timestamp": "2026-05-01T10:29:00Z",
       "review_number": 7,
       "status": "RECOVERING",
