@@ -44,10 +44,10 @@
   - Mean reversion on META — new ticker
 - **Note: Pipeline validated at 66.7% convergence (2/3 last batch). Keep volume up.**
 
-### P2: Clean Up Dead Code (Directive 22)
-- [ ] Archive/delete `validation_probe.py` (337 lines, 0% coverage)
-- [ ] Archive/delete `verify_validation.py` (46 lines, 0% coverage)
-- [ ] Fix 322 pandas FutureWarnings in `signal_analysis.py` (fillna downcasting)
+### P2: Clean Up Dead Code (Directive 22) — ✅ COMPLETE
+- [x] Archive/delete `validation_probe.py` (493 lines, 0% coverage) — deleted
+- [x] Archive/delete `verify_validation.py` (58 lines, 0% coverage) — deleted
+- [x] Fix pandas FutureWarnings in `signal_analysis.py` (fillna downcasting) — fixed with np.where pattern
 
 ---
 
