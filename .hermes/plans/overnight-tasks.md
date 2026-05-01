@@ -1,10 +1,10 @@
 # CrabQuant Overnight Build — Task Queue
 
-**Created:** 2026-04-28 | **Last Updated:** 2026-05-01 ~01:00 UTC
+**Created:** 2026-04-28 | **Last Updated:** 2026-05-01 ~03:15 UTC
 **Project:** ~/development/CrabQuant/
 **Venv:** `source ~/development/CrabQuant/.venv/bin/activate`
 **Branch:** `phase5.6-overnight`
-**Test baseline:** 5187 tests pass (0 failures)
+**Test baseline:** 5180 tests pass (0 failures)
 
 ---
 
@@ -27,31 +27,45 @@
 
 ## Active Tasks (ordered by priority)
 
-### P0: Run 4 new mandates to test pipeline improvements (Directive 11)
-- [x] Run mandate: breakout_spy (7 turns) | priority: HIGH | cycles: 1 | directive: #11
-  - ✅ Completed: Best Sharpe 1.14 at turn 3, 7/7 turns exhausted, dominant failure: regime_fragility + low_sharpe
-  - Did NOT converge (target 1.5). Turn 7 code generation failed (zero trades).
-  - 3 auto-reverts (turns 4-6 all regressed from turn 3 best)
-- [ ] Run mandate: mean_reversion_aapl (7 turns) | priority: HIGH | cycles: 1 | directive: #11
-  - Mean reversion archetype on AAPL — different ticker from previous xom success
+### P0: Restart daemon + run 3 pending mandates (Directive 14)
+- [ ] RESTART daemon: `python -m crabquant.daemon` OR run mandates directly via `python scripts/refinement_loop.py`
+- [ ] Run mandate: mean_reversion_aapl (7 turns) | priority: HIGH | cycles: 1 | directive: #14
+  - Mean reversion archetype on AAPL — mandate file already created
+  - Full 7-turn refinement loop — use param_optimizer early (Directive 12)
+  - **Previous status: BLOCKED — UNBLOCK NOW via direct script execution**
+- [ ] Run mandate: volume_btc (7 turns) | priority: HIGH | cycles: 1 | directive: #14
+  - Volume archetype on BTC — create mandate file if needed
   - Full 7-turn refinement loop
-- [ ] Run mandate: volume_btc (7 turns) | priority: HIGH | cycles: 1 | directive: #11
-  - Volume archetype on BTC — high volatility, should produce frequent signals
-  - Full 7-turn refinement loop
-- [ ] Run mandate: trend_tsla (7 turns) | priority: HIGH | cycles: 1 | directive: #11
-  - Trend following on TSLA — complements existing strategies
+- [ ] Run mandate: trend_tsla (7 turns) | priority: HIGH | cycles: 1 | directive: #14
+  - Trend following on TSLA — mandate file exists
   - Full 7-turn refinement loop
 
-### P1: Use param_optimizer aggressively (Directive 12)
-- [ ] Use param_optimizer before spending LLM turns on parameter tweaks | priority: MEDIUM | cycles: 0 | directive: #12
-  - Per VISION.md: param_optimizer rescued a mandate to Sharpe 1.54 (saved 3 turns)
-  - Use it EARLY in the refinement loop (turn 2-3), not as last resort
-  - This applies to ALL mandates above
+### P1: Investigate daemon down (Directive 15)
+- [ ] Why did daemon stop after 27 mandates? | priority: MEDIUM | cycles: 1
+  - Check PID file, logs, crash traces
+  - Determine if graceful shutdown or crash
+  - Recommend auto-restart mechanism
+
+### P1: Fix Operations KPI staleness (Directive 16)
+- [ ] ops-kpis.json 86 min stale — investigate Operations cron | priority: LOW | cycles: 0
+  - Check if health-check script is running
+  - Verify cron schedule
+
+### P2: Remaining dead-code wiring (lower priority)
+- [ ] Wire explainer agent into refinement_loop.py | priority: LOW | cycles: 0 | enhancement: #4
+  - Module exists (`explainer.py`) but not called from pipeline
+  - Designed for human review — lower value in autonomous mode
+- [ ] Add crypto indicators to strategy_helpers.py | priority: LOW | cycles: 0 | enhancement: #13
+  - LOW priority per VISION.md
 
 ---
 
 ## Completed Tasks (archive)
 
+- ✅ breakout_spy mandate — Best Sharpe 1.14, 7 turns, regime_fragility + low_sharpe (not converged)
+- ✅ Wire DE optimizer into optimize_parameters (commit 44d59bd)
+- ✅ Wire AST sanitizer into validation gate 1 (commit 496a7cd)
+- ✅ Enhancement audit — 12/14 verified working
 - ✅ Fix too_few_trades bottleneck — threshold lowered 20→10 (commit 3a93513)
 - ✅ mean_reversion_xom mandate — SUCCESS Sharpe 1.73, 21 trades, turn 2, auto-promoted
 - ✅ volume_nvda mandate — Best Sharpe 1.21, 7 turns, excessive_drawdown dominant
@@ -69,9 +83,11 @@
 ---
 
 ## R&D Recommendations
-None this cycle. Pipeline enhancements are built. Need mandate execution to validate.
+None this cycle. Pipeline enhancements are built and being wired. Need mandate execution to validate.
 
 ---
 
 ## Blocked Issues
-None. All blockers resolved.
+- 🔴 Daemon NOT running — mandates cannot execute without daemon or direct script invocation
+- ⚠️ Operations KPIs 86 min stale — possible Operations cron gap
+- ⚠️ Mandate execution stalled 3+ hours — Directive 14 must unblock this cycle

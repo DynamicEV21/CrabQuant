@@ -1,6 +1,31 @@
 {
   "reviews": [
     {
+      "timestamp": "2026-05-01T04:20:00Z",
+      "review_number": 5,
+      "status": "NEEDS ATTENTION",
+      "directives_issued": [
+        {"id": 14, "action": "restart_daemon_run_mandates", "target": "mean_reversion_aapl, volume_btc, trend_tsla", "budget_cycles": 3, "description": "Daemon NOT running. Restart daemon or run mandates directly via refinement_loop.py. 3 pending mandates from Directive 11."},
+        {"id": 15, "action": "investigate", "target": "daemon down", "budget_cycles": 1, "description": "Investigate why daemon stopped (27 mandates run, then stopped). PID file? Crash? Graceful shutdown?"},
+        {"id": 16, "action": "investigate", "target": "ops-kpis.json staleness", "budget_cycles": 0, "description": "ops-kpis.json 86 min stale — Operations cron should compute every 5 min"}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Run 4 mandates (Directive 11)", "outcome": "partial", "evidence": "1/4 ran (breakout_spy — Sharpe 1.14, not converged). 3 blocked — Tech Lead self-blocked on mandate execution."},
+        {"directive": "Use param_optimizer early (Directive 12)", "outcome": "pending", "evidence": "No mandates ran to evaluate. Carry forward."},
+        {"directive": "Stop expanding tests (Directive 13)", "outcome": "following", "evidence": "Test count 5182 → 5187 — marginal, within acceptable range."}
+      ],
+      "key_findings": [
+        "Daemon NOT running — root cause of mandate execution stall",
+        "Tech Lead completed excellent infrastructure work (DE optimizer + AST sanitizer wiring + 14-enhancement audit)",
+        "3/4 Directive 11 mandates never ran — Tech Lead incorrectly self-blocked",
+        "Operations KPIs 86 min stale — possible cron gap",
+        "All primary KPIs flat for 3 consecutive reviews — no mandates = no data = no improvement",
+        "5182 tests pass, 0 failures, 1 skipped — stable",
+        "API budget healthy: $7.90 total, $1.51/2h, 0% error rate"
+      ],
+      "orchestrator_compliance": "good_infra_poor_execution"
+    },
+    {
       "timestamp": "2026-05-01T01:00:00Z",
       "review_number": 4,
       "status": "ON COURSE",
