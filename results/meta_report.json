@@ -1,59 +1,82 @@
 {
-  "timestamp": "2026-04-26T21:04:09.065006",
-  "system": {
-    "total_combos_tested": 455,
-    "dead_combos": 10,
-    "total_winners": 8156,
-    "validated_robust": 3,
-    "coverage_pct": 97.8
-  },
-  "strategy_analysis": {
-    "rsi_crossover": {
-      "wins": 5,
-      "best_sharpe": 2.1822910182862096,
-      "best_score": 2.442654448731927,
-      "tickers": [
-        "JNJ"
-      ]
-    },
-    "roc_ema_volume": {
-      "wins": 36,
-      "best_sharpe": 2.6522211049088726,
-      "best_score": 2.4281907589614526,
-      "tickers": [
-        "GOOGL"
-      ]
-    },
-    "informed_simple_adaptive": {
-      "wins": 9,
-      "best_sharpe": 2.7589667392723682,
-      "best_score": 2.387358973438374,
-      "tickers": [
-        "JNJ"
-      ]
-    }
-  },
-  "ticker_analysis": {
-    "JNJ": {
-      "wins": 14,
+  "timestamp": "2026-05-01T14:53:08.322408",
+  "round": 1,
+  "changes": [
+    {
+      "action": "retired",
       "strategies": [
-        "informed_simple_adaptive",
-        "rsi_crossover"
-      ]
+        "ema_ribbon_reversal",
+        "bb_stoch_macd",
+        "invented_momentum_rsi_atr"
+      ],
+      "reason": "0% win rate across all tested combos (34, 36, 3 combos respectively)",
+      "impact": "Saves ~73 combos per ticker per cycle. 22 active strategies remain."
     },
-    "GOOGL": {
-      "wins": 36,
-      "strategies": [
-        "roc_ema_volume"
-      ]
+    {
+      "action": "expanded_grid",
+      "strategy": "roc_ema_volume",
+      "reason": "76% win rate (127K wins / 1.23M combos). Winners cluster at atr_mult 2.75-3.5, trailing_len 5-15.",
+      "details": "Added atr_mult 3.6-4.0, trailing_len 38-40. Updated DEFAULT_PARAMS to best GOOGL winner (Sharpe 2.52).",
+      "before_combos": "~639M",
+      "after_combos": "~776M"
+    },
+    {
+      "action": "expanded_grid",
+      "strategy": "ema_crossover",
+      "reason": "75% win rate (12 wins / 16 combos). Small sample \u2014 expanding to find more winners.",
+      "details": "Extended fast_len to 120, slow_len to 300 for longer-term crossovers.",
+      "before_valid_combos": "~2000",
+      "after_valid_combos": "~2700"
+    },
+    {
+      "action": "updated_defaults",
+      "strategy": "roc_ema_volume",
+      "reason": "Best GOOGL winner: Sharpe 2.52, 100% WR, 25 trades, 153% return",
+      "new_defaults": {
+        "roc_len": 7,
+        "ema_len": 15,
+        "vol_sma_len": 18,
+        "atr_len": 21,
+        "atr_mult": 2.75,
+        "trailing_len": 7
+      }
+    },
+    {
+      "action": "updated_defaults",
+      "strategy": "informed_simple_adaptive",
+      "reason": "Best JNJ winner: Sharpe 2.76, 85.7% WR, 16 trades, 45% return",
+      "new_defaults": {
+        "adx_len": 21,
+        "adx_threshold": 30,
+        "rsi_len": 14,
+        "rsi_oversold": 25,
+        "rsi_overbought": 60,
+        "volume_window": 20,
+        "volume_mult": 1.5
+      }
     }
-  },
-  "strategy_stats": {},
-  "ticker_stats": {},
-  "recommendations": [],
-  "invented_performance": {
-    "invented_strategies": 0,
-    "invented_wins": 0,
-    "original_wins": 50
-  }
+  ],
+  "top_strategies_by_win_rate": [
+    [
+      "invented_vpt_roc_ema",
+      0.762
+    ],
+    [
+      "ema_crossover",
+      0.75
+    ],
+    [
+      "roc_ema_volume",
+      0.103
+    ],
+    [
+      "vpt_crossover",
+      0.189
+    ],
+    [
+      "informed_simple_adaptive",
+      0.127
+    ]
+  ],
+  "notes": "injected_momentum_atr_volume has 0% WR but 354K combos \u2014 high avg Sharpe (1.79) suggests it may find winners with more testing. Kept active."
 }

@@ -53,13 +53,14 @@ from crabquant.strategies.multi_rsi_confluence import (
     PARAM_GRID as multi_rsi_grid,
     DESCRIPTION as multi_rsi_desc,
 )
-from crabquant.strategies.ema_ribbon_reversal import (
-    generate_signals as ema_ribbon_signals,
-    generate_signals_matrix as ema_ribbon_matrix,
-    DEFAULT_PARAMS as ema_ribbon_defaults,
-    PARAM_GRID as ema_ribbon_grid,
-    DESCRIPTION as ema_ribbon_desc,
-)
+# RETIRED 2026-05-01: 0% win rate (34 combos, 0 wins) — meta optimization
+# from crabquant.strategies.ema_ribbon_reversal import (
+#     generate_signals as ema_ribbon_signals,
+#     generate_signals_matrix as ema_ribbon_matrix,
+#     DEFAULT_PARAMS as ema_ribbon_defaults,
+#     PARAM_GRID as ema_ribbon_grid,
+#     DESCRIPTION as ema_ribbon_desc,
+# )
 from crabquant.strategies.bollinger_squeeze import (
     generate_signals as bollinger_squeeze_signals,
     generate_signals_matrix as bollinger_squeeze_matrix,
@@ -74,13 +75,14 @@ from crabquant.strategies.ichimoku_trend import (
     PARAM_GRID as ichimoku_grid,
     DESCRIPTION as ichimoku_desc,
 )
-from crabquant.strategies.invented_momentum_rsi_atr import (
-    generate_signals as invented_mrsa_signals,
-    generate_signals_matrix as invented_mrsa_matrix,
-    DEFAULT_PARAMS as invented_mrsa_defaults,
-    PARAM_GRID as invented_mrsa_grid,
-    DESCRIPTION as invented_mrsa_desc,
-)
+# RETIRED 2026-05-01: 0% win rate (3 combos, 0 wins) — meta optimization
+# from crabquant.strategies.invented_momentum_rsi_atr import (
+#     generate_signals as invented_mrsa_signals,
+#     generate_signals_matrix as invented_mrsa_matrix,
+#     DEFAULT_PARAMS as invented_mrsa_defaults,
+#     PARAM_GRID as invented_mrsa_grid,
+#     DESCRIPTION as invented_mrsa_desc,
+# )
 from crabquant.strategies.invented_momentum_rsi_stoch import (
     generate_signals as invented_mrss_signals,
     generate_signals_matrix as invented_mrss_matrix,
@@ -102,13 +104,14 @@ from crabquant.strategies.roc_ema_volume import (
     PARAM_GRID as roc_ema_volume_grid,
     DESCRIPTION as roc_ema_volume_desc,
 )
-from crabquant.strategies.bb_stoch_macd import (
-    generate_signals as bb_stoch_macd_signals,
-    generate_signals_matrix as bb_stoch_macd_matrix,
-    DEFAULT_PARAMS as bb_stoch_macd_defaults,
-    PARAM_GRID as bb_stoch_macd_grid,
-    DESCRIPTION as bb_stoch_macd_desc,
-)
+# RETIRED 2026-05-01: 0% win rate (36 combos, 0 wins) — meta optimization
+# from crabquant.strategies.bb_stoch_macd import (
+#     generate_signals as bb_stoch_macd_signals,
+#     generate_signals_matrix as bb_stoch_macd_matrix,
+#     DEFAULT_PARAMS as bb_stoch_macd_defaults,
+#     PARAM_GRID as bb_stoch_macd_grid,
+#     DESCRIPTION as bb_stoch_macd_desc,
+# )
 from crabquant.strategies.rsi_regime_dip import (
     generate_signals as rsi_regime_dip_signals,
     generate_signals_matrix as rsi_regime_dip_matrix,
@@ -195,11 +198,13 @@ STRATEGY_REGISTRY = {
     "atr_channel_breakout": (atr_channel_signals, atr_channel_defaults, atr_channel_grid, atr_channel_desc, atr_channel_matrix),
     "volume_breakout": (volume_breakout_signals, volume_breakout_defaults, volume_breakout_grid, volume_breakout_desc, volume_breakout_matrix),
     "multi_rsi_confluence": (multi_rsi_signals, multi_rsi_defaults, multi_rsi_grid, multi_rsi_desc, multi_rsi_matrix),
-    "ema_ribbon_reversal": (ema_ribbon_signals, ema_ribbon_defaults, ema_ribbon_grid, ema_ribbon_desc, ema_ribbon_matrix),
+    # RETIRED 2026-05-01: 0% win rate
+    # "ema_ribbon_reversal": (ema_ribbon_signals, ema_ribbon_defaults, ema_ribbon_grid, ema_ribbon_desc, ema_ribbon_matrix),
     "bollinger_squeeze": (bollinger_squeeze_signals, bollinger_squeeze_defaults, bollinger_squeeze_grid, bollinger_squeeze_desc, bollinger_squeeze_matrix),
     "ichimoku_trend": (ichimoku_signals, ichimoku_defaults, ichimoku_grid, ichimoku_desc, ichimoku_matrix),
     # Invented strategies
-    "invented_momentum_rsi_atr": (invented_mrsa_signals, invented_mrsa_defaults, invented_mrsa_grid, invented_mrsa_desc, invented_mrsa_matrix),
+    # RETIRED 2026-05-01: 0% win rate
+    # "invented_momentum_rsi_atr": (invented_mrsa_signals, invented_mrsa_defaults, invented_mrsa_grid, invented_mrsa_desc, invented_mrsa_matrix),
     "invented_momentum_rsi_stoch": (invented_mrss_signals, invented_mrss_defaults, invented_mrss_grid, invented_mrss_desc, invented_mrss_matrix),
     "invented_vpt_roc_ema": (invented_vpt_roc_ema_signals, invented_vpt_roc_ema_defaults, invented_vpt_roc_ema_grid, invented_vpt_roc_ema_desc, invented_vpt_roc_ema_matrix),
     "invented_volume_momentum_trend": (invented_volume_momentum_trend_signals, invented_volume_momentum_trend_defaults, invented_volume_momentum_trend_grid, invented_volume_momentum_trend_desc, invented_volume_momentum_trend_matrix),
@@ -211,7 +216,8 @@ STRATEGY_REGISTRY = {
     # QF proven patterns
     "vpt_crossover": (vpt_crossover_signals, vpt_crossover_defaults, vpt_crossover_grid, vpt_crossover_desc, vpt_crossover_matrix),
     "roc_ema_volume": (roc_ema_volume_signals, roc_ema_volume_defaults, roc_ema_volume_grid, roc_ema_volume_desc, roc_ema_volume_matrix),
-    "bb_stoch_macd": (bb_stoch_macd_signals, bb_stoch_macd_defaults, bb_stoch_macd_grid, bb_stoch_macd_desc, bb_stoch_macd_matrix),
+    # RETIRED 2026-05-01: 0% win rate
+    # "bb_stoch_macd": (bb_stoch_macd_signals, bb_stoch_macd_defaults, bb_stoch_macd_grid, bb_stoch_macd_desc, bb_stoch_macd_matrix),
     "rsi_regime_dip": (rsi_regime_dip_signals, rsi_regime_dip_defaults, rsi_regime_dip_grid, rsi_regime_dip_desc, rsi_regime_dip_matrix),
     "ema_crossover": (ema_crossover_signals, ema_crossover_defaults, ema_crossover_grid, ema_crossover_desc, ema_crossover_matrix),
     # New injected strategy
