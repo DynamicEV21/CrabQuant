@@ -6858,3 +6858,10 @@
 {"mandate": "mean_reversion_aapl", "turn": 5, "action": "novel", "sharpe": 0.6245685054665829, "success": false, "failure_mode": "too_few_trades", "timestamp": "2026-05-01T09:51:30.481627+00:00"}
 {"mandate": "mean_reversion_aapl", "turn": 6, "action": "novel", "sharpe": -0.0901191237779421, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-05-01T09:53:12.854214+00:00"}
 {"mandate": "mean_reversion_aapl", "turn": 7, "action": "full_rewrite", "sharpe": 0.687820952698746, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-05-01T09:56:34.800558+00:00"}
+{"mandate": "volume_btc", "turn": 1, "action": "novel", "sharpe": 0.5140105202477973, "success": false, "failure_mode": "regime_fragility", "timestamp": "2026-05-01T09:59:11.018681+00:00"}
+{"mandate": "volume_btc", "turn": 2, "action": "add_regime_filter", "sharpe": -0.4925697120352953, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:00:56.444165+00:00"}
+{"mandate": "volume_btc", "turn": 3, "action": "novel", "sharpe": 0.11117091918513394, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:02:23.014700+00:00"}
+{"mandate": "volume_btc", "turn": 4, "action": "novel", "sharpe": 0.38138816400571046, "success": false, "failure_mode": "low_sharpe", "timestamp": "2026-05-01T10:03:52.683399+00:00"}
+{"mandate": "volume_btc", "turn": 5, "action": "novel", "sharpe": -0.06895188347907089, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:05:23.962801+00:00"}
+{"mandate": "volume_btc", "turn": 6, "action": "novel", "sharpe": 0.3193323491520272, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:06:25.535989+00:00"}
+{"mandate": "volume_btc", "turn": 7, "action": "add_filter", "sharpe": 0.11117091918513394, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:07:07.245561+00:00"}
