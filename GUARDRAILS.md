@@ -48,7 +48,7 @@ The Director **CANNOT** do the following under any circumstances:
 - ❌ Deploy to production or create pull requests
 - ❌ Modify cron job schedules or pause other cron jobs
 - ❌ Delete strategy files from `strategies/production/`
-- ❌ Spend more than **$5** in a single review cycle on API calls (for spawned agents)
+- ❌ Spend more than **$10** in a single review cycle on API calls (for spawned agents) — REPORT if approaching
 - ❌ Modify `.git/config` or `.git/hooks/`
 
 ---
@@ -62,7 +62,9 @@ The Director enforces these rules via directives in `supervisor-review.md`:
 - Must not modify any protected files (Section 1)
 - Must run tests after any code changes
 - All commits must use the `orch:` prefix
-- Orchestrator executes mandates from `overnight-tasks.md` — it does not create its own tasks
+- Orchestrator executes mandates from `overnight-tasks.md` as primary work
+- **Orchestrator MUST use VISION.md fallback** when overnight-tasks.md is empty or all tasks complete — read VISION.md priorities, identify the biggest KPI gap, create a task, execute it. NEVER go idle.
+- Orchestrator reports `self-generated from VISION.md` in orchestrator-status.json when using fallback
 
 ---
 
