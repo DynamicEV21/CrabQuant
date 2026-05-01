@@ -65,6 +65,16 @@ def gate_syntax(code: str) -> tuple[bool, list[str]]:
         elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             defined.add(node.target.id)
 
+    # ── AST safety sanitizer (Enhancement 5) ──────────────────────────
+    # Checks for dangerous imports, blocked builtins, look-ahead bias.
+    try:
+        from crabquant.refinement.ast_sanitizer import sanitize_strategy_code
+        _safe, _violations = sanitize_strategy_code(code)
+        if _violations:
+            errors.extend(_violations)
+    except Exception:
+        pass  # Sanitizer is advisory — don't block on import failure
+
     missing = _REQUIRED_ATTRS - defined
     if missing:
         errors.append(f"Missing required: {sorted(missing)}")
