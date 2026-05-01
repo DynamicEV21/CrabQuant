@@ -28,9 +28,10 @@
 ## Active Tasks (ordered by priority)
 
 ### P0: Run 4 new mandates to test pipeline improvements (Directive 11)
-- [ ] Run mandate: breakout_spy (7 turns) | priority: HIGH | cycles: 1 | directive: #11
-  - Use existing mandate template or create one targeting breakout archetype on SPY
-  - Full 7-turn refinement loop, log all failure modes
+- [x] Run mandate: breakout_spy (7 turns) | priority: HIGH | cycles: 1 | directive: #11
+  - ✅ Completed: Best Sharpe 1.14 at turn 3, 7/7 turns exhausted, dominant failure: regime_fragility + low_sharpe
+  - Did NOT converge (target 1.5). Turn 7 code generation failed (zero trades).
+  - 3 auto-reverts (turns 4-6 all regressed from turn 3 best)
 - [ ] Run mandate: mean_reversion_aapl (7 turns) | priority: HIGH | cycles: 1 | directive: #11
   - Mean reversion archetype on AAPL — different ticker from previous xom success
   - Full 7-turn refinement loop
