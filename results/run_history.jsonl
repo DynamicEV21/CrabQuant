@@ -6865,3 +6865,9 @@
 {"mandate": "volume_btc", "turn": 5, "action": "novel", "sharpe": -0.06895188347907089, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:05:23.962801+00:00"}
 {"mandate": "volume_btc", "turn": 6, "action": "novel", "sharpe": 0.3193323491520272, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:06:25.535989+00:00"}
 {"mandate": "volume_btc", "turn": 7, "action": "add_filter", "sharpe": 0.11117091918513394, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:07:07.245561+00:00"}
+{"mandate": "trend_tsla", "turn": 1, "action": "novel", "sharpe": -0.559134537266982, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:13:33.616231+00:00"}
+{"mandate": "trend_tsla", "turn": 2, "action": "add_filter", "sharpe": -0.559134537266982, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:14:37.773837+00:00"}
+{"mandate": "trend_tsla", "turn": 3, "action": "novel", "sharpe": 1.3177828433573822, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:16:03.961672+00:00"}
+{"mandate": "trend_tsla", "turn": 5, "action": "novel", "sharpe": 0.6590802693639299, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:18:24.490965+00:00"}
+{"mandate": "trend_tsla", "turn": 6, "action": "add_filter", "sharpe": 0.17658829650681687, "success": false, "failure_mode": "excessive_drawdown", "timestamp": "2026-05-01T10:19:46.555826+00:00"}
+{"mandate": "trend_tsla", "turn": 7, "action": "modify_params", "sharpe": 1.9193868177438937, "success": true, "failure_mode": "", "timestamp": "2026-05-01T10:22:26.022621+00:00"}
