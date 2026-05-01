@@ -87,7 +87,7 @@ Director ──escalations.json──▶ Operations ──Telegram──▶ CEO 
 **Operations escalates to CEO via Telegram for:**
 - System down for >15 minutes
 - Data corruption detected
-- API budget exhaustion
+- API cost spike (REPORT ONLY — no corrective action)
 - Any protected file modification attempt
 - Director commit rate exceeds 10 per review cycle (possible runaway loop)
 
