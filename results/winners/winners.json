@@ -6503,5 +6503,95 @@
     },
     "promoted_at": "2026-04-30T22:22:13.196583+00:00",
     "validation_status": "promoted"
+  },
+  {
+    "strategy": "refined_mean_reversion_aapl",
+    "ticker": "AAPL",
+    "sharpe": 2.154012336820547,
+    "return": 0.6093239675622146,
+    "max_drawdown": -0.09498205579935917,
+    "trades": 18,
+    "params": {
+      "rsi_period": 7,
+      "rsi_entry": 45,
+      "rsi_exit": 65
+    },
+    "refinement_run": "mean_reversion_aapl_20260501_023607",
+    "refinement_turns": 7,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": false,
+      "walk_forward": {
+        "avg_test_sharpe": 1.2921013761279305,
+        "min_test_sharpe": 0.10786054623443678,
+        "avg_degradation": 0.10233705176502278,
+        "num_windows": 6,
+        "windows_passed": 6,
+        "robust": true,
+        "notes": "Windows: 6, passed: 6 | Avg test Sharpe: 1.29 (min: 0.11) | Avg degradation: 10.2%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.4902492369411153,
+            "test_sharpe": 0.20845405481515594,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.30937784715835415,
+            "test_sharpe": 0.7133702547534136,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 3,
+            "train_sharpe": -0.031748841233483385,
+            "test_sharpe": 0.10786054623443678,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.3696045419848064,
+            "test_sharpe": 2.10064335902063,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 0.8658960521656343,
+            "test_sharpe": 0.334216557484014,
+            "degradation": 0.6140223105901367,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 0.40133309070040446,
+            "test_sharpe": 4.288063484459933,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.0008600287537524516,
+        "median_sharpe": 0.0342418642574015,
+        "robust": false,
+        "tickers_profitable": 0,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 0/2 (0%) | Passed: 0/2 | Avg Sharpe: 0.00 (\u03c3=0.03) | Median Sharpe: 0.03 | Avg Return: -3.6%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": 1.2921,
+      "complexity_score": null,
+      "time_reversed_overfit": false,
+      "time_reversed_explanation": "Passed time-reversed check (reversed Sharpe -0.48 is -47% of normal 1.01)"
+    },
+    "promoted_at": "2026-05-01T09:56:39.971958+00:00",
+    "validation_status": "backtest_only"
   }
 ]
