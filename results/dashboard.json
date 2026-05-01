@@ -1,8 +1,8 @@
 {
-  "running_count": 62,
-  "total_mandates": 141,
-  "convergence_rate": 0.31645569620253167,
-  "wave_progress": 0.7129685916919961,
+  "running_count": 63,
+  "total_mandates": 145,
+  "convergence_rate": 0.3048780487804878,
+  "wave_progress": 0.7139901477832514,
   "best_strategies": [
     {
       "mandate_name": "momentum_googl",
@@ -313,6 +313,12 @@
       "best_sharpe": -0.011125609689583467
     },
     {
+      "mandate_name": "trend_tsla",
+      "current_turn": 0,
+      "max_turns": 7,
+      "best_sharpe": -999.0
+    },
+    {
       "mandate_name": "Momentum Strategy for AAPL",
       "current_turn": 0,
       "max_turns": 7,
@@ -409,5 +415,5 @@
       "best_sharpe": -999.0
     }
   ],
-  "timestamp": "2026-05-01T05:16:07.956925+00:00"
+  "timestamp": "2026-05-01T07:56:04.680591+00:00"
 }
