@@ -87,8 +87,13 @@ def analyze_signal_density(
         return result
 
     # Handle NaN values (common when indicators produce NaN at start)
-    entry_clean = entries.fillna(False).astype(bool)
-    exit_clean = exits.fillna(False).astype(bool)
+    # Use np.where to avoid pandas FutureWarning about downcasting in fillna()/where()
+    entry_clean = pd.Series(
+        np.where(pd.notna(entries), entries, False), dtype=bool, index=entries.index
+    )
+    exit_clean = pd.Series(
+        np.where(pd.notna(exits), exits, False), dtype=bool, index=exits.index
+    )
 
     entry_count = int(entry_clean.sum())
     exit_count = int(exit_clean.sum())
@@ -287,8 +292,13 @@ def check_signal_density_early_exit(
     if not isinstance(entries, pd.Series):
         return True, f"entries is {type(entries).__name__}, expected pd.Series"
 
-    entry_clean = entries.fillna(False).astype(bool)
-    exit_clean = exits.fillna(False).astype(bool)
+    # Use np.where to avoid pandas FutureWarning about downcasting in fillna()/where()
+    entry_clean = pd.Series(
+        np.where(pd.notna(entries), entries, False), dtype=bool, index=entries.index
+    )
+    exit_clean = pd.Series(
+        np.where(pd.notna(exits), exits, False), dtype=bool, index=exits.index
+    )
 
     entry_count = int(entry_clean.sum())
 
