@@ -13,6 +13,7 @@ set -uo pipefail
 
 # --- Configuration ---
 GC_CITY="${GC_CITY:-$HOME/gas-hermes}"
+export GC_CITY
 export PATH="$HOME/go/bin:$PATH"
 CB_FILE="$HOME/gas-hermes/.circuit-breaker.json"
 CB_RESET_TEMPLATE='{"threshold":3,"max_backoff_seconds":1800,"auto_resume_seconds":3600,"failures":{}}'

@@ -1,0 +1,154 @@
+# Sharpe Optimizer — Parameter Space Definition
+#
+# This file defines the optimization parameter space for the Sharpe optimizer loop.
+# The loop agent selects values from these lists when creating refinement mandates.
+# Each combination of parameters represents a different "treatment" applied to
+# an existing strategy to try to push its Sharpe ratio higher.
+#
+# CRITICAL: These parameters map DIRECTLY to CrabQuant's RefinementConfig fields
+# and mandate JSON keys. See crabquant/refinement/config.py for documentation.
+
+# ── Primary Optimization Targets ─────────────────────────────────────────
+
+# Sharpe ratio targets for the refinement pipeline.
+# The loop selects targets based on how far the original strategy is from promotion.
+# - Strategies at Sharpe 0.8-1.0: try sharpe_target 1.5 first
+# - Strategies at Sharpe 1.0-1.5: try sharpe_target 2.0 first
+# - Strategies at Sharpe 1.5+: try sharpe_target 2.5 or 3.0
+sharpe_target:
+  - 1.5
+  - 2.0
+  - 2.5
+  - 3.0
+
+# Maximum refinement turns (LLM iterations).
+# More turns = more chances to improve, but costs more time and API calls.
+# Start with 7, increase to 10-15 for promising candidates.
+max_turns:
+  - 5
+  - 7
+  - 10
+  - 15
+
+# ── LLM Behavior ────────────────────────────────────────────────────────
+
+# Temperature for the LLM API (exploration vs exploitation).
+# - 0.5: more conservative, sticks closer to the original strategy structure
+# - 0.7: balanced — good default for optimization
+# - 0.9: more creative, may try radically different approaches
+# Note: This is set in llm_api.py, not in the mandate JSON directly.
+# The loop agent must pass it as a command-line arg or env var.
+temperature:
+  - 0.5
+  - 0.7
+  - 0.9
+
+# ── Strategy Structure ──────────────────────────────────────────────────
+
+# Strategy archetype to force the LLM toward a particular structural approach.
+# null means let the LLM choose freely (default behavior).
+# Setting an archetype can help break out of local optima by forcing a
+# fundamentally different approach to the same ticker.
+strategy_archetype:
+  - momentum
+  - mean_reversion
+  - breakout
+  - volatility
+  - null
+
+# ── Refinement Accelerators ─────────────────────────────────────────────
+
+# Cross-run learning: feed proven winners into LLM context.
+# Helps the LLM learn from what works across multiple refinement runs.
+# Particularly effective for later attempts on the same strategy.
+cross_run_learning:
+  - true
+  - false
+
+# Parallel invention: spawn N strategies in parallel on turn 1.
+# Explores more of the solution space early but costs more API calls.
+# Good for strategies that seem stuck in a local optimum.
+parallel_invention:
+  - true
+  - false
+
+# Feature importance analysis during refinement.
+# Analyzes which indicators contribute to returns and feeds this back
+# to the LLM so it can make data-driven code changes.
+# Always recommended for optimization — rarely hurts.
+feature_importance:
+  - true
+  - false
+
+# ── Advanced Options (use sparingly) ────────────────────────────────────
+
+# Adaptive Sharpe targeting: starts with a lower target on early turns
+# and ramps up. Makes early turns productive instead of always wasted.
+# Good for strategies that need many turns to improve.
+adaptive_sharpe_target:
+  - true
+  - false
+
+# Parameter optimization: sweeps nearby parameter combinations after
+# each LLM turn. Frees LLM turns from parameter tuning.
+# The scipy DE optimizer is very effective at finding better params.
+param_optimization:
+  - true
+  - false
+
+# Multi-ticker backtesting: run on multiple tickers during refinement.
+# Helps catch overfitting to a single ticker early.
+# Recommended when optimizing for robustness.
+multi_ticker_backtest:
+  - true
+  - false
+
+# ── Selection Strategy ──────────────────────────────────────────────────
+
+# Recommended treatment sequences based on strategy characteristics:
+#
+# 1. First attempt (conservative):
+#    sharpe_target: original + 0.5 (min 1.5)
+#    max_turns: 7
+#    temperature: 0.7
+#    strategy_archetype: null (keep original structure)
+#    cross_run_learning: true
+#    parallel_invention: false
+#    feature_importance: true
+#    adaptive_sharpe_target: false
+#    param_optimization: true
+#
+# 2. Second attempt (more aggressive):
+#    sharpe_target: original + 1.0 (min 2.0)
+#    max_turns: 10
+#    temperature: 0.7
+#    strategy_archetype: try a different archetype
+#    cross_run_learning: true
+#    parallel_invention: true
+#    feature_importance: true
+#    adaptive_sharpe_target: true
+#    param_optimization: true
+#
+# 3. Third attempt (exploration):
+#    sharpe_target: original + 1.5 (min 2.5)
+#    max_turns: 15
+#    temperature: 0.9
+#    strategy_archetype: try yet another archetype
+#    cross_run_learning: true
+#    parallel_invention: true
+#    feature_importance: true
+#    adaptive_sharpe_target: true
+#    param_optimization: true
+#    multi_ticker_backtest: true
+#
+# 4. Final attempt (nuclear):
+#    sharpe_target: 3.0
+#    max_turns: 15
+#    temperature: 0.9
+#    strategy_archetype: most different archetype from original
+#    cross_run_learning: true
+#    parallel_invention: true
+#    feature_importance: true
+#    adaptive_sharpe_target: true
+#    param_optimization: true
+#    multi_ticker_backtest: true

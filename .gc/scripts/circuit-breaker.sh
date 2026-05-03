@@ -160,6 +160,12 @@ prune() {
     local keys_to_remove=""
     local keys_to_resume=""
 
+    # Get list of active sessions for dead-session pruning
+    local active_sessions=""
+    if [ -n "$CITY" ] && command -v gc >/dev/null 2>&1; then
+        active_sessions=$(gc --city "$CITY" session list --json 2>/dev/null | jq -r '.[].id // empty' | tr '\n' ' ')
+    fi
+
     while IFS= read -r key; do
         [ -z "$key" ] && continue
         # Skip structural keys (they are scalars, not bead entries)
@@ -174,6 +180,21 @@ prune() {
 
         local paused=$(echo "$state" | jq '.paused')
         local first_failure=$(echo "$state" | jq '.first_failure // 0')
+
+        # Check if session is dead (doesn't exist in GC session list)
+        # This prevents accumulating CB entries for sessions that supervisor has already reaped
+        if [ -n "$active_sessions" ]; then
+            if ! echo "$active_sessions" | grep -qw "$key"; then
+                keys_to_remove="${keys_to_remove}${key} "
+                echo "[$(date -Iseconds)] [circuit-breaker] Prune: removing dead session '$key' (no longer exists in GC)" >&2
+                continue
+            fi
+        else
+            # GC returned an empty session list — any remaining CB entries must be for dead sessions
+            keys_to_remove="${keys_to_remove}${key} "
+            echo "[$(date -Iseconds)] [circuit-breaker] Prune: removing dead session '$key' (GC has no active sessions)" >&2
+            continue
+        fi
 
         if [ "$paused" = "true" ]; then
             local paused_at=$(echo "$state" | jq '.paused_at // 0')

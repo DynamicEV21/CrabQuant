@@ -46,9 +46,26 @@ detail() {
 # ============================================================
 # 1. Process monitoring — count running hermes chat processes
 # ============================================================
-# Count hermes chat processes, excluding our own process tree
-# (watchdog runs inside a hermes chat session via Hermes cron, so we must exclude self)
-PROCESS_COUNT=$(pgrep -f 'hermes chat' 2>/dev/null | grep -v -E "^($$|$PPID)$" | wc -l)
+# Count actual hermes processes by process name (not full cmdline).
+# pgrep -f 'hermes chat' falsely matches tmux/bash wrappers that contain
+# the string in their arguments. pgrep hermes matches only processes whose
+# /proc/comm is "hermes" (the actual python hermes binary).
+#
+# Also exclude our own PID tree (watchdog/janitor may run inside a hermes session).
+EXCLUDE_PIDS="$$"
+CURRENT=$$
+while [ "$CURRENT" -gt 1 ]; do
+    PARENT=$(cat /proc/$CURRENT/status 2>/dev/null | grep PPid: | awk '{print $2}')
+    [ -z "$PARENT" ] && break
+    EXCLUDE_PIDS="${EXCLUDE_PIDS}|${PARENT}"
+    CURRENT=$PARENT
+done
+
+PROCESS_COUNT=0
+while IFS= read -r pid; do
+    [ -n "$pid" ] && PROCESS_COUNT=$((PROCESS_COUNT + 1))
+done < <(pgrep hermes 2>/dev/null | grep -v -E "^(${EXCLUDE_PIDS})$")
+
 detail "hermes chat processes: $PROCESS_COUNT (max $MAX_PROCESSES)"
 
 if [ "$PROCESS_COUNT" -gt "$MAX_PROCESSES" ]; then
