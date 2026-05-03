@@ -28,7 +28,7 @@
   "infra_ratio": 0.636,
   "commits_last_2h": 0,
   "commits_last_6h": 1,
-  "last_commit_min_ago": 273.5,
+  "last_commit_min_ago": 284.1,
   "api_total_cost_usd": 14.9933,
   "api_total_calls": 654,
   "api_total_tokens": 4471306,
@@ -37,14 +37,10 @@
   "api_calls_last_2h": 0,
   "api_cost_last_2h": 0,
   "api_cost_per_call": 0.022926,
-  "orch_last_output_min_ago": 2404.7,
+  "orch_last_output_min_ago": 2690.2,
   "orch_last_output_size": 12712,
-  "dir_last_output_min_ago": 2383.3,
-  "dir_last_review_min_ago": 2383.7,
+  "dir_last_output_min_ago": 2668.8,
+  "dir_last_review_min_ago": 2669.1,
   "test_count": 5375,
-  "daemon_running": false,
-  "daemon_total_mandates": 44,
-  "daemon_completed": 28,
-  "daemon_failed": 0,
-  "computed_at": "2026-05-03 07:02 UTC"
+  "computed_at": "2026-05-03 11:47 UTC"
 }
