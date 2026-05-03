@@ -353,27 +353,48 @@ def compute_composite_score(
     sharpe: float,
     trades: int,
     max_drawdown: float,
+    sortino: float = 0.0,
+    expected_value: float = 0.0,
 ) -> float:
     """Compute composite score for ranking parallel strategies.
 
-    Formula: sharpe * sqrt(trades / 20) * (1 - abs(max_drawdown))
+    Formula: (sortino_weighted + ev_weighted) * robustness_factor
 
-    This penalizes overfit (few trades) and excessive drawdown.
+    Where:
+        sortino_weighted = min(max(sortino, 0) / 3.0, 1.0)
+        ev_weighted = sign(EV) * min(abs(EV) / 100, 1.0)
+        robustness_factor = sqrt(min(trades, 100) / 20) * (1 - min(abs(max_dd), 1.0))
+
+    This rewards downside-risk-adjusted returns and positive expected value,
+    while penalizing overfit (few trades) and excessive drawdown.
 
     Args:
-        sharpe: Sharpe ratio of the strategy.
+        sharpe: Sharpe ratio of the strategy (kept for backward compat, not used in new formula).
         trades: Total number of trades.
         max_drawdown: Maximum drawdown as a fraction (e.g., 0.15 for 15%).
+        sortino: Sortino ratio (default 0.0).
+        expected_value: Expected value per trade in dollar terms (default 0.0).
 
     Returns:
         Composite score (higher is better). Returns 0.0 on invalid inputs.
     """
-    if sharpe <= 0 or trades < 1:
+    import numpy as np
+
+    if trades < 1:
         return 0.0
 
-    trade_factor = (trades / 20) ** 0.5
+    trade_factor = (min(trades, 100) / 20) ** 0.5
     dd_penalty = 1.0 - min(abs(max_drawdown), 1.0)
-    return sharpe * trade_factor * dd_penalty
+    robustness_factor = trade_factor * dd_penalty
+
+    sortino_safe = max(sortino, 0.0)
+    if np.isinf(sortino_safe) or np.isnan(sortino_safe):
+        sortino_safe = 0.0
+    sortino_weighted = min(sortino_safe / 3.0, 1.0)
+
+    ev_weighted = float(np.sign(expected_value)) * min(abs(expected_value) / 100.0, 1.0)
+
+    return (sortino_weighted + ev_weighted) * robustness_factor
 
 
 # ── Helper Functions ─────────────────────────────────────────────────────────

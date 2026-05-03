@@ -88,6 +88,7 @@ class BacktestReport:
     profit_factor: float
     calmar_ratio: float
     sortino_ratio: float
+    expected_value: float
     composite_score: float     # BacktestResult.score
 
     # Failure classification
@@ -184,6 +185,7 @@ class BacktestReport:
             profit_factor=result.profit_factor,
             calmar_ratio=result.calmar_ratio,
             sortino_ratio=result.sortino_ratio,
+            expected_value=result.expected_value,
             composite_score=result.score,
             failure_mode=failure_mode,
             failure_details=failure_details,
