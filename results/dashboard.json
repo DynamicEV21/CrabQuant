@@ -1,9 +1,15 @@
 {
-  "running_count": 40,
-  "total_mandates": 80,
-  "convergence_rate": 0.2,
-  "wave_progress": 0.6711904761904761,
+  "running_count": 63,
+  "total_mandates": 168,
+  "convergence_rate": 0.26666666666666666,
+  "wave_progress": 0.7531462585034016,
   "best_strategies": [
+    {
+      "mandate_name": "momentum_googl",
+      "best_sharpe": 2.417704920539824,
+      "best_turn": 1,
+      "status": "max_turns_exhausted"
+    },
     {
       "mandate_name": "momentum_googl",
       "best_sharpe": 2.188954944584191,
@@ -11,27 +17,21 @@
       "status": "success"
     },
     {
-      "mandate_name": "e2e_test_momentum",
-      "best_sharpe": 1.8728166181760793,
-      "best_turn": 2,
-      "status": "max_turns_exhausted"
+      "mandate_name": "mean_reversion_aapl",
+      "best_sharpe": 2.154012336820547,
+      "best_turn": 3,
+      "status": "success"
     },
     {
-      "mandate_name": "mean_reversion_nvda",
-      "best_sharpe": 1.7422784491824221,
+      "mandate_name": "momentum_spy",
+      "best_sharpe": 2.1265440930550534,
       "best_turn": 2,
       "status": "success"
     },
     {
-      "mandate_name": "multi_rsi_googl",
-      "best_sharpe": 1.7059361666878445,
+      "mandate_name": "momentum_googl",
+      "best_sharpe": 2.0557346626750834,
       "best_turn": 4,
-      "status": "success"
-    },
-    {
-      "mandate_name": "e2e_test_momentum",
-      "best_sharpe": 1.6219398541553989,
-      "best_turn": 2,
       "status": "success"
     }
   ],
@@ -47,6 +47,12 @@
       "current_turn": 2,
       "max_turns": 7,
       "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": 0.031411321303138125
     },
     {
       "mandate_name": "breakout_aapl",
@@ -97,6 +103,12 @@
       "best_sharpe": -999.0
     },
     {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -999.0
+    },
+    {
       "mandate_name": "momentum_msft",
       "current_turn": 2,
       "max_turns": 3,
@@ -113,6 +125,30 @@
       "current_turn": 4,
       "max_turns": 7,
       "best_sharpe": 0.35646860736168795
+    },
+    {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 1,
+      "max_turns": 2,
+      "best_sharpe": 1.2307632985168413
+    },
+    {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 4,
+      "max_turns": 7,
+      "best_sharpe": 1.086704351846176
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -0.05357475859742184
+    },
+    {
+      "mandate_name": "momentum_msft",
+      "current_turn": 6,
+      "max_turns": 7,
+      "best_sharpe": 1.3555891564014304
     },
     {
       "mandate_name": "trend_msft",
@@ -199,10 +235,28 @@
       "best_sharpe": 0.4833610139102345
     },
     {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 7,
+      "max_turns": 10,
+      "best_sharpe": 1.3751681529605486
+    },
+    {
       "mandate_name": "momentum_aapl",
       "current_turn": 2,
       "max_turns": 7,
       "best_sharpe": 0.47789777174294523
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": -0.05357475859742184
+    },
+    {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 0,
+      "max_turns": 10,
+      "best_sharpe": -999.0
     },
     {
       "mandate_name": "volume_nvda",
@@ -211,10 +265,40 @@
       "best_sharpe": 0.0
     },
     {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 4,
+      "max_turns": 5,
+      "best_sharpe": 0.9160120104178994
+    },
+    {
       "mandate_name": "momentum_spy",
       "current_turn": 4,
       "max_turns": 7,
       "best_sharpe": 0.30367174762480287
+    },
+    {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": 0.37301632772361804
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 1,
+      "max_turns": 7,
+      "best_sharpe": 0.009294983310790754
+    },
+    {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 1.2233517215567644
+    },
+    {
+      "mandate_name": "Momentum Strategy for SPY",
+      "current_turn": 5,
+      "max_turns": 7,
+      "best_sharpe": 1.4464992754715935
     },
     {
       "mandate_name": "breakout_amd",
@@ -229,9 +313,33 @@
       "best_sharpe": -0.011125609689583467
     },
     {
+      "mandate_name": "trend_tsla",
+      "current_turn": 0,
+      "max_turns": 7,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "Momentum Strategy for AAPL",
+      "current_turn": 0,
+      "max_turns": 7,
+      "best_sharpe": -999.0
+    },
+    {
       "mandate_name": "Momentum Strategy for SPY",
       "current_turn": 0,
       "max_turns": 2,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "Explorer SPY Momentum",
+      "current_turn": 5,
+      "max_turns": 10,
+      "best_sharpe": 1.1575047878253522
+    },
+    {
+      "mandate_name": "Momentum Strategy for GOOGL",
+      "current_turn": 0,
+      "max_turns": 7,
       "best_sharpe": -999.0
     },
     {
@@ -259,10 +367,28 @@
       "best_sharpe": 0.9198784588303709
     },
     {
+      "mandate_name": "momentum_spy",
+      "current_turn": 1,
+      "max_turns": 3,
+      "best_sharpe": -0.02996429095017342
+    },
+    {
       "mandate_name": "mean_reversion_spy",
       "current_turn": 2,
       "max_turns": 7,
       "best_sharpe": 0.5491819416343808
+    },
+    {
+      "mandate_name": "momentum_spy",
+      "current_turn": 0,
+      "max_turns": 7,
+      "best_sharpe": -999.0
+    },
+    {
+      "mandate_name": "momentum_msft",
+      "current_turn": 5,
+      "max_turns": 7,
+      "best_sharpe": 0.29975902432927826
     },
     {
       "mandate_name": "e2e_stress_test",
@@ -271,11 +397,23 @@
       "best_sharpe": 0.04050369591743596
     },
     {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 3,
+      "max_turns": 7,
+      "best_sharpe": 0.8842886722790422
+    },
+    {
       "mandate_name": "mean_reversion_nvda",
       "current_turn": 2,
       "max_turns": 7,
       "best_sharpe": 1.0504761504747684
+    },
+    {
+      "mandate_name": "mean_reversion_aapl",
+      "current_turn": 2,
+      "max_turns": 7,
+      "best_sharpe": -999.0
     }
   ],
-  "timestamp": "2026-04-28T10:28:05.004404+00:00"
+  "timestamp": "2026-05-03T14:59:58.381126+00:00"
 }

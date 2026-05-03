@@ -639,6 +639,7 @@ def main():
     parser.add_argument("--status", action="store_true", help="Print current progress")
     parser.add_argument("--benchmark", action="store_true", help="Benchmark vectorized vs sequential")
     parser.add_argument("--combos", type=int, default=1, help="Number of combos to run this cycle")
+    parser.add_argument("--max-iters", type=int, default=10, help="Max iterations for directed search (default: 10)")
     args = parser.parse_args()
 
     if args.status:
@@ -701,7 +702,7 @@ def main():
                 continue
 
             engine = BacktestEngine()
-            result = directed_search(strategy_fn, defaults, param_grid, df, engine, strategy_name, ticker)
+            result = directed_search(strategy_fn, defaults, param_grid, df, engine, strategy_name, ticker, max_iters=args.max_iters)
             # Handle result same as below...
             state["completed_combos"].append(f"{strategy_name}|{ticker}")
             save_state(state)

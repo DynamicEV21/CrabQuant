@@ -1,0 +1,2269 @@
+{
+  "passed": [
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "SPY",
+      "registry_name": "invented_volume_roc_atr_trend_spy",
+      "wf_avg_test_sharpe": 0.9687282210490838,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.7773339162719031,
+      "ct_profitable": "3/4",
+      "params": {
+        "roc_len": 21,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "volume_mult": 1.5,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_overbought": 70
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_roc_atr_trend.py"
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "MSFT",
+      "registry_name": "invented_volume_roc_atr_trend_msft",
+      "wf_avg_test_sharpe": 0.9768644938863339,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 1.5640755209753199,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 21,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "volume_mult": 1.5,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_overbought": 70
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_roc_atr_trend.py"
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "GOOGL",
+      "registry_name": "invented_volume_roc_atr_trend_googl",
+      "wf_avg_test_sharpe": 1.3027990655463373,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 1.1663243751448111,
+      "ct_profitable": "3/4",
+      "params": {
+        "roc_len": 21,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "volume_mult": 1.5,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_overbought": 70
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_roc_atr_trend.py"
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "AMZN",
+      "registry_name": "invented_volume_roc_atr_trend_amzn",
+      "wf_avg_test_sharpe": 0.5188912138101759,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 1.325893076519169,
+      "ct_profitable": "3/4",
+      "params": {
+        "roc_len": 21,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "volume_mult": 1.5,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_overbought": 70
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_roc_atr_trend.py"
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "NVDA",
+      "registry_name": "invented_volume_roc_atr_trend_nvda",
+      "wf_avg_test_sharpe": 0.9669100499906849,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 1.1672243620134797,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 21,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "volume_mult": 1.5,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_overbought": 70
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_roc_atr_trend.py"
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "META",
+      "registry_name": "invented_volume_roc_atr_trend_meta",
+      "wf_avg_test_sharpe": 1.681520637272576,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 1.1672243620134797,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 21,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "volume_mult": 1.5,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_overbought": 70
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_roc_atr_trend.py"
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "JPM",
+      "registry_name": "invented_volume_roc_atr_trend_jpm",
+      "wf_avg_test_sharpe": 2.339085233695715,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 1.1672243620134797,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 21,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "volume_mult": 1.5,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_overbought": 70
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_roc_atr_trend.py"
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "GLD",
+      "registry_name": "invented_volume_roc_atr_trend_gld",
+      "wf_avg_test_sharpe": 1.8508276195581326,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 1.1672243620134797,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 21,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "volume_mult": 1.5,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_overbought": 70
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_roc_atr_trend.py"
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "QQQ",
+      "registry_name": "invented_volume_roc_atr_trend_qqq",
+      "wf_avg_test_sharpe": 0.47203495287892067,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 1.1672243620134797,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 21,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "volume_mult": 1.5,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_overbought": 70
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_roc_atr_trend.py"
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "CAT",
+      "registry_name": "invented_volume_roc_atr_trend_cat",
+      "wf_avg_test_sharpe": 1.3489900715383383,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 1.1672243620134797,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 21,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "volume_mult": 1.5,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_overbought": 70
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_roc_atr_trend.py"
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "UNH",
+      "registry_name": "invented_volume_roc_atr_trend_unh",
+      "wf_avg_test_sharpe": 1.2374607103262443,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 1.1672243620134797,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 21,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "volume_mult": 1.5,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "rsi_len": 14,
+        "rsi_overbought": 70
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_roc_atr_trend.py"
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "SPY",
+      "registry_name": "invented_vpt_roc_ema_spy",
+      "wf_avg_test_sharpe": 1.3186531112666682,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.665107223172836,
+      "ct_profitable": "3/4",
+      "params": {
+        "vpt_len": 14,
+        "roc_len": 21,
+        "ema_len": 20,
+        "roc_threshold": 1.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_vpt_roc_ema.py"
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "AAPL",
+      "registry_name": "invented_vpt_roc_ema_aapl",
+      "wf_avg_test_sharpe": 0.3121813017471796,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 0.9888372201936991,
+      "ct_profitable": "3/4",
+      "params": {
+        "vpt_len": 14,
+        "roc_len": 21,
+        "ema_len": 20,
+        "roc_threshold": 1.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_vpt_roc_ema.py"
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "GOOGL",
+      "registry_name": "invented_vpt_roc_ema_googl",
+      "wf_avg_test_sharpe": 0.6246166965909888,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.7080626403065017,
+      "ct_profitable": "3/4",
+      "params": {
+        "vpt_len": 14,
+        "roc_len": 21,
+        "ema_len": 20,
+        "roc_threshold": 1.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_vpt_roc_ema.py"
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "AMZN",
+      "registry_name": "invented_vpt_roc_ema_amzn",
+      "wf_avg_test_sharpe": 0.47059574217972994,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.8751178550591934,
+      "ct_profitable": "3/4",
+      "params": {
+        "vpt_len": 14,
+        "roc_len": 21,
+        "ema_len": 20,
+        "roc_threshold": 1.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_vpt_roc_ema.py"
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "NVDA",
+      "registry_name": "invented_vpt_roc_ema_nvda",
+      "wf_avg_test_sharpe": 1.1488822182316147,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.8606588382815534,
+      "ct_profitable": "4/5",
+      "params": {
+        "vpt_len": 14,
+        "roc_len": 21,
+        "ema_len": 20,
+        "roc_threshold": 1.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_vpt_roc_ema.py"
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "META",
+      "registry_name": "invented_vpt_roc_ema_meta",
+      "wf_avg_test_sharpe": 1.2315949830498372,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.8606588382815534,
+      "ct_profitable": "4/5",
+      "params": {
+        "vpt_len": 14,
+        "roc_len": 21,
+        "ema_len": 20,
+        "roc_threshold": 1.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_vpt_roc_ema.py"
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "JNJ",
+      "registry_name": "invented_vpt_roc_ema_jnj",
+      "wf_avg_test_sharpe": 0.9472930535059727,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.8606588382815534,
+      "ct_profitable": "4/5",
+      "params": {
+        "vpt_len": 14,
+        "roc_len": 21,
+        "ema_len": 20,
+        "roc_threshold": 1.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_vpt_roc_ema.py"
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "JPM",
+      "registry_name": "invented_vpt_roc_ema_jpm",
+      "wf_avg_test_sharpe": 1.1990800360118905,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.8606588382815534,
+      "ct_profitable": "4/5",
+      "params": {
+        "vpt_len": 14,
+        "roc_len": 21,
+        "ema_len": 20,
+        "roc_threshold": 1.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_vpt_roc_ema.py"
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "GLD",
+      "registry_name": "invented_vpt_roc_ema_gld",
+      "wf_avg_test_sharpe": 1.339363906656426,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.8606588382815534,
+      "ct_profitable": "4/5",
+      "params": {
+        "vpt_len": 14,
+        "roc_len": 21,
+        "ema_len": 20,
+        "roc_threshold": 1.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_vpt_roc_ema.py"
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "QQQ",
+      "registry_name": "invented_vpt_roc_ema_qqq",
+      "wf_avg_test_sharpe": 1.2425894441809615,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.8606588382815534,
+      "ct_profitable": "4/5",
+      "params": {
+        "vpt_len": 14,
+        "roc_len": 21,
+        "ema_len": 20,
+        "roc_threshold": 1.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_vpt_roc_ema.py"
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "CAT",
+      "registry_name": "invented_vpt_roc_ema_cat",
+      "wf_avg_test_sharpe": 1.1094733501953478,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.8606588382815534,
+      "ct_profitable": "4/5",
+      "params": {
+        "vpt_len": 14,
+        "roc_len": 21,
+        "ema_len": 20,
+        "roc_threshold": 1.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_vpt_roc_ema.py"
+    },
+    {
+      "strategy": "invented_volume_breakout_adx",
+      "ticker": "SPY",
+      "registry_name": "invented_volume_breakout_adx_spy",
+      "wf_avg_test_sharpe": 0.9612557405879315,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.4959482023663151,
+      "ct_profitable": "3/4",
+      "params": {
+        "vol_sma_len": 20,
+        "vol_mult": 2.0,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "sma_fast": 10,
+        "sma_slow": 30
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_breakout_adx.py"
+    },
+    {
+      "strategy": "invented_volume_breakout_adx",
+      "ticker": "MSFT",
+      "registry_name": "invented_volume_breakout_adx_msft",
+      "wf_avg_test_sharpe": 0.9026340560889151,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.8749442486390643,
+      "ct_profitable": "3/4",
+      "params": {
+        "vol_sma_len": 20,
+        "vol_mult": 2.0,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "sma_fast": 10,
+        "sma_slow": 30
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_breakout_adx.py"
+    },
+    {
+      "strategy": "invented_volume_breakout_adx",
+      "ticker": "AMZN",
+      "registry_name": "invented_volume_breakout_adx_amzn",
+      "wf_avg_test_sharpe": 0.8519935044675299,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.7954370526330651,
+      "ct_profitable": "3/4",
+      "params": {
+        "vol_sma_len": 20,
+        "vol_mult": 2.0,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "sma_fast": 10,
+        "sma_slow": 30
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_breakout_adx.py"
+    },
+    {
+      "strategy": "invented_volume_breakout_adx",
+      "ticker": "NVDA",
+      "registry_name": "invented_volume_breakout_adx_nvda",
+      "wf_avg_test_sharpe": 0.4762460959701931,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.7161407697687889,
+      "ct_profitable": "4/5",
+      "params": {
+        "vol_sma_len": 20,
+        "vol_mult": 2.0,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "sma_fast": 10,
+        "sma_slow": 30
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_breakout_adx.py"
+    },
+    {
+      "strategy": "invented_volume_breakout_adx",
+      "ticker": "META",
+      "registry_name": "invented_volume_breakout_adx_meta",
+      "wf_avg_test_sharpe": 1.0475720354414666,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.7161407697687889,
+      "ct_profitable": "4/5",
+      "params": {
+        "vol_sma_len": 20,
+        "vol_mult": 2.0,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "sma_fast": 10,
+        "sma_slow": 30
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_breakout_adx.py"
+    },
+    {
+      "strategy": "invented_volume_breakout_adx",
+      "ticker": "JPM",
+      "registry_name": "invented_volume_breakout_adx_jpm",
+      "wf_avg_test_sharpe": 0.7431614491329147,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.7161407697687889,
+      "ct_profitable": "4/5",
+      "params": {
+        "vol_sma_len": 20,
+        "vol_mult": 2.0,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "sma_fast": 10,
+        "sma_slow": 30
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_breakout_adx.py"
+    },
+    {
+      "strategy": "invented_volume_breakout_adx",
+      "ticker": "CAT",
+      "registry_name": "invented_volume_breakout_adx_cat",
+      "wf_avg_test_sharpe": 1.3628926174749498,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.7161407697687889,
+      "ct_profitable": "4/5",
+      "params": {
+        "vol_sma_len": 20,
+        "vol_mult": 2.0,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "sma_fast": 10,
+        "sma_slow": 30
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_breakout_adx.py"
+    },
+    {
+      "strategy": "invented_volume_breakout_adx",
+      "ticker": "UNH",
+      "registry_name": "invented_volume_breakout_adx_unh",
+      "wf_avg_test_sharpe": 0.39058009421295875,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.7161407697687889,
+      "ct_profitable": "4/5",
+      "params": {
+        "vol_sma_len": 20,
+        "vol_mult": 2.0,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "atr_len": 14,
+        "atr_mult": 2.5,
+        "sma_fast": 10,
+        "sma_slow": 30
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_breakout_adx.py"
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "SPY",
+      "registry_name": "invented_momentum_rsi_stoch_spy",
+      "wf_avg_test_sharpe": 0.8371949177934055,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.5912550374058863,
+      "ct_profitable": "4/4",
+      "params": {
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "volume_window": 20,
+        "volume_mult": 1.2
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_rsi_stoch.py"
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "AMZN",
+      "registry_name": "invented_momentum_rsi_stoch_amzn",
+      "wf_avg_test_sharpe": 0.5919064233976457,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.6493594215044567,
+      "ct_profitable": "4/4",
+      "params": {
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "volume_window": 20,
+        "volume_mult": 1.2
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_rsi_stoch.py"
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "NVDA",
+      "registry_name": "invented_momentum_rsi_stoch_nvda",
+      "wf_avg_test_sharpe": 0.6716832577387771,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.7481454748552998,
+      "ct_profitable": "5/5",
+      "params": {
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "volume_window": 20,
+        "volume_mult": 1.2
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_rsi_stoch.py"
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "TSLA",
+      "registry_name": "invented_momentum_rsi_stoch_tsla",
+      "wf_avg_test_sharpe": 0.561989662281929,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.7481454748552998,
+      "ct_profitable": "5/5",
+      "params": {
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "volume_window": 20,
+        "volume_mult": 1.2
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_rsi_stoch.py"
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "JPM",
+      "registry_name": "invented_momentum_rsi_stoch_jpm",
+      "wf_avg_test_sharpe": 1.001124067482693,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.7481454748552998,
+      "ct_profitable": "5/5",
+      "params": {
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "volume_window": 20,
+        "volume_mult": 1.2
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_rsi_stoch.py"
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "GLD",
+      "registry_name": "invented_momentum_rsi_stoch_gld",
+      "wf_avg_test_sharpe": 0.8534730977798697,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.7481454748552998,
+      "ct_profitable": "5/5",
+      "params": {
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "volume_window": 20,
+        "volume_mult": 1.2
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_rsi_stoch.py"
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "QQQ",
+      "registry_name": "invented_momentum_rsi_stoch_qqq",
+      "wf_avg_test_sharpe": 0.32661098979241004,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.7481454748552998,
+      "ct_profitable": "5/5",
+      "params": {
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "volume_window": 20,
+        "volume_mult": 1.2
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_rsi_stoch.py"
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "CAT",
+      "registry_name": "invented_momentum_rsi_stoch_cat",
+      "wf_avg_test_sharpe": 0.8313789434240707,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.7481454748552998,
+      "ct_profitable": "5/5",
+      "params": {
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "volume_window": 20,
+        "volume_mult": 1.2
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_rsi_stoch.py"
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "DE",
+      "registry_name": "invented_momentum_rsi_stoch_de",
+      "wf_avg_test_sharpe": 1.3902788491228322,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.7481454748552998,
+      "ct_profitable": "5/5",
+      "params": {
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "volume_window": 20,
+        "volume_mult": 1.2
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_rsi_stoch.py"
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "UNH",
+      "registry_name": "invented_momentum_rsi_stoch_unh",
+      "wf_avg_test_sharpe": 0.4429673314564176,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.7481454748552998,
+      "ct_profitable": "5/5",
+      "params": {
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "volume_window": 20,
+        "volume_mult": 1.2
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_rsi_stoch.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "SPY",
+      "registry_name": "invented_momentum_confluence_spy",
+      "wf_avg_test_sharpe": 1.5524560721399288,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 1.002927452635319,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "AAPL",
+      "registry_name": "invented_momentum_confluence_aapl",
+      "wf_avg_test_sharpe": 0.8375632285339858,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 1.0284720873189812,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "MSFT",
+      "registry_name": "invented_momentum_confluence_msft",
+      "wf_avg_test_sharpe": 1.0456799969849893,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 1.2577347667114382,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "GOOGL",
+      "registry_name": "invented_momentum_confluence_googl",
+      "wf_avg_test_sharpe": 1.5212400908961499,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.9046838447613709,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "AMZN",
+      "registry_name": "invented_momentum_confluence_amzn",
+      "wf_avg_test_sharpe": 0.9487681865570979,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 1.0628963263280469,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "NVDA",
+      "registry_name": "invented_momentum_confluence_nvda",
+      "wf_avg_test_sharpe": 2.121472037320541,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 1.051342895551031,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "META",
+      "registry_name": "invented_momentum_confluence_meta",
+      "wf_avg_test_sharpe": 1.7819752661866903,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 1.051342895551031,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "TSLA",
+      "registry_name": "invented_momentum_confluence_tsla",
+      "wf_avg_test_sharpe": 0.8565250611858239,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 1.051342895551031,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "JNJ",
+      "registry_name": "invented_momentum_confluence_jnj",
+      "wf_avg_test_sharpe": 0.5985082983142943,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 1.051342895551031,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "JPM",
+      "registry_name": "invented_momentum_confluence_jpm",
+      "wf_avg_test_sharpe": 1.7268161506479036,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 1.051342895551031,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "GLD",
+      "registry_name": "invented_momentum_confluence_gld",
+      "wf_avg_test_sharpe": 1.8082200402740316,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 1.051342895551031,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "QQQ",
+      "registry_name": "invented_momentum_confluence_qqq",
+      "wf_avg_test_sharpe": 1.298092382881736,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 1.051342895551031,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "invented_momentum_confluence",
+      "ticker": "CAT",
+      "registry_name": "invented_momentum_confluence_cat",
+      "wf_avg_test_sharpe": 1.723493956059859,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 1.051342895551031,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 10,
+        "rsi_len": 14,
+        "adx_len": 14,
+        "atr_len": 14,
+        "vol_sma_len": 20,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "adx_threshold": 25,
+        "adx_weak_threshold": 20,
+        "volume_mult": 1.5,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_momentum_confluence.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "SPY",
+      "registry_name": "injected_momentum_atr_volume_spy",
+      "wf_avg_test_sharpe": 1.6703383023695748,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.8776252284436522,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "AAPL",
+      "registry_name": "injected_momentum_atr_volume_aapl",
+      "wf_avg_test_sharpe": 0.8221379568560986,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 0.9430626185111681,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "MSFT",
+      "registry_name": "injected_momentum_atr_volume_msft",
+      "wf_avg_test_sharpe": 0.6925073045808348,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 1.1207090518846625,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "GOOGL",
+      "registry_name": "injected_momentum_atr_volume_googl",
+      "wf_avg_test_sharpe": 1.052096602922678,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.779046176620194,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "AMZN",
+      "registry_name": "injected_momentum_atr_volume_amzn",
+      "wf_avg_test_sharpe": 0.7988264280490581,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.9758669415755069,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "NVDA",
+      "registry_name": "injected_momentum_atr_volume_nvda",
+      "wf_avg_test_sharpe": 1.9396633456701338,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.9392620034070367,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "META",
+      "registry_name": "injected_momentum_atr_volume_meta",
+      "wf_avg_test_sharpe": 1.5748486860753166,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.9392620034070367,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "TSLA",
+      "registry_name": "injected_momentum_atr_volume_tsla",
+      "wf_avg_test_sharpe": 0.4282057368522498,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 0.9392620034070367,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "JPM",
+      "registry_name": "injected_momentum_atr_volume_jpm",
+      "wf_avg_test_sharpe": 1.3995782000937995,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.9392620034070367,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "GLD",
+      "registry_name": "injected_momentum_atr_volume_gld",
+      "wf_avg_test_sharpe": 2.166107307681801,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.9392620034070367,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "QQQ",
+      "registry_name": "injected_momentum_atr_volume_qqq",
+      "wf_avg_test_sharpe": 1.080777209925507,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.9392620034070367,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "CAT",
+      "registry_name": "injected_momentum_atr_volume_cat",
+      "wf_avg_test_sharpe": 1.5071411903973821,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.9392620034070367,
+      "ct_profitable": "5/5",
+      "params": {
+        "roc_len": 5,
+        "roc_threshold": 0.5,
+        "vol_sma_len": 10,
+        "vol_threshold": 1.2,
+        "rsi_len": 10,
+        "rsi_min_uptrend": 25,
+        "rsi_max_downtrend": 75,
+        "ema_short_len": 10,
+        "ema_long_len": 20,
+        "atr_len": 10,
+        "atr_mult": 1.5
+      },
+      "strategy_code_path": "crabquant/strategies/injected_momentum_atr_volume.py"
+    },
+    {
+      "strategy": "invented_volume_adx_ema",
+      "ticker": "AAPL",
+      "registry_name": "invented_volume_adx_ema_aapl",
+      "wf_avg_test_sharpe": 0.7193827362167604,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.8282701544768896,
+      "ct_profitable": "4/4",
+      "params": {
+        "obv_fast": 10,
+        "obv_slow": 20,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 50,
+        "rsi_len": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_adx_ema.py"
+    },
+    {
+      "strategy": "invented_volume_adx_ema",
+      "ticker": "NVDA",
+      "registry_name": "invented_volume_adx_ema_nvda",
+      "wf_avg_test_sharpe": 0.8357188345759962,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.755285578839892,
+      "ct_profitable": "5/5",
+      "params": {
+        "obv_fast": 10,
+        "obv_slow": 20,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 50,
+        "rsi_len": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_adx_ema.py"
+    },
+    {
+      "strategy": "invented_volume_adx_ema",
+      "ticker": "JPM",
+      "registry_name": "invented_volume_adx_ema_jpm",
+      "wf_avg_test_sharpe": 0.30252431456688983,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.755285578839892,
+      "ct_profitable": "5/5",
+      "params": {
+        "obv_fast": 10,
+        "obv_slow": 20,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 50,
+        "rsi_len": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_adx_ema.py"
+    },
+    {
+      "strategy": "invented_volume_adx_ema",
+      "ticker": "GLD",
+      "registry_name": "invented_volume_adx_ema_gld",
+      "wf_avg_test_sharpe": 0.45428492879560145,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.755285578839892,
+      "ct_profitable": "5/5",
+      "params": {
+        "obv_fast": 10,
+        "obv_slow": 20,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 50,
+        "rsi_len": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_adx_ema.py"
+    },
+    {
+      "strategy": "invented_volume_adx_ema",
+      "ticker": "QQQ",
+      "registry_name": "invented_volume_adx_ema_qqq",
+      "wf_avg_test_sharpe": 0.6823051892618085,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.755285578839892,
+      "ct_profitable": "5/5",
+      "params": {
+        "obv_fast": 10,
+        "obv_slow": 20,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 50,
+        "rsi_len": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_adx_ema.py"
+    },
+    {
+      "strategy": "invented_volume_adx_ema",
+      "ticker": "DE",
+      "registry_name": "invented_volume_adx_ema_de",
+      "wf_avg_test_sharpe": 0.3902100476736777,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.755285578839892,
+      "ct_profitable": "5/5",
+      "params": {
+        "obv_fast": 10,
+        "obv_slow": 20,
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 50,
+        "rsi_len": 14,
+        "rsi_oversold": 30,
+        "rsi_overbought": 70,
+        "atr_mult": 2.0
+      },
+      "strategy_code_path": "crabquant/strategies/invented_volume_adx_ema.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "SPY",
+      "registry_name": "adx_pullback_spy",
+      "wf_avg_test_sharpe": 1.0357128697843316,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.9359362259127291,
+      "ct_profitable": "3/4",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "AAPL",
+      "registry_name": "adx_pullback_aapl",
+      "wf_avg_test_sharpe": 0.5301883326334373,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 0.9891635012893574,
+      "ct_profitable": "3/4",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "MSFT",
+      "registry_name": "adx_pullback_msft",
+      "wf_avg_test_sharpe": 0.7735731799447811,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 1.242209332628398,
+      "ct_profitable": "4/4",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "GOOGL",
+      "registry_name": "adx_pullback_googl",
+      "wf_avg_test_sharpe": 1.3929020836640136,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.7002501782469083,
+      "ct_profitable": "3/4",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "AMZN",
+      "registry_name": "adx_pullback_amzn",
+      "wf_avg_test_sharpe": 0.8614085561657574,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.9625806029689099,
+      "ct_profitable": "3/4",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "NVDA",
+      "registry_name": "adx_pullback_nvda",
+      "wf_avg_test_sharpe": 0.9160700578050833,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.9660279682092605,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "META",
+      "registry_name": "adx_pullback_meta",
+      "wf_avg_test_sharpe": 0.8838674911379055,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.9660279682092605,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "JNJ",
+      "registry_name": "adx_pullback_jnj",
+      "wf_avg_test_sharpe": 0.362619727196648,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 0.9660279682092605,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "JPM",
+      "registry_name": "adx_pullback_jpm",
+      "wf_avg_test_sharpe": 1.312657778270201,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.9660279682092605,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "GLD",
+      "registry_name": "adx_pullback_gld",
+      "wf_avg_test_sharpe": 1.6476576226207678,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.9660279682092605,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "QQQ",
+      "registry_name": "adx_pullback_qqq",
+      "wf_avg_test_sharpe": 0.9692043128424078,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.9660279682092605,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "DE",
+      "registry_name": "adx_pullback_de",
+      "wf_avg_test_sharpe": 0.5872598553010092,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.9660279682092605,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "adx_pullback",
+      "ticker": "UNH",
+      "registry_name": "adx_pullback_unh",
+      "wf_avg_test_sharpe": 0.35018959247452885,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.9660279682092605,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "ema_len": 20,
+        "take_atr": 3
+      },
+      "strategy_code_path": "crabquant/strategies/adx_pullback.py"
+    },
+    {
+      "strategy": "ema_crossover",
+      "ticker": "MSFT",
+      "registry_name": "ema_crossover_msft",
+      "wf_avg_test_sharpe": 0.6441873064005156,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 1.1689685877985445,
+      "ct_profitable": "4/4",
+      "params": {
+        "fast_len": 9,
+        "slow_len": 21
+      },
+      "strategy_code_path": "crabquant/strategies/ema_crossover.py"
+    },
+    {
+      "strategy": "ema_crossover",
+      "ticker": "GOOGL",
+      "registry_name": "ema_crossover_googl",
+      "wf_avg_test_sharpe": 0.714528097176716,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.7432969105398151,
+      "ct_profitable": "4/4",
+      "params": {
+        "fast_len": 9,
+        "slow_len": 21
+      },
+      "strategy_code_path": "crabquant/strategies/ema_crossover.py"
+    },
+    {
+      "strategy": "ema_crossover",
+      "ticker": "AMZN",
+      "registry_name": "ema_crossover_amzn",
+      "wf_avg_test_sharpe": 0.4589804464782023,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 1.07575355999293,
+      "ct_profitable": "4/4",
+      "params": {
+        "fast_len": 9,
+        "slow_len": 21
+      },
+      "strategy_code_path": "crabquant/strategies/ema_crossover.py"
+    },
+    {
+      "strategy": "ema_crossover",
+      "ticker": "JNJ",
+      "registry_name": "ema_crossover_jnj",
+      "wf_avg_test_sharpe": 0.6505587860169982,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 1.0608614980445552,
+      "ct_profitable": "5/5",
+      "params": {
+        "fast_len": 9,
+        "slow_len": 21
+      },
+      "strategy_code_path": "crabquant/strategies/ema_crossover.py"
+    },
+    {
+      "strategy": "ema_crossover",
+      "ticker": "GLD",
+      "registry_name": "ema_crossover_gld",
+      "wf_avg_test_sharpe": 1.835779624734547,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 1.0608614980445552,
+      "ct_profitable": "5/5",
+      "params": {
+        "fast_len": 9,
+        "slow_len": 21
+      },
+      "strategy_code_path": "crabquant/strategies/ema_crossover.py"
+    },
+    {
+      "strategy": "ema_crossover",
+      "ticker": "CAT",
+      "registry_name": "ema_crossover_cat",
+      "wf_avg_test_sharpe": 0.3686304226962321,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 1.0608614980445552,
+      "ct_profitable": "5/5",
+      "params": {
+        "fast_len": 9,
+        "slow_len": 21
+      },
+      "strategy_code_path": "crabquant/strategies/ema_crossover.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "SPY",
+      "registry_name": "informed_simple_adaptive_spy",
+      "wf_avg_test_sharpe": 1.755921008578117,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.4149003003351619,
+      "ct_profitable": "3/4",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "AAPL",
+      "registry_name": "informed_simple_adaptive_aapl",
+      "wf_avg_test_sharpe": 0.5893524022831834,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.4516004360388503,
+      "ct_profitable": "3/4",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "GOOGL",
+      "registry_name": "informed_simple_adaptive_googl",
+      "wf_avg_test_sharpe": 0.47406920905345057,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.48233766952664353,
+      "ct_profitable": "3/4",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "AMZN",
+      "registry_name": "informed_simple_adaptive_amzn",
+      "wf_avg_test_sharpe": 0.4594970397853837,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.6056617038851706,
+      "ct_profitable": "3/4",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "NVDA",
+      "registry_name": "informed_simple_adaptive_nvda",
+      "wf_avg_test_sharpe": 1.456937126155297,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.5348810780472236,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "META",
+      "registry_name": "informed_simple_adaptive_meta",
+      "wf_avg_test_sharpe": 1.7407278922562093,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.5348810780472236,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "TSLA",
+      "registry_name": "informed_simple_adaptive_tsla",
+      "wf_avg_test_sharpe": 0.9287541822677455,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 0.5348810780472236,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "JPM",
+      "registry_name": "informed_simple_adaptive_jpm",
+      "wf_avg_test_sharpe": 1.3716756622853783,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.5348810780472236,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "GLD",
+      "registry_name": "informed_simple_adaptive_gld",
+      "wf_avg_test_sharpe": 0.912701502797732,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.5348810780472236,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "QQQ",
+      "registry_name": "informed_simple_adaptive_qqq",
+      "wf_avg_test_sharpe": 0.6394474990223956,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.5348810780472236,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "CAT",
+      "registry_name": "informed_simple_adaptive_cat",
+      "wf_avg_test_sharpe": 0.8161716550789239,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.5348810780472236,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "DE",
+      "registry_name": "informed_simple_adaptive_de",
+      "wf_avg_test_sharpe": 1.49552051402914,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.5348810780472236,
+      "ct_profitable": "4/5",
+      "params": {
+        "adx_len": 14,
+        "adx_threshold": 25,
+        "rsi_len": 14,
+        "rsi_oversold": 35,
+        "rsi_overbought": 65,
+        "volume_window": 20,
+        "volume_mult": 1.3
+      },
+      "strategy_code_path": "crabquant/strategies/informed_simple_adaptive.py"
+    },
+    {
+      "strategy": "roc_ema_volume",
+      "ticker": "SPY",
+      "registry_name": "roc_ema_volume_spy",
+      "wf_avg_test_sharpe": 0.6058096673246297,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.9968710580572234,
+      "ct_profitable": "4/4",
+      "params": {
+        "roc_len": 10,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "trailing_len": 20
+      },
+      "strategy_code_path": "crabquant/strategies/roc_ema_volume.py"
+    },
+    {
+      "strategy": "roc_ema_volume",
+      "ticker": "MSFT",
+      "registry_name": "roc_ema_volume_msft",
+      "wf_avg_test_sharpe": 0.4858087015013793,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.7923320138605685,
+      "ct_profitable": "3/4",
+      "params": {
+        "roc_len": 10,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "trailing_len": 20
+      },
+      "strategy_code_path": "crabquant/strategies/roc_ema_volume.py"
+    },
+    {
+      "strategy": "roc_ema_volume",
+      "ticker": "GOOGL",
+      "registry_name": "roc_ema_volume_googl",
+      "wf_avg_test_sharpe": 1.1753941090614246,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.4119708361282455,
+      "ct_profitable": "3/4",
+      "params": {
+        "roc_len": 10,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "trailing_len": 20
+      },
+      "strategy_code_path": "crabquant/strategies/roc_ema_volume.py"
+    },
+    {
+      "strategy": "roc_ema_volume",
+      "ticker": "AMZN",
+      "registry_name": "roc_ema_volume_amzn",
+      "wf_avg_test_sharpe": 0.8656003333612446,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 0.6154164866564551,
+      "ct_profitable": "3/4",
+      "params": {
+        "roc_len": 10,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "trailing_len": 20
+      },
+      "strategy_code_path": "crabquant/strategies/roc_ema_volume.py"
+    },
+    {
+      "strategy": "roc_ema_volume",
+      "ticker": "NVDA",
+      "registry_name": "roc_ema_volume_nvda",
+      "wf_avg_test_sharpe": 0.948156040047775,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.731816063629702,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 10,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "trailing_len": 20
+      },
+      "strategy_code_path": "crabquant/strategies/roc_ema_volume.py"
+    },
+    {
+      "strategy": "roc_ema_volume",
+      "ticker": "META",
+      "registry_name": "roc_ema_volume_meta",
+      "wf_avg_test_sharpe": 1.4373401798284335,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.731816063629702,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 10,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "trailing_len": 20
+      },
+      "strategy_code_path": "crabquant/strategies/roc_ema_volume.py"
+    },
+    {
+      "strategy": "roc_ema_volume",
+      "ticker": "JNJ",
+      "registry_name": "roc_ema_volume_jnj",
+      "wf_avg_test_sharpe": 0.9534333934975576,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.731816063629702,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 10,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "trailing_len": 20
+      },
+      "strategy_code_path": "crabquant/strategies/roc_ema_volume.py"
+    },
+    {
+      "strategy": "roc_ema_volume",
+      "ticker": "JPM",
+      "registry_name": "roc_ema_volume_jpm",
+      "wf_avg_test_sharpe": 0.8147921719142636,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 0.731816063629702,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 10,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "trailing_len": 20
+      },
+      "strategy_code_path": "crabquant/strategies/roc_ema_volume.py"
+    },
+    {
+      "strategy": "roc_ema_volume",
+      "ticker": "GLD",
+      "registry_name": "roc_ema_volume_gld",
+      "wf_avg_test_sharpe": 1.2553460532417684,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.731816063629702,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 10,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "trailing_len": 20
+      },
+      "strategy_code_path": "crabquant/strategies/roc_ema_volume.py"
+    },
+    {
+      "strategy": "roc_ema_volume",
+      "ticker": "QQQ",
+      "registry_name": "roc_ema_volume_qqq",
+      "wf_avg_test_sharpe": 0.6302294766756501,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.731816063629702,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 10,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "trailing_len": 20
+      },
+      "strategy_code_path": "crabquant/strategies/roc_ema_volume.py"
+    },
+    {
+      "strategy": "roc_ema_volume",
+      "ticker": "CAT",
+      "registry_name": "roc_ema_volume_cat",
+      "wf_avg_test_sharpe": 1.6262002171883554,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.731816063629702,
+      "ct_profitable": "4/5",
+      "params": {
+        "roc_len": 10,
+        "ema_len": 20,
+        "vol_sma_len": 20,
+        "atr_len": 14,
+        "atr_mult": 2.0,
+        "trailing_len": 20
+      },
+      "strategy_code_path": "crabquant/strategies/roc_ema_volume.py"
+    }
+  ],
+  "near_miss": [
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "AAPL",
+      "registry_name": "invented_volume_roc_atr_trend_aapl",
+      "wf_avg_test_sharpe": 0.16007119675952508,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 1.0024949211561953
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "TSLA",
+      "registry_name": "invented_volume_roc_atr_trend_tsla",
+      "wf_avg_test_sharpe": 0.2924204032941691,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 1.1672243620134797
+    },
+    {
+      "strategy": "invented_volume_roc_atr_trend",
+      "ticker": "DE",
+      "registry_name": "invented_volume_roc_atr_trend_de",
+      "wf_avg_test_sharpe": 0.22625988068040126,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 1.1672243620134797
+    },
+    {
+      "strategy": "invented_vpt_roc_ema",
+      "ticker": "MSFT",
+      "registry_name": "invented_vpt_roc_ema_msft",
+      "wf_avg_test_sharpe": 0.20323011517663492,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 1.0661692526755366
+    },
+    {
+      "strategy": "invented_volume_breakout_adx",
+      "ticker": "AAPL",
+      "registry_name": "invented_volume_breakout_adx_aapl",
+      "wf_avg_test_sharpe": 0.18264370650318862,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 0.6982335754367114
+    },
+    {
+      "strategy": "invented_volume_breakout_adx",
+      "ticker": "GLD",
+      "registry_name": "invented_volume_breakout_adx_gld",
+      "wf_avg_test_sharpe": 0.19427237034247105,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.7161407697687889
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "MSFT",
+      "registry_name": "invented_momentum_rsi_stoch_msft",
+      "wf_avg_test_sharpe": 0.21620734398842578,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.8754740532238885
+    },
+    {
+      "strategy": "invented_momentum_rsi_stoch",
+      "ticker": "GOOGL",
+      "registry_name": "invented_momentum_rsi_stoch_googl",
+      "wf_avg_test_sharpe": 0.28359932340683297,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.7474897757224357
+    },
+    {
+      "strategy": "invented_volume_roc_rsi_ema",
+      "ticker": "MSFT",
+      "registry_name": "invented_volume_roc_rsi_ema_msft",
+      "wf_avg_test_sharpe": 0.29884905056939287,
+      "wf_windows": "6/6",
+      "ct_avg_sharpe": 1.2799082558523336
+    },
+    {
+      "strategy": "injected_momentum_atr_volume",
+      "ticker": "JNJ",
+      "registry_name": "injected_momentum_atr_volume_jnj",
+      "wf_avg_test_sharpe": 0.22820682398070524,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 0.9392620034070367
+    },
+    {
+      "strategy": "invented_volume_adx_ema",
+      "ticker": "GOOGL",
+      "registry_name": "invented_volume_adx_ema_googl",
+      "wf_avg_test_sharpe": 0.18218069563368322,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.7497928493045221
+    },
+    {
+      "strategy": "invented_volume_adx_ema",
+      "ticker": "AMZN",
+      "registry_name": "invented_volume_adx_ema_amzn",
+      "wf_avg_test_sharpe": 0.17951749031289813,
+      "wf_windows": "4/6",
+      "ct_avg_sharpe": 0.6341528396262844
+    },
+    {
+      "strategy": "invented_volume_adx_ema",
+      "ticker": "JNJ",
+      "registry_name": "invented_volume_adx_ema_jnj",
+      "wf_avg_test_sharpe": 0.18501426297952164,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.755285578839892
+    },
+    {
+      "strategy": "informed_simple_adaptive",
+      "ticker": "UNH",
+      "registry_name": "informed_simple_adaptive_unh",
+      "wf_avg_test_sharpe": 0.15006946851426203,
+      "wf_windows": "3/6",
+      "ct_avg_sharpe": 0.5348810780472236
+    },
+    {
+      "strategy": "rsi_crossover",
+      "ticker": "SPY",
+      "registry_name": "rsi_crossover_spy",
+      "wf_avg_test_sharpe": 0.3254031704189048,
+      "wf_windows": "5/6",
+      "ct_avg_sharpe": 0.2842497770870258
+    }
+  ]
+}

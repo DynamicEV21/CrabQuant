@@ -11,6 +11,7 @@ from pathlib import Path
 from crabquant.production.health import check_health
 from crabquant.production.promoter import promote_strategy
 from crabquant.production.report import StrategyReport
+from crabquant.production.telegram import TelegramNotifier, get_notifier, is_configured
 
 PRODUCTION_DIR = Path(__file__).resolve().parent.parent.parent / "strategies" / "production"
 REGISTRY_FILE = PRODUCTION_DIR / "registry.json"
@@ -101,6 +102,9 @@ __all__ = [
     "promote_strategy",
     "get_production_strategies",
     "get_production_report",
+    "TelegramNotifier",
+    "get_notifier",
+    "is_configured",
     "PRODUCTION_DIR",
     "REGISTRY_FILE",
     "StrategyReport",

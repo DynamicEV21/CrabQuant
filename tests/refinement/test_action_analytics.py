@@ -233,4 +233,295 @@ class TestLoadRunHistory:
         finally:
             Path(tmp_path).unlink(missing_ok=True)
 
+    def test_skips_empty_lines(self):
+        """Empty lines in JSONL are silently skipped."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
+            f.write('{"action": "modify_params", "sharpe": 1.0}\n')
+            f.write("\n")
+            f.write('{"action": "add_filter", "sharpe": 1.5}\n')
+            f.write("\n\n")
+            tmp_path = f.name
+
+        try:
+            loaded = load_run_history(tmp_path)
+            assert len(loaded) == 2
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+    def test_all_malformed_returns_empty(self):
+        """File with only garbage lines returns empty list."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
+            f.write("garbage\n")
+            f.write("more garbage\n")
+            tmp_path = f.name
+
+        try:
+            loaded = load_run_history(tmp_path)
+            assert loaded == []
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+
+# ── track_action_result additional ───────────────────────────────────────
+
+
+class TestTrackActionResultEdgeCases:
+    """Additional tests for track_action_result."""
+
+    def test_creates_parent_directories(self, tmp_path):
+        """Track creates parent directories if they don't exist."""
+        deep_path = str(tmp_path / "sub" / "dir" / "history.jsonl")
+        track_action_result("m1", 1, "modify_params", 1.0, True, path=deep_path)
+
+        loaded = load_run_history(deep_path)
+        assert len(loaded) == 1
+
+    def test_explicit_path_parameter(self):
+        """Explicit path parameter is used instead of default."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix="..jsonl", delete=False) as f:
+            tmp_path = f.name
+
+        try:
+            track_action_result("m1", 1, "full_rewrite", 2.0, True, path=tmp_path)
+            loaded = load_run_history(tmp_path)
+            assert loaded[0]["action"] == "full_rewrite"
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+    def test_entry_has_timestamp(self):
+        """Tracked entry includes a timestamp field."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
+            tmp_path = f.name
+
+        try:
+            track_action_result("m1", 1, "modify_params", 1.0, False, "low_sharpe", path=tmp_path)
+            loaded = load_run_history(tmp_path)
+            assert "timestamp" in loaded[0]
+            assert loaded[0]["failure_mode"] == "low_sharpe"
+        finally:
+            Path(tmp_path).unlink(missing_ok=True)
+
+
+# ── aggregate_action_stats additional ────────────────────────────────────
+
+
+class TestAggregateActionStatsEdgeCases:
+    """Additional edge cases for aggregation."""
+
+    def test_missing_action_key_defaults_to_unknown(self):
+        """Entries without 'action' key default to 'unknown'."""
+        history = [{"sharpe": 1.0, "success": True}]
+        stats = aggregate_action_stats(history)
+        assert "unknown" in stats
+        assert stats["unknown"]["total"] == 1
+
+    def test_missing_success_key_defaults_to_false(self):
+        """Entries without 'success' key are treated as failures."""
+        history = [{"action": "modify_params", "sharpe": 1.0}]
+        stats = aggregate_action_stats(history)
+        assert stats["modify_params"]["successes"] == 0
+        assert stats["modify_params"]["failures"] == 1
+
+    def test_missing_sharpe_key_defaults_to_zero(self):
+        """Entries without 'sharpe' key default to 0.0 for avg."""
+        history = [
+            {"action": "modify_params", "success": True},  # no sharpe
+            {"action": "modify_params", "success": True, "sharpe": 2.0},
+        ]
+        stats = aggregate_action_stats(history)
+        assert stats["modify_params"]["avg_sharpe"] == 1.0  # (0 + 2) / 2
+
+    def test_single_entry(self):
+        """Single history entry produces correct stats."""
+        history = [make_history_entry("add_filter", 1.5, True)]
+        stats = aggregate_action_stats(history)
+        assert stats["add_filter"]["total"] == 1
+        assert stats["add_filter"]["success_rate"] == 1.0
+        assert stats["add_filter"]["avg_sharpe"] == 1.5
+
+    def test_all_failures(self):
+        """All-failure history produces 0% success rate."""
+        history = [
+            make_history_entry("modify_params", 0.3, False),
+            make_history_entry("modify_params", 0.4, False),
+            make_history_entry("modify_params", 0.5, False),
+        ]
+        stats = aggregate_action_stats(history)
+        assert stats["modify_params"]["success_rate"] == 0.0
+        assert stats["modify_params"]["failures"] == 3
+
+    def test_all_successes(self):
+        """All-success history produces 100% success rate."""
+        history = [
+            make_history_entry("full_rewrite", 1.5, True),
+            make_history_entry("full_rewrite", 2.0, True),
+        ]
+        stats = aggregate_action_stats(history)
+        assert stats["full_rewrite"]["success_rate"] == 1.0
+        assert stats["full_rewrite"]["successes"] == 2
+
+
+# ── generate_llm_context additional ─────────────────────────────────────
+
+
+class TestGenerateLLMContextEdgeCases:
+    """Additional tests for LLM context generation."""
+
+    def test_includes_recommendation_line(self):
+        """Context includes recommendation for best and worst actions."""
+        history = sample_run_history()
+        ctx = generate_llm_context(history)
+        assert "Recommendation" in ctx
+
+    def test_includes_avg_sharpe_values(self):
+        """Context includes avg Sharpe for each action."""
+        history = sample_run_history()
+        ctx = generate_llm_context(history)
+        assert "avg Sharpe" in ctx or "Sharpe" in ctx
+
+    def test_single_action_history(self):
+        """Context works with only one action type."""
+        history = [
+            make_history_entry("modify_params", 1.0, True),
+            make_history_entry("modify_params", 0.5, False),
+        ]
+        ctx = generate_llm_context(history)
+        assert "modify_params" in ctx
+        assert "Recommendation" in ctx
+
+    def test_fallback_message_for_empty(self):
+        """Empty history returns first-run message."""
+        ctx = generate_llm_context([])
+        assert "first run" in ctx.lower()
+
+
+# ── RUN_HISTORY_FILE constant ───────────────────────────────────────────
+
+
+class TestConstants:
+    """Test module constants."""
+
+    def test_run_history_file_default(self):
+        """RUN_HISTORY_FILE points to results/run_history.jsonl."""
+        assert "run_history.jsonl" in RUN_HISTORY_FILE
+
+    def test_action_stats_is_dict(self):
+        """ActionStats is an alias for dict."""
+        assert ActionStats is dict
+
+
+# ── Error info capture (Phase 6) ──────────────────────────────────────
+
+
+class TestErrorInfoCapture:
+    """Test that track_action_result captures error details for crashes."""
+
+    def test_error_info_fields_written(self, tmp_path):
+        """error_info dict produces error_type, error_message, error_traceback in JSONL."""
+        hist_file = str(tmp_path / "history.jsonl")
+        error_info = {
+            "error_type": "ValueError",
+            "error_message": "lengths must match",
+            "error_traceback": "Traceback (most recent call last):\n  File ...",
+        }
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=0.0,
+            success=False,
+            failure_mode="backtest_crash",
+            path=hist_file,
+            error_info=error_info,
+        )
+        entries = load_run_history(hist_file)
+        assert len(entries) == 1
+        assert entries[0]["error_type"] == "ValueError"
+        assert entries[0]["error_message"] == "lengths must match"
+        assert "Traceback" in entries[0]["error_traceback"]
+
+    def test_no_error_info_when_none(self, tmp_path):
+        """Without error_info, no error fields appear in the entry."""
+        hist_file = str(tmp_path / "history.jsonl")
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=0.0,
+            success=False,
+            failure_mode="low_sharpe",
+            path=hist_file,
+        )
+        entries = load_run_history(hist_file)
+        assert len(entries) == 1
+        assert "error_type" not in entries[0]
+        assert "error_message" not in entries[0]
+
+    def test_error_message_truncated_at_500(self, tmp_path):
+        """Long error messages are truncated to 500 chars."""
+        hist_file = str(tmp_path / "history.jsonl")
+        long_msg = "x" * 1000
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=0.0,
+            success=False,
+            failure_mode="module_load_failed",
+            path=hist_file,
+            error_info={"error_type": "ImportError", "error_message": long_msg},
+        )
+        entries = load_run_history(hist_file)
+        assert len(entries[0]["error_message"]) == 500
+
+    def test_error_traceback_truncated_at_1000(self, tmp_path):
+        """Long error tracebacks are truncated to 1000 chars."""
+        hist_file = str(tmp_path / "history.jsonl")
+        long_tb = "x" * 2000
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=0.0,
+            success=False,
+            failure_mode="backtest_crash",
+            path=hist_file,
+            error_info={"error_type": "RuntimeError", "error_message": "err", "error_traceback": long_tb},
+        )
+        entries = load_run_history(hist_file)
+        assert len(entries[0]["error_traceback"]) == 1000
+
+    def test_error_info_missing_keys_use_defaults(self, tmp_path):
+        """Partial error_info dicts use 'unknown' and empty string defaults."""
+        hist_file = str(tmp_path / "history.jsonl")
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=0.0,
+            success=False,
+            failure_mode="backtest_crash",
+            path=hist_file,
+            error_info={},
+        )
+        entries = load_run_history(hist_file)
+        assert entries[0]["error_type"] == "unknown"
+        assert entries[0]["error_message"] == ""
+        assert entries[0]["error_traceback"] == ""
+
+    def test_error_info_added_regardless_of_success(self, tmp_path):
+        """error_info fields are added when provided, even for success entries (for diagnostics)."""
+        hist_file = str(tmp_path / "history.jsonl")
+        track_action_result(
+            mandate="test",
+            turn=1,
+            action="novel",
+            sharpe=1.5,
+            success=True,
+            failure_mode="",
+            path=hist_file,
+            error_info={"error_type": "Error", "error_message": "should appear"},
+        )
+        entries = load_run_history(hist_file)
+        assert entries[0]["error_type"] == "Error"
 

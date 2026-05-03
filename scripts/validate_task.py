@@ -120,7 +120,12 @@ def validate_winner(winner: dict) -> dict:
     params = winner["params"]
 
     if strategy_name not in STRATEGY_REGISTRY:
-        return {"status": "error", "reason": f"Strategy {strategy_name} not in registry"}
+        return {
+            "status": "error",
+            "reason": f"Strategy {strategy_name} not in registry",
+            "ticker": ticker,
+            "strategy": strategy_name,
+        }
 
     strategy_fn = STRATEGY_REGISTRY[strategy_name][0]
 
@@ -213,6 +218,9 @@ def print_status():
     mixed = load_mixed()
     state = load_state()
 
+    # Filter out error entries from mixed
+    mixed = [m for m in mixed if isinstance(m, dict) and 'ticker' in m and 'strategy' in m and m.get('status') != 'error']
+
     print(f"\n🦀 CrabQuant Validation Status")
     print("=" * 50)
     print(f"Total winners:     {len(winners)}")
@@ -286,7 +294,7 @@ def main():
     print(f"Pending: {len(pending)} winners to validate")
     print()
 
-    BATCH_SIZE = 5
+    BATCH_SIZE = 15
     to_validate = pending if do_all else pending[:BATCH_SIZE]
 
     for w in to_validate:
@@ -301,6 +309,9 @@ def main():
             curvefit.append(result)
             save_curvefit(curvefit)
             print(f"\n❌ REJECTED — {w['ticker']}/{w['strategy']} is curve-fit")
+        elif result["status"] == "error":
+            # Don't save error entries to mixed - just log and skip
+            print(f"\n❌ ERROR — {w['ticker']}/{w['strategy']}: {result.get('reason', 'Unknown error')}")
         else:
             # MIXED or REGIME_SHIFT — save to mixed_winners.json
             mixed.append(result)

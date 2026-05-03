@@ -125,6 +125,7 @@ def build_tier1_report(
         "profit_factor": backtest_result.profit_factor,
         "calmar_ratio": backtest_result.calmar_ratio,
         "sortino_ratio": backtest_result.sortino_ratio,
+        "expected_value": backtest_result.expected_value,
         "composite_score": backtest_result.score,
 
         # Failure classification

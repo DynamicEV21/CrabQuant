@@ -1225,7 +1225,8 @@
       "cross_ticker": null,
       "error": null
     },
-    "promoted_at": "2026-04-27T06:21:24.426940+00:00"
+    "promoted_at": "2026-04-27T06:21:24.426940+00:00",
+    "validation_status": "promoted"
   },
   {
     "strategy": "refined_mean_reversion_nvda",
@@ -1290,7 +1291,8 @@
       "cross_ticker": null,
       "error": null
     },
-    "promoted_at": "2026-04-27T10:39:20.569115+00:00"
+    "promoted_at": "2026-04-27T10:39:20.569115+00:00",
+    "validation_status": "promoted"
   },
   {
     "strategy": "refined_breakout_spy",
@@ -1466,6 +1468,5320 @@
       "error": null
     },
     "promoted_at": "2026-04-28T09:59:04.015310+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_Momentum Strategy for SPY",
+    "ticker": "SPY",
+    "sharpe": 1.6769364708542696,
+    "return": 0.09449021228790866,
+    "max_drawdown": -0.03339823832337535,
+    "trades": 6,
+    "params": {},
+    "refinement_run": "momentum_strategy_for_spy_20260428_072740",
+    "refinement_turns": 3,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": false,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": -0.14745720437084223,
+        "min_test_sharpe": -2.3950876322195644,
+        "avg_degradation": 1.0,
+        "num_windows": 6,
+        "windows_passed": 0,
+        "robust": false,
+        "notes": "Windows: 6, passed: 0 | Avg test Sharpe: -0.15 (min: -2.40) | Avg degradation: 100.0% | \u26a0\ufe0f Avg test Sharpe -0.15 < 0.5 | \u26a0\ufe0f Only 0/6 windows passed (need >= 2)",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.5482005729355981,
+            "test_sharpe": 0.7084900173999192,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.8485856518502389,
+            "test_sharpe": -0.6413066869856986,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": -0.9199575943048047,
+            "test_sharpe": -1.2483398289597318,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": -0.7332566276149015,
+            "test_sharpe": -1.395778353770196,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 5,
+            "train_sharpe": -1.1440621753498839,
+            "test_sharpe": -2.3950876322195644,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": -1.1293553682625896,
+            "test_sharpe": 4.087279258310218,
+            "degradation": 1.0,
+            "passed": false
+          }
+        ]
+      },
+      "cross_ticker": null,
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": true
+    },
+    "promoted_at": "2026-04-28T14:31:21.015123+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_Momentum Strategy for SPY",
+    "ticker": "SPY",
+    "sharpe": 1.6756379341567393,
+    "return": 0.07644688061958863,
+    "max_drawdown": -0.006810261153983889,
+    "trades": 3,
+    "params": {},
+    "refinement_run": "momentum_strategy_for_spy_20260428_074457",
+    "refinement_turns": 3,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": false,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 0.0874482074086413,
+        "min_test_sharpe": -1.7373386294162982,
+        "avg_degradation": 1.0464635269545004,
+        "num_windows": 6,
+        "windows_passed": 2,
+        "robust": false,
+        "notes": "Windows: 6, passed: 2 | Avg test Sharpe: 0.09 (min: -1.74) | Avg degradation: 104.6% | \u26a0\ufe0f Avg test Sharpe 0.09 < 0.5",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.6277557436699959,
+            "test_sharpe": 1.196477960769295,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": 0.6917155652672137,
+            "test_sharpe": -1.5762683994042708,
+            "degradation": 3.278781161727002,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": -0.15506769340475118,
+            "test_sharpe": -1.7373386294162982,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": -0.6035101961710764,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 5,
+            "train_sharpe": -1.324719722708558,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": 0.0884512588164971,
+            "test_sharpe": 2.641818312503122,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": null,
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": true
+    },
+    "promoted_at": "2026-04-28T14:51:19.137863+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_Explorer SPY Momentum",
+    "ticker": "SPY",
+    "sharpe": 1.4256379927588883,
+    "return": 0.1794436549631375,
+    "max_drawdown": -0.05490150693732504,
+    "trades": 5,
+    "params": {
+      "ema_fast": 9,
+      "ema_slow": 21,
+      "st_len": 10,
+      "st_mult": 3.0
+    },
+    "refinement_run": "explorer_spy_momentum_20260428_124357",
+    "refinement_turns": 7,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": false,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": -0.21736469534780709,
+        "min_test_sharpe": -2.533139330192035,
+        "avg_degradation": 16.26424052620042,
+        "num_windows": 6,
+        "windows_passed": 1,
+        "robust": false,
+        "notes": "Windows: 6, passed: 1 | Avg test Sharpe: -0.22 (min: -2.53) | Avg degradation: 1626.4% | \u26a0\ufe0f Avg test Sharpe -0.22 < 0.5 | \u26a0\ufe0f Only 1/6 windows passed (need >= 2)",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.9826537872559519,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 2,
+            "train_sharpe": 0.027419203198663367,
+            "test_sharpe": -2.533139330192035,
+            "degradation": 93.3855923834986,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": -1.260641418866283,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": 1.5941062706860607,
+            "test_sharpe": 1.696169883609047,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 2.33783796201882,
+            "test_sharpe": -0.4672187255038546,
+            "degradation": 1.199850773703919,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": 0.8138942484988022,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": false
+          }
+        ]
+      },
+      "cross_ticker": null,
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false
+    },
+    "promoted_at": "2026-04-28T19:50:41.742221+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_roc_ema_volume_googl",
+    "ticker": "GOOGL",
+    "sharpe": 2.65,
+    "return": 0.45,
+    "max_drawdown": -0.15,
+    "trades": 20,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "overnight_promote_roc_ema",
+    "refinement_turns": 1,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 1.1753941090614246,
+        "min_test_sharpe": -1.0084392552476276,
+        "avg_degradation": 0.16666666666666666,
+        "num_windows": 6,
+        "windows_passed": 5,
+        "robust": true,
+        "notes": "Windows: 6, passed: 5 | Avg test Sharpe: 1.18 (min: -1.01) | Avg degradation: 16.7%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.6016619004311938,
+            "test_sharpe": 0.6375723868245994,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.41778434239670664,
+            "test_sharpe": -1.0084392552476276,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.14444805276007733,
+            "test_sharpe": 1.1602639008295759,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.7110438906234482,
+            "test_sharpe": 1.627524656565475,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 0.6627812384000341,
+            "test_sharpe": 0.8265509986083337,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.4676617301175536,
+            "test_sharpe": 3.8088919667881913,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.34984873396036337,
+        "median_sharpe": 0.4579127352231347,
+        "robust": true,
+        "tickers_profitable": 18,
+        "tickers_tested": 29,
+        "notes": "Tested 29/29 tickers | Profitable: 18/29 (62%) | Passed: 4/29 | Avg Sharpe: 0.35 (\u03c3=0.86) | Median Sharpe: 0.46 | Avg Return: 14.8%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false
+    },
+    "promoted_at": "2026-04-29T12:44:11.719791+00:00",
+    "validation_status": "promoted",
+    "regime_tags": {
+      "preferred_regimes": [
+        "mean_reversion",
+        "trending_down",
+        "trending_up"
+      ],
+      "acceptable_regimes": [],
+      "weak_regimes": [],
+      "is_regime_specific": false
+    }
+  },
+  {
+    "strategy": "refined_roc_ema_volume_googl",
+    "ticker": "GOOGL",
+    "sharpe": 2.65,
+    "return": 0.45,
+    "max_drawdown": -0.15,
+    "trades": 20,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "overnight_promote_refined_roc_ema_volume_googl",
+    "refinement_turns": 1,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 1.1753941090614246,
+        "min_test_sharpe": -1.0084392552476276,
+        "avg_degradation": 0.16666666666666666,
+        "num_windows": 6,
+        "windows_passed": 5,
+        "robust": true,
+        "notes": "Windows: 6, passed: 5 | Avg test Sharpe: 1.18 (min: -1.01) | Avg degradation: 16.7%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.6016619004311938,
+            "test_sharpe": 0.6375723868245994,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.41778434239670664,
+            "test_sharpe": -1.0084392552476276,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.14444805276007733,
+            "test_sharpe": 1.1602639008295759,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.7110438906234482,
+            "test_sharpe": 1.627524656565475,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 0.6627812384000341,
+            "test_sharpe": 0.8265509986083337,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.4676617301175536,
+            "test_sharpe": 3.8088919667881913,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.34984873396036337,
+        "median_sharpe": 0.4579127352231347,
+        "robust": true,
+        "tickers_profitable": 18,
+        "tickers_tested": 29,
+        "notes": "Tested 29/29 tickers | Profitable: 18/29 (62%) | Passed: 4/29 | Avg Sharpe: 0.35 (\u03c3=0.86) | Median Sharpe: 0.46 | Avg Return: 14.8%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false
+    },
+    "promoted_at": "2026-04-29T12:44:40.826061+00:00",
+    "validation_status": "promoted",
+    "regime_tags": {
+      "preferred_regimes": [
+        "mean_reversion",
+        "trending_down",
+        "trending_up"
+      ],
+      "acceptable_regimes": [],
+      "weak_regimes": [],
+      "is_regime_specific": false
+    }
+  },
+  {
+    "strategy": "refined_e2e_test_momentum",
+    "ticker": "SPY",
+    "sharpe": 1.87,
+    "return": 0.3,
+    "max_drawdown": -0.12,
+    "trades": 15,
+    "params": {
+      "roc_len": 14,
+      "ema_len": 21,
+      "vol_len": 20,
+      "vol_mult": 1.1,
+      "exit_roc": -1.0
+    },
+    "refinement_run": "overnight_promote_refined_e2e_test_momentum",
+    "refinement_turns": 1,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 1.0931852183938375,
+        "min_test_sharpe": -2.0106580225006407,
+        "avg_degradation": 1.1817234977517102,
+        "num_windows": 6,
+        "windows_passed": 4,
+        "robust": true,
+        "notes": "Windows: 6, passed: 4 | Avg test Sharpe: 1.09 (min: -2.01) | Avg degradation: 118.2%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 0.33350173751815476,
+            "test_sharpe": -1.4390484783756814,
+            "degradation": 5.314965460404368,
+            "passed": false
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.22111918193396923,
+            "test_sharpe": 2.301827705180313,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.3142419607601241,
+            "test_sharpe": 3.3757208617465144,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.9138862200574469,
+            "test_sharpe": 1.9494144993898261,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 2.5931409424264524,
+            "test_sharpe": -2.0106580225006407,
+            "degradation": 1.7753755261058926,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.5150338406076167,
+            "test_sharpe": 2.381854744922694,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.39310207391532215,
+        "median_sharpe": 0.27452352538100766,
+        "robust": true,
+        "tickers_profitable": 11,
+        "tickers_tested": 19,
+        "notes": "Tested 19/19 tickers | Profitable: 11/19 (58%) | Passed: 3/19 | Avg Sharpe: 0.39 (\u03c3=0.84) | Median Sharpe: 0.27 | Avg Return: 15.1%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false
+    },
+    "promoted_at": "2026-04-29T12:47:16.265896+00:00",
+    "validation_status": "promoted",
+    "regime_tags": {
+      "preferred_regimes": [
+        "mean_reversion",
+        "trending_up"
+      ],
+      "acceptable_regimes": [],
+      "weak_regimes": [],
+      "is_regime_specific": false
+    }
+  },
+  {
+    "strategy": "refined_roc_ema_volume_googl",
+    "ticker": "SPY",
+    "sharpe": 1.5,
+    "return": 0.3,
+    "max_drawdown": -0.12,
+    "trades": 15,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "overnight_promote_roc_ema_volume_googl",
+    "refinement_turns": 1,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 0.6058096673246297,
+        "min_test_sharpe": -1.4439740570418549,
+        "avg_degradation": 1.2529253828710827,
+        "num_windows": 6,
+        "windows_passed": 4,
+        "robust": true,
+        "notes": "Windows: 6, passed: 4 | Avg test Sharpe: 0.61 (min: -1.44) | Avg degradation: 125.3%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 0.2771319688363514,
+            "test_sharpe": -1.2131144357150174,
+            "degradation": 5.37738901364848,
+            "passed": false
+          },
+          {
+            "window": 2,
+            "train_sharpe": 0.09108373360520752,
+            "test_sharpe": 0.6634010455490086,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.5954408287369317,
+            "test_sharpe": 3.0008484542909155,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 1.0649563580398806,
+            "test_sharpe": 0.4665974205280938,
+            "degradation": 0.5618624021486703,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 2.4969252225119987,
+            "test_sharpe": -1.4439740570418549,
+            "degradation": 1.5783008814293462,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.317067224950597,
+            "test_sharpe": 2.1610995763366323,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.45606766428515577,
+        "median_sharpe": 0.470269557953999,
+        "robust": true,
+        "tickers_profitable": 13,
+        "tickers_tested": 19,
+        "notes": "Tested 19/19 tickers | Profitable: 13/19 (68%) | Passed: 3/19 | Avg Sharpe: 0.46 (\u03c3=0.89) | Median Sharpe: 0.47 | Avg Return: 16.6%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false
+    },
+    "promoted_at": "2026-04-29T12:47:20.385835+00:00",
+    "validation_status": "promoted",
+    "regime_tags": {
+      "preferred_regimes": [
+        "mean_reversion",
+        "trending_up"
+      ],
+      "acceptable_regimes": [],
+      "weak_regimes": [],
+      "is_regime_specific": false
+    }
+  },
+  {
+    "strategy": "adx_pullback_gld",
+    "ticker": "GLD",
+    "sharpe": 1.648,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "pullback_lookback": 5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.648,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.966
+    },
+    "promoted_at": "2026-04-29T13:47:50.260878+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "ema_crossover_gld",
+    "ticker": "GLD",
+    "sharpe": 1.836,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "fast": 12,
+      "slow": 26,
+      "signal": 9
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.836,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 1.061
+    },
+    "promoted_at": "2026-04-29T13:47:50.260896+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_spy",
+    "ticker": "SPY",
+    "sharpe": 1.756,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.756,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.415
+    },
+    "promoted_at": "2026-04-29T13:47:50.260900+00:00",
+    "validation_status": "promoted",
+    "regime_tags": {
+      "preferred_regimes": [
+        "trending_down"
+      ],
+      "is_regime_specific": true
+    }
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_gld",
+    "ticker": "GLD",
+    "sharpe": 2.166,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "atr_len": 14,
+      "ema_fast": 9,
+      "ema_slow": 21,
+      "volume_threshold": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 2.166,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.939
+    },
+    "promoted_at": "2026-04-29T13:47:50.260902+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_nvda",
+    "ticker": "NVDA",
+    "sharpe": 2.121,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "atr_len": 14,
+      "ema_len": 20,
+      "rsi_len": 14,
+      "volume_window": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 2.121,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 1.051
+    },
+    "promoted_at": "2026-04-29T13:47:50.260904+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_rsi_stoch_de",
+    "ticker": "DE",
+    "sharpe": 1.39,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "momentum_len": 10,
+      "rsi_len": 14,
+      "stoch_k": 14,
+      "stoch_d": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.39,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.748
+    },
+    "promoted_at": "2026-04-29T13:47:50.260908+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_adx_ema_nvda",
+    "ticker": "NVDA",
+    "sharpe": 0.836,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "ema_len": 20,
+      "volume_sma": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.836,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.755
+    },
+    "promoted_at": "2026-04-29T13:47:50.260910+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_breakout_adx_cat",
+    "ticker": "CAT",
+    "sharpe": 1.363,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_threshold": 25,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "volume_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.363,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.716
+    },
+    "promoted_at": "2026-04-29T13:47:50.260912+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_roc_atr_trend_jpm",
+    "ticker": "JPM",
+    "sharpe": 2.339,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "atr_len": 14,
+      "ema_len": 20,
+      "roc_len": 10,
+      "vol_sma_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 2.339,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 1.167
+    },
+    "promoted_at": "2026-04-29T13:47:50.260915+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_vpt_roc_ema_gld",
+    "ticker": "GLD",
+    "sharpe": 1.339,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "ema_len": 20,
+      "roc_len": 10,
+      "vpt_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.339,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.861
+    },
+    "promoted_at": "2026-04-29T13:47:50.260917+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "roc_ema_volume_cat",
+    "ticker": "CAT",
+    "sharpe": 1.626,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "ema_len": 20,
+      "roc_len": 10,
+      "trailing_len": 20,
+      "vol_sma_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.626,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.732
+    },
+    "promoted_at": "2026-04-29T13:47:50.260919+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_roc_atr_trend_spy",
+    "ticker": "SPY",
+    "sharpe": 0.969,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 21,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "volume_mult": 1.5,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "rsi_len": 14,
+      "rsi_overbought": 70
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.969,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.777,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.699060+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_roc_atr_trend_msft",
+    "ticker": "MSFT",
+    "sharpe": 0.977,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 21,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "volume_mult": 1.5,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "rsi_len": 14,
+      "rsi_overbought": 70
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.977,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 1.564,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.699450+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_roc_atr_trend_googl",
+    "ticker": "GOOGL",
+    "sharpe": 1.303,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 21,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "volume_mult": 1.5,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "rsi_len": 14,
+      "rsi_overbought": 70
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.303,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 1.166,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.699611+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_roc_atr_trend_amzn",
+    "ticker": "AMZN",
+    "sharpe": 0.519,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 21,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "volume_mult": 1.5,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "rsi_len": 14,
+      "rsi_overbought": 70
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.519,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 1.326,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.699712+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_roc_atr_trend_nvda",
+    "ticker": "NVDA",
+    "sharpe": 0.967,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 21,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "volume_mult": 1.5,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "rsi_len": 14,
+      "rsi_overbought": 70
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.967,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 1.167,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.699812+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_roc_atr_trend_meta",
+    "ticker": "META",
+    "sharpe": 1.682,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 21,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "volume_mult": 1.5,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "rsi_len": 14,
+      "rsi_overbought": 70
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.682,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 1.167,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.699906+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_roc_atr_trend_gld",
+    "ticker": "GLD",
+    "sharpe": 1.851,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 21,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "volume_mult": 1.5,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "rsi_len": 14,
+      "rsi_overbought": 70
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.851,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 1.167,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.699990+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_roc_atr_trend_qqq",
+    "ticker": "QQQ",
+    "sharpe": 0.472,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 21,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "volume_mult": 1.5,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "rsi_len": 14,
+      "rsi_overbought": 70
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.472,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 1.167,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.700067+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_roc_atr_trend_cat",
+    "ticker": "CAT",
+    "sharpe": 1.349,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 21,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "volume_mult": 1.5,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "rsi_len": 14,
+      "rsi_overbought": 70
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.349,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 1.167,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.700141+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_roc_atr_trend_unh",
+    "ticker": "UNH",
+    "sharpe": 1.237,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 21,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "volume_mult": 1.5,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "rsi_len": 14,
+      "rsi_overbought": 70
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.237,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 1.167,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.700218+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_vpt_roc_ema_spy",
+    "ticker": "SPY",
+    "sharpe": 1.319,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vpt_len": 14,
+      "roc_len": 21,
+      "ema_len": 20,
+      "roc_threshold": 1.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.319,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.665,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.700307+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_vpt_roc_ema_aapl",
+    "ticker": "AAPL",
+    "sharpe": 0.312,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vpt_len": 14,
+      "roc_len": 21,
+      "ema_len": 20,
+      "roc_threshold": 1.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.312,
+      "sweep_wf_windows": "3/6",
+      "sweep_ct_avg_sharpe": 0.989,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.700695+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_vpt_roc_ema_googl",
+    "ticker": "GOOGL",
+    "sharpe": 0.625,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vpt_len": 14,
+      "roc_len": 21,
+      "ema_len": 20,
+      "roc_threshold": 1.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.625,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.708,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.701331+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_vpt_roc_ema_amzn",
+    "ticker": "AMZN",
+    "sharpe": 0.471,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vpt_len": 14,
+      "roc_len": 21,
+      "ema_len": 20,
+      "roc_threshold": 1.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.471,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.875,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.701512+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_vpt_roc_ema_nvda",
+    "ticker": "NVDA",
+    "sharpe": 1.149,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vpt_len": 14,
+      "roc_len": 21,
+      "ema_len": 20,
+      "roc_threshold": 1.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.149,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.861,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.701777+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_vpt_roc_ema_meta",
+    "ticker": "META",
+    "sharpe": 1.232,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vpt_len": 14,
+      "roc_len": 21,
+      "ema_len": 20,
+      "roc_threshold": 1.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.232,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.861,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.701927+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_vpt_roc_ema_jnj",
+    "ticker": "JNJ",
+    "sharpe": 0.947,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vpt_len": 14,
+      "roc_len": 21,
+      "ema_len": 20,
+      "roc_threshold": 1.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.947,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.861,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.702108+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_vpt_roc_ema_jpm",
+    "ticker": "JPM",
+    "sharpe": 1.199,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vpt_len": 14,
+      "roc_len": 21,
+      "ema_len": 20,
+      "roc_threshold": 1.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.199,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.861,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.702218+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_vpt_roc_ema_qqq",
+    "ticker": "QQQ",
+    "sharpe": 1.243,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vpt_len": 14,
+      "roc_len": 21,
+      "ema_len": 20,
+      "roc_threshold": 1.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.243,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.861,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.702308+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_vpt_roc_ema_cat",
+    "ticker": "CAT",
+    "sharpe": 1.109,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vpt_len": 14,
+      "roc_len": 21,
+      "ema_len": 20,
+      "roc_threshold": 1.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.109,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.861,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.702390+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_breakout_adx_spy",
+    "ticker": "SPY",
+    "sharpe": 0.961,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vol_sma_len": 20,
+      "vol_mult": 2.0,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "sma_fast": 10,
+      "sma_slow": 30
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.961,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.496,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.702471+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_breakout_adx_msft",
+    "ticker": "MSFT",
+    "sharpe": 0.903,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vol_sma_len": 20,
+      "vol_mult": 2.0,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "sma_fast": 10,
+      "sma_slow": 30
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.903,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.875,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.702564+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_breakout_adx_amzn",
+    "ticker": "AMZN",
+    "sharpe": 0.852,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vol_sma_len": 20,
+      "vol_mult": 2.0,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "sma_fast": 10,
+      "sma_slow": 30
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.852,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.795,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.702644+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_breakout_adx_nvda",
+    "ticker": "NVDA",
+    "sharpe": 0.476,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vol_sma_len": 20,
+      "vol_mult": 2.0,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "sma_fast": 10,
+      "sma_slow": 30
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.476,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.716,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.702734+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_breakout_adx_meta",
+    "ticker": "META",
+    "sharpe": 1.048,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vol_sma_len": 20,
+      "vol_mult": 2.0,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "sma_fast": 10,
+      "sma_slow": 30
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.048,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.716,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.702890+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_breakout_adx_jpm",
+    "ticker": "JPM",
+    "sharpe": 0.743,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vol_sma_len": 20,
+      "vol_mult": 2.0,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "sma_fast": 10,
+      "sma_slow": 30
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.743,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.716,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.702992+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_breakout_adx_unh",
+    "ticker": "UNH",
+    "sharpe": 0.391,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "vol_sma_len": 20,
+      "vol_mult": 2.0,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "sma_fast": 10,
+      "sma_slow": 30
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.391,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.716,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.703083+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_rsi_stoch_spy",
+    "ticker": "SPY",
+    "sharpe": 0.837,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "volume_window": 20,
+      "volume_mult": 1.2
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.837,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.591,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.703173+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_rsi_stoch_amzn",
+    "ticker": "AMZN",
+    "sharpe": 0.592,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "volume_window": 20,
+      "volume_mult": 1.2
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.592,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.649,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.703256+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_rsi_stoch_nvda",
+    "ticker": "NVDA",
+    "sharpe": 0.672,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "volume_window": 20,
+      "volume_mult": 1.2
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.672,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.748,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.703335+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_rsi_stoch_tsla",
+    "ticker": "TSLA",
+    "sharpe": 0.562,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "volume_window": 20,
+      "volume_mult": 1.2
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.562,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.748,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.703409+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_rsi_stoch_jpm",
+    "ticker": "JPM",
+    "sharpe": 1.001,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "volume_window": 20,
+      "volume_mult": 1.2
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.001,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.748,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.703521+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_rsi_stoch_gld",
+    "ticker": "GLD",
+    "sharpe": 0.853,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "volume_window": 20,
+      "volume_mult": 1.2
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.853,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.748,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.703617+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_rsi_stoch_qqq",
+    "ticker": "QQQ",
+    "sharpe": 0.327,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "volume_window": 20,
+      "volume_mult": 1.2
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.327,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.748,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.703699+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_rsi_stoch_cat",
+    "ticker": "CAT",
+    "sharpe": 0.831,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "volume_window": 20,
+      "volume_mult": 1.2
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.831,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.748,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.703795+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_rsi_stoch_unh",
+    "ticker": "UNH",
+    "sharpe": 0.443,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "volume_window": 20,
+      "volume_mult": 1.2
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.443,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.748,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.703889+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_spy",
+    "ticker": "SPY",
+    "sharpe": 1.552,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.552,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 1.003,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.703972+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_aapl",
+    "ticker": "AAPL",
+    "sharpe": 0.838,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.838,
+      "sweep_wf_windows": "3/6",
+      "sweep_ct_avg_sharpe": 1.028,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.704125+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_msft",
+    "ticker": "MSFT",
+    "sharpe": 1.046,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.046,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 1.258,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.704232+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_googl",
+    "ticker": "GOOGL",
+    "sharpe": 1.521,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.521,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.905,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.704316+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_amzn",
+    "ticker": "AMZN",
+    "sharpe": 0.949,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.949,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 1.063,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.704397+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_meta",
+    "ticker": "META",
+    "sharpe": 1.782,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.782,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 1.051,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.704482+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_tsla",
+    "ticker": "TSLA",
+    "sharpe": 0.857,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.857,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 1.051,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.704562+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_jnj",
+    "ticker": "JNJ",
+    "sharpe": 0.599,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.599,
+      "sweep_wf_windows": "3/6",
+      "sweep_ct_avg_sharpe": 1.051,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.704698+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_jpm",
+    "ticker": "JPM",
+    "sharpe": 1.727,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.727,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 1.051,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.704826+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_gld",
+    "ticker": "GLD",
+    "sharpe": 1.808,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.808,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 1.051,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.704921+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_qqq",
+    "ticker": "QQQ",
+    "sharpe": 1.298,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.298,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 1.051,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.705008+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_momentum_confluence_cat",
+    "ticker": "CAT",
+    "sharpe": 1.723,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "rsi_len": 14,
+      "adx_len": 14,
+      "atr_len": 14,
+      "vol_sma_len": 20,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "adx_threshold": 25,
+      "adx_weak_threshold": 20,
+      "volume_mult": 1.5,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.723,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 1.051,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.705096+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_spy",
+    "ticker": "SPY",
+    "sharpe": 1.67,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 5,
+      "roc_threshold": 0.5,
+      "vol_sma_len": 10,
+      "vol_threshold": 1.2,
+      "rsi_len": 10,
+      "rsi_min_uptrend": 25,
+      "rsi_max_downtrend": 75,
+      "ema_short_len": 10,
+      "ema_long_len": 20,
+      "atr_len": 10,
+      "atr_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.67,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.878,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.705174+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_aapl",
+    "ticker": "AAPL",
+    "sharpe": 0.822,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 5,
+      "roc_threshold": 0.5,
+      "vol_sma_len": 10,
+      "vol_threshold": 1.2,
+      "rsi_len": 10,
+      "rsi_min_uptrend": 25,
+      "rsi_max_downtrend": 75,
+      "ema_short_len": 10,
+      "ema_long_len": 20,
+      "atr_len": 10,
+      "atr_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.822,
+      "sweep_wf_windows": "3/6",
+      "sweep_ct_avg_sharpe": 0.943,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.705260+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_msft",
+    "ticker": "MSFT",
+    "sharpe": 0.693,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 5,
+      "roc_threshold": 0.5,
+      "vol_sma_len": 10,
+      "vol_threshold": 1.2,
+      "rsi_len": 10,
+      "rsi_min_uptrend": 25,
+      "rsi_max_downtrend": 75,
+      "ema_short_len": 10,
+      "ema_long_len": 20,
+      "atr_len": 10,
+      "atr_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.693,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 1.121,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.705343+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_googl",
+    "ticker": "GOOGL",
+    "sharpe": 1.052,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 5,
+      "roc_threshold": 0.5,
+      "vol_sma_len": 10,
+      "vol_threshold": 1.2,
+      "rsi_len": 10,
+      "rsi_min_uptrend": 25,
+      "rsi_max_downtrend": 75,
+      "ema_short_len": 10,
+      "ema_long_len": 20,
+      "atr_len": 10,
+      "atr_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.052,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.779,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.705425+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_amzn",
+    "ticker": "AMZN",
+    "sharpe": 0.799,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 5,
+      "roc_threshold": 0.5,
+      "vol_sma_len": 10,
+      "vol_threshold": 1.2,
+      "rsi_len": 10,
+      "rsi_min_uptrend": 25,
+      "rsi_max_downtrend": 75,
+      "ema_short_len": 10,
+      "ema_long_len": 20,
+      "atr_len": 10,
+      "atr_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.799,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.976,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.705512+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_nvda",
+    "ticker": "NVDA",
+    "sharpe": 1.94,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 5,
+      "roc_threshold": 0.5,
+      "vol_sma_len": 10,
+      "vol_threshold": 1.2,
+      "rsi_len": 10,
+      "rsi_min_uptrend": 25,
+      "rsi_max_downtrend": 75,
+      "ema_short_len": 10,
+      "ema_long_len": 20,
+      "atr_len": 10,
+      "atr_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.94,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.939,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.705618+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_meta",
+    "ticker": "META",
+    "sharpe": 1.575,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 5,
+      "roc_threshold": 0.5,
+      "vol_sma_len": 10,
+      "vol_threshold": 1.2,
+      "rsi_len": 10,
+      "rsi_min_uptrend": 25,
+      "rsi_max_downtrend": 75,
+      "ema_short_len": 10,
+      "ema_long_len": 20,
+      "atr_len": 10,
+      "atr_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.575,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.939,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.705721+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_tsla",
+    "ticker": "TSLA",
+    "sharpe": 0.428,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 5,
+      "roc_threshold": 0.5,
+      "vol_sma_len": 10,
+      "vol_threshold": 1.2,
+      "rsi_len": 10,
+      "rsi_min_uptrend": 25,
+      "rsi_max_downtrend": 75,
+      "ema_short_len": 10,
+      "ema_long_len": 20,
+      "atr_len": 10,
+      "atr_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.428,
+      "sweep_wf_windows": "3/6",
+      "sweep_ct_avg_sharpe": 0.939,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.705807+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_jpm",
+    "ticker": "JPM",
+    "sharpe": 1.4,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 5,
+      "roc_threshold": 0.5,
+      "vol_sma_len": 10,
+      "vol_threshold": 1.2,
+      "rsi_len": 10,
+      "rsi_min_uptrend": 25,
+      "rsi_max_downtrend": 75,
+      "ema_short_len": 10,
+      "ema_long_len": 20,
+      "atr_len": 10,
+      "atr_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.4,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.939,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.705892+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_qqq",
+    "ticker": "QQQ",
+    "sharpe": 1.081,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 5,
+      "roc_threshold": 0.5,
+      "vol_sma_len": 10,
+      "vol_threshold": 1.2,
+      "rsi_len": 10,
+      "rsi_min_uptrend": 25,
+      "rsi_max_downtrend": 75,
+      "ema_short_len": 10,
+      "ema_long_len": 20,
+      "atr_len": 10,
+      "atr_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.081,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.939,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.706075+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "injected_momentum_atr_volume_cat",
+    "ticker": "CAT",
+    "sharpe": 1.507,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 5,
+      "roc_threshold": 0.5,
+      "vol_sma_len": 10,
+      "vol_threshold": 1.2,
+      "rsi_len": 10,
+      "rsi_min_uptrend": 25,
+      "rsi_max_downtrend": 75,
+      "ema_short_len": 10,
+      "ema_long_len": 20,
+      "atr_len": 10,
+      "atr_mult": 1.5
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.507,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.939,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.706162+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_adx_ema_aapl",
+    "ticker": "AAPL",
+    "sharpe": 0.719,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "obv_fast": 10,
+      "obv_slow": 20,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 50,
+      "rsi_len": 14,
+      "rsi_oversold": 30,
+      "rsi_overbought": 70,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.719,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.828,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.706244+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_adx_ema_jpm",
+    "ticker": "JPM",
+    "sharpe": 0.303,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "obv_fast": 10,
+      "obv_slow": 20,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 50,
+      "rsi_len": 14,
+      "rsi_oversold": 30,
+      "rsi_overbought": 70,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.303,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.755,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.706334+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_adx_ema_gld",
+    "ticker": "GLD",
+    "sharpe": 0.454,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "obv_fast": 10,
+      "obv_slow": 20,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 50,
+      "rsi_len": 14,
+      "rsi_oversold": 30,
+      "rsi_overbought": 70,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.454,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.755,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.706416+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_adx_ema_qqq",
+    "ticker": "QQQ",
+    "sharpe": 0.682,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "obv_fast": 10,
+      "obv_slow": 20,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 50,
+      "rsi_len": 14,
+      "rsi_oversold": 30,
+      "rsi_overbought": 70,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.682,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.755,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.706499+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "invented_volume_adx_ema_de",
+    "ticker": "DE",
+    "sharpe": 0.39,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "obv_fast": 10,
+      "obv_slow": 20,
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 50,
+      "rsi_len": 14,
+      "rsi_oversold": 30,
+      "rsi_overbought": 70,
+      "atr_mult": 2.0
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.39,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.755,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.706576+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_spy",
+    "ticker": "SPY",
+    "sharpe": 1.036,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.036,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.936,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.706654+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_aapl",
+    "ticker": "AAPL",
+    "sharpe": 0.53,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.53,
+      "sweep_wf_windows": "3/6",
+      "sweep_ct_avg_sharpe": 0.989,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.706739+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_msft",
+    "ticker": "MSFT",
+    "sharpe": 0.774,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.774,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 1.242,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.706890+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_googl",
+    "ticker": "GOOGL",
+    "sharpe": 1.393,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.393,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.7,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.706988+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_amzn",
+    "ticker": "AMZN",
+    "sharpe": 0.861,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.861,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.963,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.707066+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_nvda",
+    "ticker": "NVDA",
+    "sharpe": 0.916,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.916,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.966,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.707147+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_meta",
+    "ticker": "META",
+    "sharpe": 0.884,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.884,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.966,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.707222+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_jnj",
+    "ticker": "JNJ",
+    "sharpe": 0.363,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.363,
+      "sweep_wf_windows": "3/6",
+      "sweep_ct_avg_sharpe": 0.966,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.707337+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_jpm",
+    "ticker": "JPM",
+    "sharpe": 1.313,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.313,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.966,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.707427+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_qqq",
+    "ticker": "QQQ",
+    "sharpe": 0.969,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.969,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.966,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.707505+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_de",
+    "ticker": "DE",
+    "sharpe": 0.587,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.587,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.966,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.707581+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "adx_pullback_unh",
+    "ticker": "UNH",
+    "sharpe": 0.35,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "ema_len": 20,
+      "take_atr": 3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.35,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.966,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.707664+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "ema_crossover_msft",
+    "ticker": "MSFT",
+    "sharpe": 0.644,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "fast_len": 9,
+      "slow_len": 21
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.644,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 1.169,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.707769+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "ema_crossover_googl",
+    "ticker": "GOOGL",
+    "sharpe": 0.715,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "fast_len": 9,
+      "slow_len": 21
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.715,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.743,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.707866+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "ema_crossover_amzn",
+    "ticker": "AMZN",
+    "sharpe": 0.459,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "fast_len": 9,
+      "slow_len": 21
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.459,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 1.076,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.707946+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "ema_crossover_jnj",
+    "ticker": "JNJ",
+    "sharpe": 0.651,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "fast_len": 9,
+      "slow_len": 21
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.651,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 1.061,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.708029+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "ema_crossover_cat",
+    "ticker": "CAT",
+    "sharpe": 0.369,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "fast_len": 9,
+      "slow_len": 21
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.369,
+      "sweep_wf_windows": "3/6",
+      "sweep_ct_avg_sharpe": 1.061,
+      "sweep_ct_profitable": "5/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.708107+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_aapl",
+    "ticker": "AAPL",
+    "sharpe": 0.589,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.589,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.452,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.708184+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_googl",
+    "ticker": "GOOGL",
+    "sharpe": 0.474,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.474,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.482,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.708269+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_amzn",
+    "ticker": "AMZN",
+    "sharpe": 0.459,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.459,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.606,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.708353+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_nvda",
+    "ticker": "NVDA",
+    "sharpe": 1.457,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.457,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.535,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.708443+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_meta",
+    "ticker": "META",
+    "sharpe": 1.741,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.741,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.535,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.708593+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_tsla",
+    "ticker": "TSLA",
+    "sharpe": 0.929,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.929,
+      "sweep_wf_windows": "3/6",
+      "sweep_ct_avg_sharpe": 0.535,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.708690+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_jpm",
+    "ticker": "JPM",
+    "sharpe": 1.372,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.372,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.535,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.708781+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_gld",
+    "ticker": "GLD",
+    "sharpe": 0.913,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.913,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.535,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.708857+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_qqq",
+    "ticker": "QQQ",
+    "sharpe": 0.639,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.639,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.535,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.708936+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_cat",
+    "ticker": "CAT",
+    "sharpe": 0.816,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.816,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.535,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709011+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "informed_simple_adaptive_de",
+    "ticker": "DE",
+    "sharpe": 1.496,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "adx_len": 14,
+      "adx_threshold": 25,
+      "rsi_len": 14,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 20,
+      "volume_mult": 1.3
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.496,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.535,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709086+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "roc_ema_volume_spy",
+    "ticker": "SPY",
+    "sharpe": 0.606,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.606,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.997,
+      "sweep_ct_profitable": "4/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709164+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "roc_ema_volume_msft",
+    "ticker": "MSFT",
+    "sharpe": 0.486,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.486,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.792,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709253+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "roc_ema_volume_googl",
+    "ticker": "GOOGL",
+    "sharpe": 1.175,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.175,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.412,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709373+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "roc_ema_volume_amzn",
+    "ticker": "AMZN",
+    "sharpe": 0.866,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.866,
+      "sweep_wf_windows": "6/6",
+      "sweep_ct_avg_sharpe": 0.615,
+      "sweep_ct_profitable": "3/4"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709412+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "roc_ema_volume_nvda",
+    "ticker": "NVDA",
+    "sharpe": 0.948,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.948,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.732,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709519+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "roc_ema_volume_meta",
+    "ticker": "META",
+    "sharpe": 1.437,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.437,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.732,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709604+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "roc_ema_volume_jnj",
+    "ticker": "JNJ",
+    "sharpe": 0.953,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.953,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.732,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709686+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "roc_ema_volume_jpm",
+    "ticker": "JPM",
+    "sharpe": 0.815,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.815,
+      "sweep_wf_windows": "3/6",
+      "sweep_ct_avg_sharpe": 0.732,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709760+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "roc_ema_volume_gld",
+    "ticker": "GLD",
+    "sharpe": 1.255,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 1.255,
+      "sweep_wf_windows": "5/6",
+      "sweep_ct_avg_sharpe": 0.732,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709858+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "roc_ema_volume_qqq",
+    "ticker": "QQQ",
+    "sharpe": 0.63,
+    "return": 0,
+    "max_drawdown": 0,
+    "trades": 0,
+    "params": {
+      "roc_len": 10,
+      "ema_len": 20,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 2.0,
+      "trailing_len": 20
+    },
+    "refinement_run": "batch_cycle13",
+    "refinement_turns": 0,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "validation_method": "rolling",
+      "sweep_wf_avg_test_sharpe": 0.63,
+      "sweep_wf_windows": "4/6",
+      "sweep_ct_avg_sharpe": 0.732,
+      "sweep_ct_profitable": "4/5"
+    },
+    "promoted_at": "2026-04-29T15:38:15.709955+00:00",
+    "validation_status": "promoted",
+    "regime_tags": null
+  },
+  {
+    "strategy": "refined_cycle17_verify_aapl",
+    "ticker": "AAPL",
+    "sharpe": 1.4540695290884345,
+    "return": 0.22079607227802683,
+    "max_drawdown": -0.11179725193946663,
+    "trades": 12,
+    "params": {
+      "roc_len": 3,
+      "ema_len": 10,
+      "atr_len": 8,
+      "atr_mult": 1.2,
+      "trailing_len": 8
+    },
+    "refinement_run": "cycle17_verify_aapl_20260429_160418",
+    "refinement_turns": 5,
+    "validation": {
+      "status": "error",
+      "message": "name 'config' is not defined",
+      "passed": false
+    },
+    "promoted_at": "2026-04-29T23:08:56.385288+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_momentum_googl",
+    "ticker": "GOOGL",
+    "sharpe": 2.0557346626750834,
+    "return": 1.1207667214554144,
+    "max_drawdown": -0.19320546785031126,
+    "trades": 15,
+    "params": {
+      "rsi_len": 7,
+      "entry_level": 50,
+      "exit_level": 40
+    },
+    "refinement_run": "momentum_googl_20260429_200243",
+    "refinement_turns": 4,
+    "validation": {
+      "status": "error",
+      "message": "name 'config' is not defined",
+      "passed": false
+    },
+    "promoted_at": "2026-04-30T03:06:02.167511+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_momentum_msft",
+    "ticker": "MSFT",
+    "sharpe": 1.5421487205377715,
+    "return": 0.3065367390076241,
+    "max_drawdown": -0.09276788138559353,
+    "trades": 10,
+    "params": {
+      "macd_fast": 12,
+      "macd_slow": 26,
+      "macd_signal": 9,
+      "sma_len": 50,
+      "atr_len": 14,
+      "atr_mult": 2.5,
+      "trailing_len": 20
+    },
+    "refinement_run": "momentum_msft_20260429_235403",
+    "refinement_turns": 5,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": false,
+      "cross_ticker_robust": false,
+      "walk_forward": {
+        "avg_test_sharpe": -0.25356300370362567,
+        "min_test_sharpe": -2.203601513247137,
+        "avg_degradation": 1.2925670132688794,
+        "num_windows": 6,
+        "windows_passed": 3,
+        "robust": false,
+        "notes": "Windows: 6, passed: 3 | Avg test Sharpe: -0.25 (min: -2.20) | Avg degradation: 129.3% | \u26a0\ufe0f Avg test Sharpe -0.25 < 0.3",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 0.33910748722087003,
+            "test_sharpe": 0.8066834084602672,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": 0.49771133843750076,
+            "test_sharpe": -0.24026132003681247,
+            "degradation": 1.4827322616179115,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.7001579994572856,
+            "test_sharpe": -2.203601513247137,
+            "degradation": 4.147291775506696,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": 1.2434041470164845,
+            "test_sharpe": 1.0875085690412654,
+            "degradation": 0.12537804248866827,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 1.3139221825120126,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": -0.15987732096054663,
+            "test_sharpe": -0.971707166439337,
+            "degradation": 1.0,
+            "passed": false
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": -0.3132754904512681,
+        "median_sharpe": -0.21447617093381477,
+        "robust": false,
+        "tickers_profitable": 0,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 0/2 (0%) | Passed: 0/2 | Avg Sharpe: -0.31 (\u03c3=0.10) | Median Sharpe: -0.21 | Avg Return: -5.6%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false
+    },
+    "promoted_at": "2026-04-30T07:01:40.599807+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_Momentum Strategy for GOOGL",
+    "ticker": "GOOGL",
+    "sharpe": 1.3876356183088083,
+    "return": 0.5735435855174256,
+    "max_drawdown": -0.2542518374525482,
+    "trades": 30,
+    "params": {},
+    "refinement_run": "momentum_strategy_for_googl_20260430_030245",
+    "refinement_turns": 1,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 1.4114692793068508,
+        "min_test_sharpe": -0.5013109640462313,
+        "avg_degradation": 0.3754097865184571,
+        "num_windows": 6,
+        "windows_passed": 4,
+        "robust": true,
+        "notes": "Windows: 6, passed: 4 | Avg test Sharpe: 1.41 (min: -0.50) | Avg degradation: 37.5%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -1.5322053361738064,
+            "test_sharpe": 1.2729915548949755,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.7801369007655422,
+            "test_sharpe": -0.5013109640462313,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": -0.14474067005255162,
+            "test_sharpe": 1.5369603991185503,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 1.1352114416509689,
+            "test_sharpe": 1.6875922371243948,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 1.095646284816259,
+            "test_sharpe": -0.2766054576631561,
+            "degradation": 1.2524587191107421,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.4276001390998294,
+            "test_sharpe": 4.749187906412572,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": null,
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false
+    },
+    "promoted_at": "2026-04-30T10:09:07.291872+00:00",
+    "validation_status": "promoted",
+    "regime_tags": {
+      "preferred_regimes": [
+        "mean_reversion",
+        "trending_down",
+        "trending_up"
+      ],
+      "acceptable_regimes": [],
+      "weak_regimes": [],
+      "is_regime_specific": false
+    }
+  },
+  {
+    "strategy": "refined_momentum_spy",
+    "ticker": "SPY",
+    "sharpe": 2.1265440930550534,
+    "return": 0.24411449715740263,
+    "max_drawdown": -0.04681705238151243,
+    "trades": 10,
+    "params": {
+      "macd_fast": 12,
+      "macd_slow": 26,
+      "macd_signal": 9,
+      "adx_len": 14,
+      "adx_threshold": 20
+    },
+    "refinement_run": "momentum_spy_20260430_111246",
+    "refinement_turns": 7,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": false,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": -0.4190942654757755,
+        "min_test_sharpe": -1.627697212388751,
+        "avg_degradation": 1.1873258162989626,
+        "num_windows": 6,
+        "windows_passed": 2,
+        "robust": false,
+        "notes": "Windows: 6, passed: 2 | Avg test Sharpe: -0.42 (min: -1.63) | Avg degradation: 118.7% | \u26a0\ufe0f Avg test Sharpe -0.42 < 0.4 | \u26a0\ufe0f Only 2/6 windows passed (need >= 3)",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.19984563192481394,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.13928267841464945,
+            "test_sharpe": -1.627697212388751,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.5383405805154694,
+            "test_sharpe": -0.5395051607654243,
+            "degradation": 2.0021632778432563,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.7750785580574058,
+            "test_sharpe": 0.29698589751317084,
+            "degradation": 0.6168312302981104,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 0.9318031667886989,
+            "test_sharpe": -0.4705236901809701,
+            "degradation": 1.504960389652409,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": -0.19195436357852913,
+            "test_sharpe": -0.1738254270326785,
+            "degradation": 1.0,
+            "passed": false
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.5449153043991858,
+        "median_sharpe": 1.1470013795117389,
+        "robust": true,
+        "tickers_profitable": 1,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 1/2 (50%) | Passed: 0/2 | Avg Sharpe: 0.54 (\u03c3=0.60) | Median Sharpe: 1.15 | Avg Return: 9.1%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": -0.4191,
+      "complexity_score": null,
+      "time_reversed_overfit": null,
+      "time_reversed_explanation": "Check failed: BacktestEngine.run() missing 1 required positional argument: 'ticker'"
+    },
+    "promoted_at": "2026-04-30T18:26:05.817694+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_breakout_tsla",
+    "ticker": "TSLA",
+    "sharpe": 1.5115722801130171,
+    "return": 1.193819757643862,
+    "max_drawdown": -0.23129465945985703,
+    "trades": 15,
+    "params": {
+      "fast_len": 7,
+      "slow_len": 21,
+      "exit_level": 45
+    },
+    "refinement_run": "breakout_tsla_20260430_112627",
+    "refinement_turns": 7,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": false,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 0.29165959601702945,
+        "min_test_sharpe": -1.6492794250478628,
+        "avg_degradation": 1.8296153541701041,
+        "num_windows": 6,
+        "windows_passed": 5,
+        "robust": false,
+        "notes": "Windows: 6, passed: 5 | Avg test Sharpe: 0.29 (min: -1.65) | Avg degradation: 183.0% | \u26a0\ufe0f Avg test Sharpe 0.29 < 0.4",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 0.21689565945005174,
+            "test_sharpe": -1.6492794250478628,
+            "degradation": 8.604022271490733,
+            "passed": false
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.659766250136267,
+            "test_sharpe": 1.7829802582459557,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.6453163655716494,
+            "test_sharpe": 0.09365972812981184,
+            "degradation": 0.854862307657665,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.6763461326094767,
+            "test_sharpe": 1.0127358700652689,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 1.0867157539452548,
+            "test_sharpe": 0.2846173501303493,
+            "degradation": 0.7380940240379662,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.0271668206026496,
+            "test_sharpe": 0.22524379457865404,
+            "degradation": 0.7807135218342613,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.32660539908695646,
+        "median_sharpe": 0.9302391464451745,
+        "robust": true,
+        "tickers_profitable": 1,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 1/2 (50%) | Passed: 0/2 | Avg Sharpe: 0.33 (\u03c3=0.60) | Median Sharpe: 0.93 | Avg Return: -8.5%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": 0.2917,
+      "complexity_score": null,
+      "time_reversed_overfit": null,
+      "time_reversed_explanation": "Check failed: BacktestEngine.run() missing 1 required positional argument: 'ticker'"
+    },
+    "promoted_at": "2026-04-30T18:31:50.369960+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_momentum_jpm",
+    "ticker": "JPM",
+    "sharpe": 1.6399642323486583,
+    "return": 0.4435804199489873,
+    "max_drawdown": -0.1079900753829281,
+    "trades": 29,
+    "params": {},
+    "refinement_run": "momentum_jpm_20260430_121431",
+    "refinement_turns": 1,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": false,
+      "walk_forward": {
+        "avg_test_sharpe": 1.5084225922341492,
+        "min_test_sharpe": -0.0595940361732836,
+        "avg_degradation": 0.24523769981108337,
+        "num_windows": 6,
+        "windows_passed": 5,
+        "robust": true,
+        "notes": "Windows: 6, passed: 5 | Avg test Sharpe: 1.51 (min: -0.06) | Avg degradation: 24.5%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -1.0912292357112658,
+            "test_sharpe": -0.0595940361732836,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.6118144894847406,
+            "test_sharpe": 0.9444678873928011,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 3,
+            "train_sharpe": -0.13772854621528188,
+            "test_sharpe": 2.085587267879884,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 1.1434227083440378,
+            "test_sharpe": 2.5543109714971743,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 2.845447519841247,
+            "test_sharpe": 1.5040290114883774,
+            "degradation": 0.4714261988665002,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.8144580759552713,
+            "test_sharpe": 2.0217344513199413,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": -0.5595865596993935,
+        "median_sharpe": 0.17217040121559204,
+        "robust": false,
+        "tickers_profitable": 1,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 1/2 (50%) | Passed: 0/2 | Avg Sharpe: -0.56 (\u03c3=0.73) | Median Sharpe: 0.17 | Avg Return: -12.9%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": 1.5084,
+      "complexity_score": null,
+      "time_reversed_overfit": null,
+      "time_reversed_explanation": "Check failed: BacktestEngine.run() missing 1 required positional argument: 'ticker'"
+    },
+    "promoted_at": "2026-04-30T19:15:38.905280+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_mean_reversion_xom",
+    "ticker": "XOM",
+    "sharpe": 1.8751019734553878,
+    "return": 0.48505808945822076,
+    "max_drawdown": -0.10793881039762047,
+    "trades": 20,
+    "params": {},
+    "refinement_run": "mean_reversion_xom_20260430_121431",
+    "refinement_turns": 3,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 1.3388454778459173,
+        "min_test_sharpe": -0.5296881485554794,
+        "avg_degradation": 0.3262464812590095,
+        "num_windows": 6,
+        "windows_passed": 5,
+        "robust": true,
+        "notes": "Windows: 6, passed: 5 | Avg test Sharpe: 1.34 (min: -0.53) | Avg degradation: 32.6%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 1.3475968352490817,
+            "test_sharpe": 1.4788541600515492,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": 1.6618123586416156,
+            "test_sharpe": -0.5296881485554794,
+            "degradation": 1.3187412500581308,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": 1.0055170440538566,
+            "test_sharpe": 0.36325546287300897,
+            "degradation": 0.6387376374959264,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.2410839666230463,
+            "test_sharpe": 0.7375695570414286,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 0.2383947462970875,
+            "test_sharpe": 1.4093064444353383,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.3125469989720417,
+            "test_sharpe": 4.573775391229659,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 1.2530066515134255,
+        "median_sharpe": 1.3482117133165559,
+        "robust": true,
+        "tickers_profitable": 2,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 2/2 (100%) | Passed: 0/2 | Avg Sharpe: 1.25 (\u03c3=0.10) | Median Sharpe: 1.35 | Avg Return: 37.9%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": 1.3388,
+      "complexity_score": null,
+      "time_reversed_overfit": null,
+      "time_reversed_explanation": "Check failed: BacktestEngine.run() missing 1 required positional argument: 'ticker'"
+    },
+    "promoted_at": "2026-04-30T19:16:40.428525+00:00",
+    "validation_status": "promoted"
+  },
+  {
+    "strategy": "refined_mean_reversion_xom",
+    "ticker": "XOM",
+    "sharpe": 2.0350680143031052,
+    "return": 0.5889608751093579,
+    "max_drawdown": -0.10978937757350746,
+    "trades": 22,
+    "params": {},
+    "refinement_run": "mean_reversion_xom_20260430_121330",
+    "refinement_turns": 7,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 1.1319469740798038,
+        "min_test_sharpe": -1.1210252025160337,
+        "avg_degradation": 42.176442260997426,
+        "num_windows": 6,
+        "windows_passed": 4,
+        "robust": true,
+        "notes": "Windows: 6, passed: 4 | Avg test Sharpe: 1.13 (min: -1.12) | Avg degradation: 4217.6%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 1.1965221645973245,
+            "test_sharpe": 1.210187179044321,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": 1.3614829055638487,
+            "test_sharpe": -0.932386518303936,
+            "degradation": 1.684831601258919,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.004477405799532713,
+            "test_sharpe": -1.1210252025160337,
+            "degradation": 251.37382196472566,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.0731067358447711,
+            "test_sharpe": 0.9151633917784752,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 0.06053581238717108,
+            "test_sharpe": 1.3219740689990762,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 0.8221672364754031,
+            "test_sharpe": 5.397768925476921,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.7994927814778217,
+        "median_sharpe": 0.8045135620545337,
+        "robust": true,
+        "tickers_profitable": 2,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 2/2 (100%) | Passed: 0/2 | Avg Sharpe: 0.80 (\u03c3=0.01) | Median Sharpe: 0.80 | Avg Return: 23.4%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": 1.1319,
+      "complexity_score": null,
+      "time_reversed_overfit": null,
+      "time_reversed_explanation": "Check failed: BacktestEngine.run() missing 1 required positional argument: 'ticker'"
+    },
+    "promoted_at": "2026-04-30T19:19:45.180229+00:00",
+    "validation_status": "promoted"
+  },
+  {
+    "strategy": "refined_volume_nvda",
+    "ticker": "NVDA",
+    "sharpe": 1.730102512472377,
+    "return": 0.6642562360967058,
+    "max_drawdown": -0.08372029352264121,
+    "trades": 37,
+    "params": {},
+    "refinement_run": "volume_nvda_20260430_143633",
+    "refinement_turns": 2,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": false,
+      "walk_forward": {
+        "avg_test_sharpe": 1.1655642079270163,
+        "min_test_sharpe": -1.9661767835807482,
+        "avg_degradation": 0.43863103175134405,
+        "num_windows": 6,
+        "windows_passed": 5,
+        "robust": true,
+        "notes": "Windows: 6, passed: 5 | Avg test Sharpe: 1.17 (min: -1.97) | Avg degradation: 43.9%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 2.6247391194897864,
+            "test_sharpe": 1.135319420463147,
+            "degradation": 0.5674543759290495,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": 0.8674857971096446,
+            "test_sharpe": 1.6712993758473895,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 3,
+            "train_sharpe": 1.04498740867149,
+            "test_sharpe": 1.0815033191323333,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 1.2528762500212487,
+            "test_sharpe": 3.086482095119028,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 1.847334408920632,
+            "test_sharpe": -1.9661767835807482,
+            "degradation": 2.064331814579015,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.2164428801262002,
+            "test_sharpe": 1.9849578205809482,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": -0.054729327363745854,
+        "median_sharpe": 0.06238369082667623,
+        "robust": false,
+        "tickers_profitable": 0,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 0/2 (0%) | Passed: 0/2 | Avg Sharpe: -0.05 (\u03c3=0.12) | Median Sharpe: 0.06 | Avg Return: -18.1%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": 1.1656,
+      "complexity_score": null,
+      "time_reversed_overfit": null,
+      "time_reversed_explanation": "Check failed: BacktestEngine.run() missing 1 required positional argument: 'ticker'"
+    },
+    "promoted_at": "2026-04-30T21:37:27.092394+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_mean_reversion_xom",
+    "ticker": "XOM",
+    "sharpe": 1.7300460854066992,
+    "return": 0.5092639858779969,
+    "max_drawdown": -0.10643784770978644,
+    "trades": 21,
+    "params": {},
+    "refinement_run": "mean_reversion_xom_20260430_152114",
+    "refinement_turns": 2,
+    "validation": {
+      "passed": true,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 1.1831427525890785,
+        "min_test_sharpe": -0.5690745773162323,
+        "avg_degradation": 0.6317200895043257,
+        "num_windows": 6,
+        "windows_passed": 4,
+        "robust": true,
+        "notes": "Windows: 6, passed: 4 | Avg test Sharpe: 1.18 (min: -0.57) | Avg degradation: 63.2%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 1.062320247958996,
+            "test_sharpe": 2.3088787948205907,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": 1.9435270409739445,
+            "test_sharpe": -0.280249967795389,
+            "degradation": 1.144196587897717,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.732063652603505,
+            "test_sharpe": -0.5690745773162323,
+            "degradation": 1.7773566892610777,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.6901000878998672,
+            "test_sharpe": 2.561442242635565,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 0.4260174875781499,
+            "test_sharpe": 0.055907442239388934,
+            "degradation": 0.8687672598671595,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 0.8852813368625789,
+            "test_sharpe": 3.0219525809505483,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 1.248747686346526,
+        "median_sharpe": 1.2683418578611791,
+        "robust": true,
+        "tickers_profitable": 2,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 2/2 (100%) | Passed: 0/2 | Avg Sharpe: 1.25 (\u03c3=0.02) | Median Sharpe: 1.27 | Avg Return: 40.7%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": true,
+      "deflated_sharpe": 1.1831,
+      "complexity_score": null,
+      "time_reversed_overfit": null,
+      "time_reversed_explanation": "Check failed: BacktestEngine.run() missing 1 required positional argument: 'ticker'"
+    },
+    "promoted_at": "2026-04-30T22:22:13.196583+00:00",
+    "validation_status": "promoted"
+  },
+  {
+    "strategy": "refined_mean_reversion_aapl",
+    "ticker": "AAPL",
+    "sharpe": 2.154012336820547,
+    "return": 0.6093239675622146,
+    "max_drawdown": -0.09498205579935917,
+    "trades": 18,
+    "params": {
+      "rsi_period": 7,
+      "rsi_entry": 45,
+      "rsi_exit": 65
+    },
+    "refinement_run": "mean_reversion_aapl_20260501_023607",
+    "refinement_turns": 7,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": false,
+      "walk_forward": {
+        "avg_test_sharpe": 1.2921013761279305,
+        "min_test_sharpe": 0.10786054623443678,
+        "avg_degradation": 0.10233705176502278,
+        "num_windows": 6,
+        "windows_passed": 6,
+        "robust": true,
+        "notes": "Windows: 6, passed: 6 | Avg test Sharpe: 1.29 (min: 0.11) | Avg degradation: 10.2%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.4902492369411153,
+            "test_sharpe": 0.20845405481515594,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.30937784715835415,
+            "test_sharpe": 0.7133702547534136,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 3,
+            "train_sharpe": -0.031748841233483385,
+            "test_sharpe": 0.10786054623443678,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.3696045419848064,
+            "test_sharpe": 2.10064335902063,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 0.8658960521656343,
+            "test_sharpe": 0.334216557484014,
+            "degradation": 0.6140223105901367,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 0.40133309070040446,
+            "test_sharpe": 4.288063484459933,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.0008600287537524516,
+        "median_sharpe": 0.0342418642574015,
+        "robust": false,
+        "tickers_profitable": 0,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 0/2 (0%) | Passed: 0/2 | Avg Sharpe: 0.00 (\u03c3=0.03) | Median Sharpe: 0.03 | Avg Return: -3.6%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": 1.2921,
+      "complexity_score": null,
+      "time_reversed_overfit": false,
+      "time_reversed_explanation": "Passed time-reversed check (reversed Sharpe -0.48 is -47% of normal 1.01)"
+    },
+    "promoted_at": "2026-05-01T09:56:39.971958+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_trend_tsla",
+    "ticker": "TSLA",
+    "sharpe": 1.9193868177438937,
+    "return": 1.677904930356506,
+    "max_drawdown": -0.21599088639257197,
+    "trades": 24,
+    "params": {},
+    "refinement_run": "trend_tsla_20260501_031142",
+    "refinement_turns": 7,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": false,
+      "cross_ticker_robust": false,
+      "walk_forward": {
+        "avg_test_sharpe": 0.29165959601702945,
+        "min_test_sharpe": -1.6492794250478628,
+        "avg_degradation": 1.8296153541701041,
+        "num_windows": 6,
+        "windows_passed": 5,
+        "robust": false,
+        "notes": "Windows: 6, passed: 5 | Avg test Sharpe: 0.29 (min: -1.65) | Avg degradation: 183.0% | \u26a0\ufe0f Avg test Sharpe 0.29 < 0.4",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 0.21689565945005174,
+            "test_sharpe": -1.6492794250478628,
+            "degradation": 8.604022271490733,
+            "passed": false
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.659766250136267,
+            "test_sharpe": 1.7829802582459557,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.6453163655716494,
+            "test_sharpe": 0.09365972812981184,
+            "degradation": 0.854862307657665,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 0.6763461326094767,
+            "test_sharpe": 1.0127358700652689,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 1.0867157539452548,
+            "test_sharpe": 0.2846173501303493,
+            "degradation": 0.7380940240379662,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 1.0271668206026496,
+            "test_sharpe": 0.22524379457865404,
+            "degradation": 0.7807135218342613,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": -0.5794013604609618,
+        "median_sharpe": -0.27702834827126155,
+        "robust": false,
+        "tickers_profitable": 0,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 0/2 (0%) | Passed: 0/2 | Avg Sharpe: -0.58 (\u03c3=0.30) | Median Sharpe: -0.28 | Avg Return: -36.5%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": 0.2917,
+      "complexity_score": null,
+      "time_reversed_overfit": false,
+      "time_reversed_explanation": "Passed time-reversed check (reversed Sharpe -0.63 is -380% of normal 0.17)"
+    },
+    "promoted_at": "2026-05-01T10:22:29.565798+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_volume_nvda",
+    "ticker": "NVDA",
+    "sharpe": 1.5571127685868984,
+    "return": 0.654117194347885,
+    "max_drawdown": -0.10516283095719219,
+    "trades": 6,
+    "params": {
+      "vol_sma_len": 10,
+      "vol_mult": 1.5,
+      "ema_len": 12
+    },
+    "refinement_run": "volume_nvda_20260501_165101",
+    "refinement_turns": 7,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": false,
+      "walk_forward": {
+        "avg_test_sharpe": 1.086353368471663,
+        "min_test_sharpe": -1.7319399335515109,
+        "avg_degradation": 0.5759930131076044,
+        "num_windows": 8,
+        "windows_passed": 7,
+        "robust": true,
+        "notes": "Windows: 8, passed: 7 | Avg test Sharpe: 1.09 (min: -1.73) | Avg degradation: 57.6%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 1.8538252547882943,
+            "test_sharpe": 0.010688040647884485,
+            "degradation": 0.9942346018750807,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.9870668043511388,
+            "test_sharpe": 1.488830129591171,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.48928715886974816,
+            "test_sharpe": 3.800126460288271,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 1.8368041945551234,
+            "test_sharpe": 3.104950679597963,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 2.502310702525061,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 2.8220842680868716,
+            "test_sharpe": -1.7319399335515109,
+            "degradation": 1.6137095029857544,
+            "passed": false
+          },
+          {
+            "window": 7,
+            "train_sharpe": 1.5449036384097756,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": true
+          },
+          {
+            "window": 8,
+            "train_sharpe": -0.9998418845314423,
+            "test_sharpe": 2.0181715711995256,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.25644407611655823,
+        "median_sharpe": 0.5784197540605309,
+        "robust": false,
+        "tickers_profitable": 1,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 1/2 (50%) | Passed: 0/2 | Avg Sharpe: 0.26 (\u03c3=0.32) | Median Sharpe: 0.58 | Avg Return: 7.3%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": 1.0864,
+      "complexity_score": null,
+      "time_reversed_overfit": false,
+      "time_reversed_explanation": "Passed time-reversed check (reversed Sharpe -0.46 is -30% of normal 1.56)"
+    },
+    "promoted_at": "2026-05-01T23:54:56.303130+00:00",
     "validation_status": "backtest_only"
   }
 ]

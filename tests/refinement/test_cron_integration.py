@@ -1,6 +1,7 @@
 """Tests for scripts/crabquant_cron.py — Phase 3 cron integration."""
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -166,8 +167,11 @@ class TestRunSingleMandate:
         )
 
         with tempfile.TemporaryDirectory() as tmpdir:
+            mandate_path = os.path.join(tmpdir, "mandate.json")
+            with open(mandate_path, "w") as f:
+                json.dump({"name": "test", "sharpe_target": 1.5, "max_turns": 5}, f)
             result = run_single_mandate(
-                "/tmp/mandate.json",
+                mandate_path,
                 runs_dir=tmpdir,
                 timeout=60,
             )
@@ -181,7 +185,11 @@ class TestRunSingleMandate:
             cmd="test", timeout=60
         )
 
-        result = run_single_mandate("/tmp/mandate.json", timeout=60)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mandate_path = os.path.join(tmpdir, "mandate.json")
+            with open(mandate_path, "w") as f:
+                json.dump({"name": "test", "sharpe_target": 1.5, "max_turns": 5}, f)
+            result = run_single_mandate(mandate_path, timeout=60)
         assert result["status"] == "error"
         assert "timeout" in result.get("error", "").lower()
 
@@ -193,7 +201,11 @@ class TestRunSingleMandate:
             stderr="Something went wrong",
         )
 
-        result = run_single_mandate("/tmp/mandate.json", timeout=60)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mandate_path = os.path.join(tmpdir, "mandate.json")
+            with open(mandate_path, "w") as f:
+                json.dump({"name": "test", "sharpe_target": 1.5, "max_turns": 5}, f)
+            result = run_single_mandate(mandate_path, timeout=60)
         assert result["status"] == "error"
 
 
