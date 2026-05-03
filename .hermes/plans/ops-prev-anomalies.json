@@ -1,1 +1,7 @@
-[]
+[
+  {
+    "key": "no_commits",
+    "severity": "YELLOW",
+    "timestamp": "2026-05-03T11:49:13.648446+00:00"
+  }
+]
