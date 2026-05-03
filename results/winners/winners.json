@@ -6679,5 +6679,109 @@
     },
     "promoted_at": "2026-05-01T10:22:29.565798+00:00",
     "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_volume_nvda",
+    "ticker": "NVDA",
+    "sharpe": 1.5571127685868984,
+    "return": 0.654117194347885,
+    "max_drawdown": -0.10516283095719219,
+    "trades": 6,
+    "params": {
+      "vol_sma_len": 10,
+      "vol_mult": 1.5,
+      "ema_len": 12
+    },
+    "refinement_run": "volume_nvda_20260501_165101",
+    "refinement_turns": 7,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": true,
+      "cross_ticker_robust": false,
+      "walk_forward": {
+        "avg_test_sharpe": 1.086353368471663,
+        "min_test_sharpe": -1.7319399335515109,
+        "avg_degradation": 0.5759930131076044,
+        "num_windows": 8,
+        "windows_passed": 7,
+        "robust": true,
+        "notes": "Windows: 8, passed: 7 | Avg test Sharpe: 1.09 (min: -1.73) | Avg degradation: 57.6%",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": 1.8538252547882943,
+            "test_sharpe": 0.010688040647884485,
+            "degradation": 0.9942346018750807,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.9870668043511388,
+            "test_sharpe": 1.488830129591171,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 3,
+            "train_sharpe": 0.48928715886974816,
+            "test_sharpe": 3.800126460288271,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 4,
+            "train_sharpe": 1.8368041945551234,
+            "test_sharpe": 3.104950679597963,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 5,
+            "train_sharpe": 2.502310702525061,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": true
+          },
+          {
+            "window": 6,
+            "train_sharpe": 2.8220842680868716,
+            "test_sharpe": -1.7319399335515109,
+            "degradation": 1.6137095029857544,
+            "passed": false
+          },
+          {
+            "window": 7,
+            "train_sharpe": 1.5449036384097756,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": true
+          },
+          {
+            "window": 8,
+            "train_sharpe": -0.9998418845314423,
+            "test_sharpe": 2.0181715711995256,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": {
+        "avg_sharpe": 0.25644407611655823,
+        "median_sharpe": 0.5784197540605309,
+        "robust": false,
+        "tickers_profitable": 1,
+        "tickers_tested": 2,
+        "notes": "Tested 2/2 tickers | Profitable: 1/2 (50%) | Passed: 0/2 | Avg Sharpe: 0.26 (\u03c3=0.32) | Median Sharpe: 0.58 | Avg Return: 7.3%"
+      },
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": false,
+      "deflated_sharpe": 1.0864,
+      "complexity_score": null,
+      "time_reversed_overfit": false,
+      "time_reversed_explanation": "Passed time-reversed check (reversed Sharpe -0.46 is -30% of normal 1.56)"
+    },
+    "promoted_at": "2026-05-01T23:54:56.303130+00:00",
+    "validation_status": "backtest_only"
   }
 ]

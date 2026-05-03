@@ -25,7 +25,7 @@ PID_FILE = project_root / "crabquant.pid"
 STATE_FILE = project_root / "results" / "daemon_state.json"
 HEARTBEAT_FILE = project_root / "results" / "daemon_heartbeat.json"
 DEFAULT_MANDATES_DIR = project_root / "mandates"
-DEFAULT_PARALLEL = 3
+DEFAULT_PARALLEL = 1
 DEFAULT_SLEEP = 60
 
 shutdown_requested = False
@@ -134,7 +134,7 @@ def run_single_mandate(
     mandate_path: str,
     max_turns: int = 7,
     sharpe_target: float = 1.5,
-    timeout: int = 600,
+    timeout: int = 1200,
 ) -> dict:
     """Run a single mandate via subprocess. Returns result dict."""
     try:
@@ -160,7 +160,7 @@ def run_single_mandate(
             "stderr": result.stderr[-1000:],
         }
     except subprocess.TimeoutExpired:
-        return {"returncode": -1, "stdout": "", "stderr": "TIMEOUT"}
+        return {"returncode": -1, "stdout": "", "stderr": f"TIMEOUT after {timeout}s"}
     except Exception as e:
         return {"returncode": -2, "stdout": "", "stderr": str(e)}
 
@@ -367,6 +367,22 @@ def run_daemon(
         release_pid()
 
 
+# ── Clear failed mandates ──────────────────────────────────────────────────
+
+
+def clear_failed_mandates() -> None:
+    """Clear failed_mandates from state so they can be retried."""
+    state = DaemonState.load(str(STATE_FILE))
+    if state is None:
+        print("No state file found")
+        return
+    count = len(state.failed_mandates)
+    state.failed_mandates = []
+    state.shutdown_requested = False
+    state.save(str(STATE_FILE))
+    print(f"Cleared {count} failed mandates. They will be retried on next wave.")
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────
 
 
@@ -385,6 +401,10 @@ def main() -> None:
     )
     parser.add_argument("--stop", action="store_true", help="Stop running daemon")
     parser.add_argument("--status", action="store_true", help="Print daemon status")
+    parser.add_argument(
+        "--clear-failed", action="store_true",
+        help="Clear failed mandates from state for retry",
+    )
     args = parser.parse_args()
 
     if args.stop:
@@ -393,6 +413,10 @@ def main() -> None:
 
     if args.status:
         print_status()
+        return
+
+    if args.clear_failed:
+        clear_failed_mandates()
         return
 
     mandates_dir = Path(args.mandates_dir)

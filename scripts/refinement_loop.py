@@ -439,9 +439,19 @@ def _run_parallel_invention(
     # We need to pass variant info through context so call_llm_inventor picks it up.
     parallel_results = []
 
+    # Stagger parallel calls to avoid burst rate-limiting.
+    # Each LLM call takes ~5-15s, but the rate limiter in call_zai_llm
+    # also enforces a floor.  A 2s stagger between variant launches keeps
+    # the burst small enough for z.ai's rolling window.
+    STAGGER_SECONDS = 2
+
     for i in range(count):
         variant_label = f"variant_{i}"
         print(f"    Variant {i+1}/{count}...", flush=True)
+
+        # Stagger: sleep before each variant (except the first)
+        if i > 0:
+            time.sleep(STAGGER_SECONDS)
 
         # Clone context and add variant bias
         variant_context = dict(context)
@@ -1670,6 +1680,11 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
         
         turn_elapsed = time.time() - turn_start
         print(f"  Turn {turn} completed in {turn_elapsed:.1f}s", flush=True)
+
+        # Inter-turn delay: give the API rate-limit window breathing room.
+        # 3s is enough for the rolling-window counter to advance.
+        if turn < max_turns:
+            time.sleep(3)
     
     # ── Exhausted all turns ─────────────────────────────────────────
     state.status = "max_turns_exhausted"

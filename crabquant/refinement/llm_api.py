@@ -7,6 +7,7 @@ Handles all communication with z.ai (GLM-5) for strategy generation and refineme
 import json
 import logging
 import re
+import threading
 import time
 from pathlib import Path
 from typing import Optional
@@ -14,6 +15,59 @@ from typing import Optional
 import httpx
 
 logger = logging.getLogger(__name__)
+
+
+# ── Rate Limiter (per-process, thread-safe) ──────────────────────────────
+
+class _RateLimiter:
+    """Token-bucket rate limiter for API calls.
+
+    Tracks timestamps of recent calls and sleeps as needed to stay
+    within *max_calls_per_minute*.  Designed to be cheap: just a
+    deque append + popleft when the window slides.
+    """
+
+    def __init__(self, max_calls_per_minute: int = 20) -> None:
+        self._max = max_calls_per_minute
+        self._timestamps: list[float] = []
+        self._lock = threading.Lock()
+
+    def acquire(self) -> float:
+        """Block (sleep) until a call is permitted. Returns seconds slept."""
+        now = time.monotonic()
+        with self._lock:
+            # Prune timestamps older than 60 s
+            cutoff = now - 60.0
+            self._timestamps = [t for t in self._timestamps if t > cutoff]
+
+            if len(self._timestamps) >= self._max:
+                sleep_until = self._timestamps[0] + 60.0
+                sleep_time = max(0.0, sleep_until - now)
+            else:
+                sleep_time = 0.0
+
+            self._timestamps.append(now + sleep_time)
+
+        if sleep_time > 0:
+            logger.info("Rate limiter: sleeping %.1fs to stay under %d calls/min", sleep_time, self._max)
+            time.sleep(sleep_time)
+        return sleep_time
+
+
+# Default: 20 calls/min is conservative for z.ai's ~400 prompts / 5h ≈ 80/min.
+# Leaves headroom for other agents sharing the same budget.
+_global_rate_limiter = _RateLimiter(max_calls_per_minute=20)
+
+
+def get_rate_limiter() -> _RateLimiter:
+    """Return the global rate limiter (for test mocking or reconfiguration)."""
+    return _global_rate_limiter
+
+
+def set_rate_limit(calls_per_minute: int) -> None:
+    """Reconfigure the global rate limiter."""
+    global _global_rate_limiter
+    _global_rate_limiter = _RateLimiter(max_calls_per_minute=calls_per_minute)
 
 
 # ── Error-Type-Specific Repair Guidance (Enhancement 9) ──────────────────
@@ -144,9 +198,14 @@ def call_zai_llm(
         "Content-Type": "application/json",
     }
 
+    # Rate-limit gate (shared across all calls in this process)
+    _global_rate_limiter.acquire()
+
     # Exponential backoff: 2s, 4s, 8s (3 retries)
+    # 429 (rate limit) gets longer backoff: 5s, 15s, 30s
     max_retries = 3
     backoff_delays = [2, 4, 8]
+    rate_limit_backoffs = [5, 15, 30]  # Aggressive backoff for 429
     last_error = None
 
     for attempt in range(max_retries + 1):
@@ -180,17 +239,51 @@ def call_zai_llm(
                 continue
             raise
         except httpx.HTTPStatusError as e:
-            # Retry on 5xx server errors only
-            if e.response.status_code >= 500 and attempt < max_retries:
+            status = e.response.status_code
+            # Retry on 429 (rate limit) with aggressive backoff
+            if status == 429 and attempt < max_retries:
                 last_error = e
-                backoff = backoff_delays[attempt]
+                # Respect Retry-After header if present
+                retry_after = e.response.headers.get("Retry-After")
+                if retry_after:
+                    try:
+                        backoff = max(float(retry_after), rate_limit_backoffs[attempt])
+                    except ValueError:
+                        backoff = rate_limit_backoffs[attempt]
+                else:
+                    backoff = rate_limit_backoffs[attempt]
                 print(
-                    f"  LLM call failed (HTTP {e.response.status_code}), "
+                    f"  LLM call rate-limited (HTTP 429), "
                     f"retry {attempt + 1}/{max_retries} in {backoff}s...",
                     flush=True,
                 )
                 time.sleep(backoff)
                 continue
+            # Retry on 5xx server errors
+            if status >= 500 and attempt < max_retries:
+                last_error = e
+                backoff = backoff_delays[attempt]
+                print(
+                    f"  LLM call failed (HTTP {status}), "
+                    f"retry {attempt + 1}/{max_retries} in {backoff}s...",
+                    flush=True,
+                )
+                time.sleep(backoff)
+                continue
+            # Record 429 in budget tracker even if we give up
+            if status == 429:
+                try:
+                    from crabquant.refinement.api_budget import get_global_tracker
+                    get_global_tracker().record_call(
+                        model=model,
+                        prompt_tokens=0,
+                        completion_tokens=0,
+                        latency_seconds=0,
+                        success=False,
+                        error=f"HTTP 429 rate limit (attempt {attempt + 1}/{max_retries + 1})",
+                    )
+                except Exception:
+                    pass
             raise
     else:
         raise last_error  # Safety net

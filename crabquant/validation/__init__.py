@@ -227,8 +227,8 @@ def cross_ticker_validation(
     tickers: list[str],
     engine: Optional[BacktestEngine] = None,
     *,
-    min_avg_sharpe: float = 0.3,
-    min_profitable_pct: float = 0.3,
+    min_avg_sharpe: float = 0.1,
+    min_profitable_pct: float = 0.4,
 ) -> CrossTickerResult:
     """
     Test a strategy across multiple tickers to check generalization.

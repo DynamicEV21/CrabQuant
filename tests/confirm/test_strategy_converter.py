@@ -825,20 +825,21 @@ class TestBacktestingSmokeTests:
         np.random.seed(123)
         n = 200
         close = 100 * np.cumprod(1 + np.random.normal(0.0005, 0.015, n))
+        dates = pd.date_range("2024-01-01", periods=n, freq="D")
         df = pd.DataFrame({
             "Open": close * (1 + np.random.normal(0, 0.003, n)),
             "High": close * (1 + np.abs(np.random.normal(0.005, 0.005, n))),
             "Low": close * (1 - np.abs(np.random.normal(0.005, 0.005, n))),
             "Close": close,
             "Volume": np.random.uniform(1e6, 5e6, n),
-        })
+        }, index=dates)
         return df
 
     def test_ema_crossover_runs(self, ohlcv_df):
         from backtesting import Backtest
         params = {"fast_len": 12, "slow_len": 26}
         cls = convert_strategy("ema_crossover", params)
-        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001)
+        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001, finalize_trades=True)
         result = bt.run()
         assert result is not None
 
@@ -846,7 +847,7 @@ class TestBacktestingSmokeTests:
         from backtesting import Backtest
         params = {"regime_len": 50, "timing_len": 14, "regime_bull": 50, "dip_level": 30, "recovery_level": 60}
         cls = convert_strategy("rsi_regime_dip", params)
-        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001)
+        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001, finalize_trades=True)
         result = bt.run()
         assert result is not None
 
@@ -854,7 +855,7 @@ class TestBacktestingSmokeTests:
         from backtesting import Backtest
         params = {"rsi_len": 14, "volume_window": 20, "rsi_oversold": 30, "volume_mult": 1.0}
         cls = convert_strategy("invented_momentum_rsi_stoch", params)
-        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001)
+        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001, finalize_trades=True)
         result = bt.run()
         assert result is not None
 
@@ -862,7 +863,7 @@ class TestBacktestingSmokeTests:
         from backtesting import Backtest
         params = {"dc_len": 20, "vol_len": 20, "vol_mult": 1.5}
         cls = convert_strategy("volume_breakout", params)
-        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001)
+        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001, finalize_trades=True)
         result = bt.run()
         assert result is not None
 
@@ -870,7 +871,7 @@ class TestBacktestingSmokeTests:
         from backtesting import Backtest
         params = {"macd_fast": 12, "macd_slow": 26, "macd_signal": 9, "sma_len": 50, "volume_window": 20, "volume_mult": 1.0, "exit_hist": 0.0}
         cls = convert_strategy("macd_momentum", params)
-        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001)
+        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001, finalize_trades=True)
         result = bt.run()
         assert result is not None
 
@@ -878,7 +879,7 @@ class TestBacktestingSmokeTests:
         from backtesting import Backtest
         params = {"fast_len": 5, "slow_len": 14, "regime_len": 28, "exit_level": 70, "regime_bull": 50}
         cls = convert_strategy("rsi_crossover", params)
-        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001)
+        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001, finalize_trades=True)
         result = bt.run()
         assert result is not None
 
@@ -886,7 +887,7 @@ class TestBacktestingSmokeTests:
         from backtesting import Backtest
         params = {"roc_len": 10, "ema_len": 20, "vol_sma_len": 20, "atr_len": 14, "trailing_len": 20, "atr_mult": 2.0}
         cls = convert_strategy("roc_ema_volume", params)
-        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001)
+        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001, finalize_trades=True)
         result = bt.run()
         assert result is not None
 
@@ -894,7 +895,7 @@ class TestBacktestingSmokeTests:
         from backtesting import Backtest
         params = {"bb_len": 20, "bb_std": 2.0, "stoch_k": 14, "stoch_d": 3, "macd_fast": 12, "macd_slow": 26, "macd_signal": 9}
         cls = convert_strategy("bb_stoch_macd", params)
-        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001)
+        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001, finalize_trades=True)
         result = bt.run()
         assert result is not None
 
@@ -902,7 +903,7 @@ class TestBacktestingSmokeTests:
         from backtesting import Backtest
         params = {"adx_len": 14, "rsi_len": 14, "volume_window": 20, "adx_threshold": 25, "rsi_overbought": 70, "rsi_oversold": 30, "volume_mult": 1.0}
         cls = convert_strategy("informed_simple_adaptive", params)
-        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001)
+        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001, finalize_trades=True)
         result = bt.run()
         assert result is not None
 
@@ -911,7 +912,7 @@ class TestBacktestingSmokeTests:
         from backtesting import Backtest
         params = {"vpt_len": 10, "roc_len": 10, "ema_len": 20, "roc_threshold": 0.0}
         cls = convert_strategy("invented_vpt_roc_ema", params)
-        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001)
+        bt = Backtest(ohlcv_df, cls, cash=10000, commission=0.001, finalize_trades=True)
         result = bt.run()
         assert result is not None
 

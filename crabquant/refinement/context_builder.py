@@ -400,6 +400,157 @@ def compute_delta(
     return "; ".join(parts)
 
 
+def _enrich_context_with_report(
+    context: dict,
+    report: object,
+    state: object,
+    sharpe_target: float,
+) -> None:
+    """Extract report data and enrich context with analysis sections.
+
+    Handles report conversion, revert logic, multi-ticker feedback,
+    feature importance, parameter optimization, and positive feedback.
+    """
+    # Convert report to dict
+    if hasattr(report, "to_dict"):
+        context["backtest_report"] = report.to_dict()
+    elif hasattr(report, "__dataclass_fields__"):
+        context["backtest_report"] = asdict(report)
+    else:
+        context["backtest_report"] = dict(report)
+
+    context["current_strategy_code"] = getattr(report, "current_strategy_code", None)
+    context["current_params"] = getattr(report, "current_params", None)
+
+    # Auto-revert: inject best code instead of regressed code
+    revert_notice = getattr(state, "revert_notice", "")
+    if revert_notice:
+        best_code = getattr(state, "best_strategy_code", "")
+        if best_code:
+            context["current_strategy_code"] = best_code
+
+    # Multi-ticker backtest feedback
+    mt_results = getattr(report, "multi_ticker_results", None)
+    if mt_results is not None:
+        context["multi_ticker_feedback"] = _format_multi_ticker_feedback(mt_results)
+
+    # Feature importance feedback
+    fi = getattr(report, "feature_importance", None)
+    if fi is not None and fi.get("indicators"):
+        from crabquant.refinement.feature_importance import format_feature_importance_for_prompt
+        context["feature_importance_section"] = format_feature_importance_for_prompt(fi)
+
+    # Parameter optimization feedback
+    po = getattr(report, "param_optimization", None)
+    if po is not None and po.get("param_optimization_applied"):
+        from crabquant.refinement.param_optimizer import format_optimization_for_prompt
+        opt = type("obj", (object,), {
+            "was_optimized": po["param_optimization_applied"],
+            "default_sharpe": po.get("default_sharpe", 0),
+            "optimized_sharpe": po.get("optimized_sharpe", 0),
+            "default_trades": 0,
+            "optimized_trades": 0,
+            "combinations_tested": po.get("combinations_tested", 0),
+            "improvement_pct": po.get("improvement_pct", 0),
+            "sweep_time_seconds": po.get("sweep_time_seconds", 0),
+            "default_params": {},
+            "optimized_params": {},
+        })()
+        context["param_optimization_section"] = format_optimization_for_prompt(opt)
+
+    # Positive feedback analysis
+    try:
+        from crabquant.refinement.positive_feedback import (
+            analyze_positive_feedback,
+            format_positive_feedback_for_prompt,
+        )
+        report_dict = context.get("backtest_report", {})
+        pos_feedback = analyze_positive_feedback(
+            sharpe_ratio=report_dict.get("sharpe_ratio", 0.0),
+            sharpe_target=sharpe_target,
+            total_return_pct=report_dict.get("total_return_pct", 0.0),
+            max_drawdown_pct=report_dict.get("max_drawdown_pct", 0.0),
+            win_rate=report_dict.get("win_rate", 0.0),
+            profit_factor=report_dict.get("profit_factor", 0.0),
+            sortino_ratio=report_dict.get("sortino_ratio", 0.0),
+            calmar_ratio=report_dict.get("calmar_ratio", 0.0),
+            total_trades=report_dict.get("total_trades", 0),
+            avg_holding_bars=report_dict.get("avg_holding_bars"),
+            sharpe_by_year=report_dict.get("sharpe_by_year"),
+            failure_mode=report_dict.get("failure_mode", ""),
+        )
+        section = format_positive_feedback_for_prompt(pos_feedback)
+
+        # Surface previous successful turns
+        history = getattr(state, "history", [])
+        successful_turns = [
+            h for h in history
+            if h.get("sharpe") is not None and h["sharpe"] >= sharpe_target
+        ]
+        if successful_turns:
+            if section:
+                section += "\n\n"
+            section += "### 🏆 Previous Successful Turns\n\n"
+            section += "These turns hit the Sharpe target — study what made them work:\n"
+            for st in successful_turns[-3:]:
+                turn_num = st.get("turn", "?")
+                sharpe = st.get("sharpe", 0)
+                action = st.get("action", "unknown")
+                trades = st.get("num_trades", "?")
+                section += (
+                    f"- **Turn {turn_num}**: Sharpe={sharpe:.2f}, "
+                    f"Action={action}, Trades={trades}\n"
+                )
+        if section:
+            context["positive_feedback_section"] = section
+    except Exception:
+        logger.debug("Positive feedback analysis failed, skipping", exc_info=True)
+
+
+def _enrich_context_with_analyses(
+    context: dict, state: object, mandate: dict
+) -> None:
+    """Enrich context with stagnation recovery, plateau detection, crash feedback,
+    and action analytics."""
+    # Stagnation recovery
+    stagnation_recovery = _build_stagnation_recovery_section(state)
+    if stagnation_recovery:
+        context["stagnation_recovery"] = stagnation_recovery
+
+    # Indicator family plateau detection
+    try:
+        from crabquant.refinement.stagnation import check_family_plateau
+        history = getattr(state, "history", [])
+        should_pivot, pivot_type, plateau_message = check_family_plateau(
+            history, mandate
+        )
+        if should_pivot and plateau_message:
+            context["family_plateau_section"] = (
+                f"## 🔄 INDICATOR FAMILY PLATEAU DETECTED\n\n"
+                f"**Pivot type:** {pivot_type}\n\n"
+                f"{plateau_message}"
+            )
+    except Exception:
+        logger.debug("Family plateau check failed, skipping", exc_info=True)
+
+    # Crash error feedback
+    crash_feedback = _build_crash_error_feedback(state)
+    if crash_feedback:
+        context["crash_error_feedback"] = crash_feedback
+
+    # Action analytics
+    try:
+        from crabquant.refinement.action_analytics import (
+            generate_llm_context,
+            load_run_history,
+        )
+        from crabquant.refinement.action_analytics import RUN_HISTORY_FILE
+        run_history = load_run_history(RUN_HISTORY_FILE)
+        context["action_analytics"] = generate_llm_context(run_history)
+    except Exception:
+        context["action_analytics"] = "No historical action data available."
+
+
 def build_llm_context(
     state,
     report: Optional[object] = None,
@@ -475,163 +626,62 @@ def build_llm_context(
             context["archetype_section"] = format_archetype_for_prompt(archetype)
     
     if report is not None:
-        # Convert report to dict if it's a dataclass
-        if hasattr(report, "to_dict"):
-            context["backtest_report"] = report.to_dict()
-        elif hasattr(report, "__dataclass_fields__"):
-            context["backtest_report"] = asdict(report)
-        else:
-            context["backtest_report"] = dict(report)
-        
-        # Include current strategy code so LLM can modify it
-        context["current_strategy_code"] = getattr(report, "current_strategy_code", None)
-        context["current_params"] = getattr(report, "current_params", None)
-        
-        # Phase 6: Auto-revert — if strategy was reverted, inject the BEST code
-        # instead of the regressed code so the LLM refines from a good baseline
-        revert_notice = getattr(state, "revert_notice", "")
-        if revert_notice:
-            best_code = getattr(state, "best_strategy_code", "")
-            if best_code:
-                context["current_strategy_code"] = best_code
-        
-        # Phase 5.6: Multi-ticker backtest feedback
-        mt_results = getattr(report, "multi_ticker_results", None)
-        if mt_results is not None:
-            context["multi_ticker_feedback"] = _format_multi_ticker_feedback(mt_results)
+        _enrich_context_with_report(context, report, state, original_sharpe_target)
 
-        # Phase 5.6: Feature importance feedback
-        fi = getattr(report, "feature_importance", None)
-        if fi is not None and fi.get("indicators"):
-            from crabquant.refinement.feature_importance import format_feature_importance_for_prompt
-            context["feature_importance_section"] = format_feature_importance_for_prompt(fi)
-
-        # Phase 6: Parameter optimization feedback
-        po = getattr(report, "param_optimization", None)
-        if po is not None and po.get("param_optimization_applied"):
-            from crabquant.refinement.param_optimizer import format_optimization_for_prompt
-            opt = type("obj", (object,), {
-                "was_optimized": po["param_optimization_applied"],
-                "default_sharpe": po.get("default_sharpe", 0),
-                "optimized_sharpe": po.get("optimized_sharpe", 0),
-                "default_trades": 0,
-                "optimized_trades": 0,
-                "combinations_tested": po.get("combinations_tested", 0),
-                "improvement_pct": po.get("improvement_pct", 0),
-                "sweep_time_seconds": po.get("sweep_time_seconds", 0),
-                "default_params": {},
-                "optimized_params": {},
-            })()
-            context["param_optimization_section"] = format_optimization_for_prompt(opt)
-
-        # Phase 6: Positive feedback analysis — tell LLM what's WORKING
-        # Complements failure guidance by preserving good strategy components.
-        # Analyzes current turn metrics and highlights previous successful turns.
-        try:
-            from crabquant.refinement.positive_feedback import (
-                analyze_positive_feedback,
-                format_positive_feedback_for_prompt,
-            )
-
-            report_dict = context.get("backtest_report", {})
-            pos_feedback = analyze_positive_feedback(
-                sharpe_ratio=report_dict.get("sharpe_ratio", 0.0),
-                sharpe_target=original_sharpe_target,
-                total_return_pct=report_dict.get("total_return_pct", 0.0),
-                max_drawdown_pct=report_dict.get("max_drawdown_pct", 0.0),
-                win_rate=report_dict.get("win_rate", 0.0),
-                profit_factor=report_dict.get("profit_factor", 0.0),
-                sortino_ratio=report_dict.get("sortino_ratio", 0.0),
-                calmar_ratio=report_dict.get("calmar_ratio", 0.0),
-                total_trades=report_dict.get("total_trades", 0),
-                avg_holding_bars=report_dict.get("avg_holding_bars"),
-                sharpe_by_year=report_dict.get("sharpe_by_year"),
-                failure_mode=report_dict.get("failure_mode", ""),
-            )
-            positive_feedback_section = format_positive_feedback_for_prompt(pos_feedback)
-
-            # Also surface previous successful turns from history so the LLM
-            # knows which specific approaches already hit the sharpe target.
-            history = getattr(state, "history", [])
-            successful_turns = [
-                h for h in history
-                if h.get("sharpe") is not None and h["sharpe"] >= original_sharpe_target
-            ]
-            if successful_turns:
-                if positive_feedback_section:
-                    positive_feedback_section += "\n\n"
-                positive_feedback_section += "### 🏆 Previous Successful Turns\n\n"
-                positive_feedback_section += (
-                    "These turns hit the Sharpe target — study what made them work:\n"
-                )
-                for st in successful_turns[-3:]:
-                    turn_num = st.get("turn", "?")
-                    sharpe = st.get("sharpe", 0)
-                    action = st.get("action", "unknown")
-                    trades = st.get("num_trades", "?")
-                    positive_feedback_section += (
-                        f"- **Turn {turn_num}**: Sharpe={sharpe:.2f}, "
-                        f"Action={action}, Trades={trades}\n"
-                    )
-
-            if positive_feedback_section:
-                context["positive_feedback_section"] = positive_feedback_section
-        except Exception:
-            logger.debug("Positive feedback analysis failed, skipping", exc_info=True)
-
-    # Phase 5.6: Stagnation recovery — detect trap type and inject recovery guidance
-    stagnation_recovery = _build_stagnation_recovery_section(state)
-    if stagnation_recovery:
-        context["stagnation_recovery"] = stagnation_recovery
-
-    # Phase 5.6: Indicator family plateau detection — detect when LLM is
-    # stuck using the same indicator family and inject a pivot directive.
-    try:
-        from crabquant.refinement.stagnation import check_family_plateau
-        history = getattr(state, "history", [])
-        should_pivot, pivot_type, plateau_message = check_family_plateau(
-            history, mandate
-        )
-        if should_pivot and plateau_message:
-            plateau_section = (
-                f"## 🔄 INDICATOR FAMILY PLATEAU DETECTED\n\n"
-                f"**Pivot type:** {pivot_type}\n\n"
-                f"{plateau_message}"
-            )
-            context["family_plateau_section"] = plateau_section
-    except Exception:
-        logger.debug("Family plateau check failed, skipping", exc_info=True)
-
-    # Phase 6: Recent crash error feedback — help LLM learn from failures
-    crash_feedback = _build_crash_error_feedback(state)
-    if crash_feedback:
-        context["crash_error_feedback"] = crash_feedback
-
-    # Phase 6: Action analytics — show which actions historically work best
-    # MUST be computed here (inside build_llm_context) so the append section
-    # at the end of this function can inject it into the prompt string.
-    try:
-        from crabquant.refinement.action_analytics import (
-            generate_llm_context,
-            load_run_history,
-        )
-        from crabquant.refinement.action_analytics import RUN_HISTORY_FILE
-        run_history = load_run_history(RUN_HISTORY_FILE)
-        analytics_text = generate_llm_context(run_history)
-        context["action_analytics"] = analytics_text
-    except Exception:
-        context["action_analytics"] = "No historical action data available."
+    # Enrich context with side-effect analyses
+    _enrich_context_with_analyses(context, state, mandate)
 
     # ── CRITICAL: Build the formatted prompt for call_llm_inventor ──────
-    # This ensures the prompt builders (build_turn1_prompt / build_refinement_prompt)
-    # are actually used, which enables failure guidance, sharpe diagnosis,
-    # regime diagnosis, and all other feedback systems. Without this key,
-    # call_llm_inventor falls back to raw JSON dumps that bypass all guidance.
     current_turn_num = getattr(state, "current_turn", 0)
     indicator_ref = context.get("indicator_reference", "")
     indicator_qr = context.get("indicator_quick_ref", "")
 
-    # Phase 6: Compute trade count guidance from mandate parameters
+    trade_count_guidance, failure_pattern_section, dominant_failure_mode = (
+        _compute_prompt_guidance(mandate)
+    )
+
+    # Phase 6.1: Inject too_few_trades hint
+    if dominant_failure_mode == "too_few_trades":
+        trade_count_guidance += _TOO_FEW_TRADES_HINT
+
+    # Build prompt (turn 1 invention vs turn 2+ refinement)
+    if report is None:
+        _build_turn1_prompt(
+            context, state, mandate, current_turn_num,
+            indicator_ref, indicator_qr, effective_target,
+            trade_count_guidance, failure_pattern_section,
+        )
+    else:
+        _build_turn2plus_prompt(
+            context, state, report, mandate, current_turn_num,
+            indicator_ref, indicator_qr, effective_target,
+            trade_count_guidance, failure_pattern_section,
+        )
+
+    # Append extra sections to the built prompt
+    _append_prompt_sections(context, state, mandate)
+
+    return context
+
+
+_TOO_FEW_TRADES_HINT = (
+    "\n\n### ⚠️ CRITICAL: too_few_trades is the #1 failure mode right now\n"
+    "Recent strategies are generating too few signals. You MUST:\n"
+    "1. Use SHORT lookback windows (5-12 periods) — long lookbacks filter out too many signals.\n"
+    "2. Keep entry logic to 1-2 conditions MAX — each additional condition cuts trade count.\n"
+    "3. Add a RE-ENTRY mechanism after exits (3-5 bar cooldown), so you can catch repeated opportunities.\n"
+    "4. Target 10-15+ trades minimum. A strategy with 3 trades is NOT acceptable regardless of Sharpe.\n"
+    "5. Prefer EMA over SMA (faster response), shorter RSI periods (7-10 instead of 14), "
+    "and wider threshold bands (RSI < 35 instead of < 20).\n"
+)
+
+
+def _compute_prompt_guidance(mandate: dict) -> tuple[str, str, str | None]:
+    """Compute trade count guidance and failure pattern analysis.
+
+    Returns:
+        (trade_count_guidance, failure_pattern_section, dominant_failure_mode)
+    """
     trade_count_guidance = ""
     try:
         tc_ticker = (mandate.get("tickers") or ["SPY"])[0]
@@ -645,11 +695,10 @@ def build_llm_context(
             strategy_type=tc_strategy_type,
         )
     except Exception:
-        pass  # Non-critical — don't block prompt building
+        pass
 
-    # Phase 6: Compute failure pattern analysis for adaptive prompts
     failure_pattern_section = ""
-    dominant_failure_mode = None  # Track for trade frequency hints
+    dominant_failure_mode = None
     try:
         from crabquant.refinement.failure_patterns import (
             analyze_failure_patterns,
@@ -659,319 +708,321 @@ def build_llm_context(
             RUN_HISTORY_FILE,
             load_run_history,
         )
-
         history = load_run_history(RUN_HISTORY_FILE)
         pattern_data = analyze_failure_patterns(history)
         if pattern_data.get("total_failures", 0) > 0:
             failure_pattern_section = format_failure_patterns_for_prompt(pattern_data)
             dominant_failure_mode = pattern_data.get("dominant_mode")
     except Exception:
-        pass  # Non-critical — don't block prompt building
+        pass
 
-    # Phase 6.1: Inject too_few_trades specific hint when it's the dominant
-    # failure mode. This directly addresses the Director's Directive 1:
-    # add context-specific guidance to encourage higher trade frequency.
-    if dominant_failure_mode == "too_few_trades":
-        trade_count_guidance += (
-            "\n\n### ⚠️ CRITICAL: too_few_trades is the #1 failure mode right now\n"
-            "Recent strategies are generating too few signals. You MUST:\n"
-            "1. Use SHORT lookback windows (5-12 periods) — long lookbacks filter out too many signals.\n"
-            "2. Keep entry logic to 1-2 conditions MAX — each additional condition cuts trade count.\n"
-            "3. Add a RE-ENTRY mechanism after exits (3-5 bar cooldown), so you can catch repeated opportunities.\n"
-            "4. Target 10-15+ trades minimum. A strategy with 3 trades is NOT acceptable regardless of Sharpe.\n"
-            "5. Prefer EMA over SMA (faster response), shorter RSI periods (7-10 instead of 14), "
-            "and wider threshold bands (RSI < 35 instead of < 20).\n"
+    return trade_count_guidance, failure_pattern_section, dominant_failure_mode
+
+
+def _build_turn1_prompt(
+    context: dict, state, mandate: dict, current_turn_num: int,
+    indicator_ref: str, indicator_qr: str, effective_target: float,
+    trade_count_guidance: str, failure_pattern_section: str,
+) -> None:
+    """Build the Turn 1 invention prompt."""
+    try:
+        base_prompt = build_turn1_prompt(
+            mandate=mandate,
+            current_turn=current_turn_num,
+            max_turns=context.get("max_turns", 7),
+            strategy_examples=context.get("strategy_examples"),
+            winner_examples=context.get("winner_examples"),
+            indicator_reference=indicator_ref,
+            indicator_quick_ref=indicator_qr,
+            archetype_section=context.get("archetype_section"),
+            effective_target=effective_target,
+            trade_count_guidance=trade_count_guidance,
+        )
+        # Apply adaptive prompt modifications (regime hints, portfolio gaps)
+        try:
+            from crabquant.refinement.adaptive_prompts import (
+                build_adaptive_invention_prompt,
+            )
+            from crabquant.regime import detect_regime as _detect_regime
+            from crabquant.data import load_data as _load_data
+
+            regime = _detect_current_regime(mandate)
+            portfolio_gaps = _compute_portfolio_gaps()
+            context["prompt"] = build_adaptive_invention_prompt(
+                base_prompt=base_prompt,
+                regime=regime,
+                portfolio_gaps=portfolio_gaps,
+                adaptation_rate=mandate.get("adaptation_rate", 0.80),
+            )
+        except Exception:
+            context["prompt"] = base_prompt
+
+        if failure_pattern_section:
+            context["failure_pattern_section"] = failure_pattern_section
+    except Exception:
+        logger.warning("Turn 1 prompt build failed, falling back to per-field prompt")
+
+
+def _detect_current_regime(mandate: dict) -> str:
+    """Detect current market regime from the primary ticker."""
+    try:
+        from crabquant.regime import detect_regime as _detect_regime
+        from crabquant.data import load_data as _load_data
+        ticker = (mandate.get("tickers") or ["SPY"])[0]
+        period = mandate.get("period", "6mo")
+        df = _load_data(ticker, period=period)
+        if df is not None and len(df) >= 20:
+            regime_enum, _ = _detect_regime(df)
+            regime = regime_enum.name if hasattr(regime_enum, "name") else str(regime_enum)
+            if regime == "MEAN_REVERSION":
+                regime = "RANGING"
+            return regime
+    except Exception:
+        pass
+    return "UNKNOWN"
+
+
+def _compute_portfolio_gaps() -> dict:
+    """Compute portfolio coverage gaps from strategy registry."""
+    try:
+        from crabquant.refinement.archetypes import list_archetypes
+        from crabquant.strategies import STRATEGY_REGISTRY
+        archetypes = list_archetypes()
+        gaps = {}
+        for arch in archetypes:
+            arch_strategies = [
+                name for name in STRATEGY_REGISTRY
+                if arch.lower() in name.lower()
+            ]
+            gaps[arch] = min(1.0, len(arch_strategies) / 5.0)
+        return gaps
+    except Exception:
+        return {}
+
+
+def _build_turn2plus_prompt(
+    context: dict, state, report, mandate: dict, current_turn_num: int,
+    indicator_ref: str, indicator_qr: str, effective_target: float,
+    trade_count_guidance: str, failure_pattern_section: str,
+) -> None:
+    """Build the Turn 2+ refinement prompt."""
+    try:
+        tier1 = _report_to_tier1(report, context)
+
+        # Compute action effectiveness for the current failure mode
+        action_effectiveness_section = _compute_action_effectiveness(tier1)
+
+        # Build stagnation suffix
+        stag_suffix = _build_stagnation_suffix(state, current_turn_num)
+
+        context["prompt"] = build_refinement_prompt(
+            tier1_report=tier1,
+            current_turn=current_turn_num,
+            max_turns=context.get("max_turns", 7),
+            sharpe_target=context.get("sharpe_target", 1.5),
+            effective_target=effective_target,
+            best_sharpe=context.get("best_sharpe_so_far", 0.0),
+            best_turn=context.get("best_turn", 0),
+            stagnation_suffix=stag_suffix,
+            strategy_examples=context.get("strategy_examples"),
+            winner_examples=context.get("winner_examples"),
+            archetype_section=context.get("archetype_section"),
+            indicator_reference=indicator_ref,
+            indicator_quick_ref=indicator_qr,
+            action_effectiveness_section=action_effectiveness_section,
+            failure_pattern_section=failure_pattern_section,
+            trade_count_guidance=trade_count_guidance,
+        )
+    except Exception:
+        logger.warning("Turn 2+ prompt build failed, falling back to per-field prompt")
+
+
+def _report_to_tier1(report: object, context: dict) -> dict:
+    """Convert a BacktestReport to a tier1 dict for build_refinement_prompt."""
+    if hasattr(report, "to_dict"):
+        tier1 = report.to_dict()
+    elif hasattr(report, "__dataclass_fields__"):
+        tier1 = asdict(report)
+    else:
+        tier1 = dict(report)
+
+    tier1.setdefault("sharpe_target", context.get("sharpe_target", 1.5))
+    tier1.setdefault("total_return_pct", 0.0)
+    tier1.setdefault("max_drawdown_pct", 0.0)
+    tier1.setdefault("win_rate", 0.0)
+    tier1.setdefault("profit_factor", 0.0)
+    tier1.setdefault("sortino_ratio", 0.0)
+    tier1.setdefault("calmar_ratio", 0.0)
+    tier1.setdefault("avg_holding_bars", None)
+    tier1.setdefault("sharpe_by_year", {})
+
+    if context.get("feature_importance_section"):
+        tier1["feature_importance_section"] = context["feature_importance_section"]
+    return tier1
+
+
+def _compute_action_effectiveness(tier1: dict) -> str:
+    """Compute action effectiveness for the current failure mode."""
+    try:
+        from crabquant.refinement.action_effectiveness import (
+            analyze_action_effectiveness,
+            format_action_effectiveness_for_prompt,
+        )
+        from crabquant.refinement.action_analytics import RUN_HISTORY_FILE
+        eff_data = analyze_action_effectiveness(RUN_HISTORY_FILE)
+        fm = tier1.get("failure_mode", "")
+        if eff_data.get("by_failure_mode") and fm:
+            return format_action_effectiveness_for_prompt(eff_data, fm)
+    except Exception:
+        pass
+    return ""
+
+
+def _build_stagnation_suffix(state: object, current_turn_num: int) -> str:
+    """Build stagnation suffix from state history."""
+    try:
+        from crabquant.refinement.stagnation import (
+            compute_stagnation,
+            get_stagnation_response,
+        )
+        history = getattr(state, "history", [])
+        if len(history) >= 2:
+            stag_score, _ = compute_stagnation(history)
+            stag_response = get_stagnation_response(current_turn_num, stag_score)
+            return format_stagnation_suffix(
+                stag_response.get("constraint"),
+                stag_response.get("prompt_suffix"),
+            )
+    except Exception:
+        pass
+    return ""
+
+
+_APPEND_KEYS = [
+    "multi_ticker_feedback",
+    "crash_error_feedback",
+    "action_analytics",
+    "stagnation_recovery",
+    "family_plateau_section",
+    "failure_pattern_section",
+    "param_optimization_section",
+    "positive_feedback_section",
+]
+
+
+def _append_prompt_sections(context: dict, state: object, mandate: dict) -> None:
+    """Append extra analysis sections to the built prompt."""
+    prompt = context.get("prompt", "")
+    if not prompt:
+        return
+
+    append_sections = []
+    for key in _APPEND_KEYS:
+        if context.get(key):
+            append_sections.append(context[key])
+
+    # Gate validation retry feedback
+    if context.get("retry_feedback"):
+        append_sections.append(
+            f"\n## ⛔ GATE VALIDATION FAILED — FIX THESE ERRORS\n\n"
+            f"{context['retry_feedback']}\n\n"
+            f"Your previous code was REJECTED by validation gates. You MUST fix the "
+            f"above errors in your new_strategy_code. Do NOT repeat the same mistake."
         )
 
-    if report is None:
-        # Turn 1: Use build_turn1_prompt for invention
-        try:
-            base_prompt = build_turn1_prompt(
-                mandate=mandate,
-                current_turn=current_turn_num,
-                max_turns=context.get("max_turns", 7),
-                strategy_examples=context.get("strategy_examples"),
-                winner_examples=context.get("winner_examples"),
-                indicator_reference=indicator_ref,
-                indicator_quick_ref=indicator_qr,
-                archetype_section=context.get("archetype_section"),
-                effective_target=effective_target,
-                trade_count_guidance=trade_count_guidance,
-            )
+    # Code quality pre-check feedback
+    code_quality_fb = getattr(state, "code_quality_feedback", "")
+    if code_quality_fb:
+        append_sections.append(
+            f"\n## ⛔ CODE QUALITY PRE-CHECK FAILED\n\n"
+            f"{code_quality_fb}\n\n"
+            f"Your previous code was REJECTED by the code quality pre-check. "
+            f"You MUST fix the above anti-patterns in your new_strategy_code. "
+            f"Do NOT repeat the same mistakes."
+        )
 
-            # Phase 6: Apply adaptive prompt modifications (regime hints, portfolio gaps)
-            try:
-                from crabquant.refinement.adaptive_prompts import (
-                    build_adaptive_invention_prompt,
-                )
-                from crabquant.regime import detect_regime as _detect_regime
-                from crabquant.data import load_data as _load_data
+    # Complexity analysis
+    try:
+        from crabquant.refinement.complexity import complexity_score
+        history = getattr(state, "history", [])
+        latest_turn = history[-1] if history else {}
+        strategy_code = (
+            latest_turn.get("code")
+            or context.get("current_strategy_code")
+            or ""
+        )
+        params = latest_turn.get("params_used") or context.get("current_params") or {}
+        if strategy_code:
+            cx = complexity_score(strategy_code, params)
+            if cx["complexity"] > 60 or cx["flags"]:
+                append_sections.append(_format_complexity_warning(cx))
+    except Exception:
+        logger.debug("Complexity analysis failed, skipping", exc_info=True)
 
-                # Detect current regime from primary ticker
-                regime = "UNKNOWN"
-                try:
-                    ticker = (mandate.get("tickers") or ["SPY"])[0]
-                    period = mandate.get("period", "6mo")
-                    df = _load_data(ticker, period=period)
-                    if df is not None and len(df) >= 20:
-                        regime_enum, _regime_meta = _detect_regime(df)
-                        regime = regime_enum.name if hasattr(regime_enum, "name") else str(regime_enum)
-                        # Map RANGING-like regimes
-                        if regime == "MEAN_REVERSION":
-                            regime = "RANGING"
-                except Exception:
-                    pass
+    # Auto-revert notice
+    revert_notice = getattr(state, "revert_notice", "")
+    if revert_notice:
+        append_sections.append(f"\n## ⚠️ STRATEGY REVERTED\n\n{revert_notice}\n")
 
-                # Compute portfolio gaps from registry
-                portfolio_gaps = {}
-                try:
-                    # Use archetype coverage as a simple gap metric
-                    from crabquant.refinement.archetypes import list_archetypes
-                    from crabquant.strategies import STRATEGY_REGISTRY
-                    archetypes = list_archetypes()
-                    for arch in archetypes:
-                        # Count strategies matching this archetype in registry
-                        arch_strategies = [
-                            name for name in STRATEGY_REGISTRY
-                            if arch.lower() in name.lower()
-                        ]
-                        portfolio_gaps[arch] = min(1.0, len(arch_strategies) / 5.0)
-                except Exception:
-                    pass
-
-                context["prompt"] = build_adaptive_invention_prompt(
-                    base_prompt=base_prompt,
-                    regime=regime,
-                    portfolio_gaps=portfolio_gaps,
-                    adaptation_rate=mandate.get("adaptation_rate", 0.80),
-                )
-            except Exception:
-                # Fallback to non-adaptive prompt
-                context["prompt"] = base_prompt
-
-            # Inject failure pattern section into context for Turn 1 awareness
-            if failure_pattern_section:
-                context["failure_pattern_section"] = failure_pattern_section
-        except Exception:
-            # If prompt building fails, let call_llm_inventor use its fallback
-            logger.warning("Turn 1 prompt build failed, falling back to per-field prompt")
-    else:
-        # Turns 2+: Use build_refinement_prompt for targeted feedback
-        try:
-            # Build tier1_report dict from BacktestReport for build_refinement_prompt
-            tier1 = {}
-            if hasattr(report, "to_dict"):
-                tier1 = report.to_dict()
-            elif hasattr(report, "__dataclass_fields__"):
-                tier1 = asdict(report)
-            else:
-                tier1 = dict(report)
-
-            # Ensure all fields needed by build_failure_guidance are present
-            tier1.setdefault("sharpe_target", context.get("sharpe_target", 1.5))
-            tier1.setdefault("total_return_pct", 0.0)
-            tier1.setdefault("max_drawdown_pct", 0.0)
-            tier1.setdefault("win_rate", 0.0)
-            tier1.setdefault("profit_factor", 0.0)
-            tier1.setdefault("sortino_ratio", 0.0)
-            tier1.setdefault("calmar_ratio", 0.0)
-            tier1.setdefault("avg_holding_bars", None)
-            tier1.setdefault("sharpe_by_year", {})
-
-            # Include feature importance section if available
-            if context.get("feature_importance_section"):
-                tier1["feature_importance_section"] = context["feature_importance_section"]
-
-            # Phase 6: Compute action effectiveness for the current failure mode
-            action_effectiveness_section = ""
-            try:
-                from crabquant.refinement.action_effectiveness import (
-                    analyze_action_effectiveness,
-                    format_action_effectiveness_for_prompt,
-                )
-                from crabquant.refinement.action_analytics import RUN_HISTORY_FILE
-
-                eff_data = analyze_action_effectiveness(RUN_HISTORY_FILE)
-                fm = tier1.get("failure_mode", "")
-                if eff_data.get("by_failure_mode") and fm:
-                    action_effectiveness_section = format_action_effectiveness_for_prompt(
-                        eff_data, fm
-                    )
-            except Exception:
-                pass  # Non-critical — don't block prompt building
-
-            # Build stagnation suffix from state using proper call chain:
-            # compute_stagnation → get_stagnation_response → format_stagnation_suffix
-            stag_suffix = ""
-            try:
-                from crabquant.refinement.stagnation import (
-                    compute_stagnation,
-                    get_stagnation_response,
-                )
-                history = getattr(state, "history", [])
-                if len(history) >= 2:
-                    stag_score, _ = compute_stagnation(history)
-                    stag_response = get_stagnation_response(
-                        current_turn_num, stag_score
-                    )
-                    stag_suffix = format_stagnation_suffix(
-                        stag_response.get("constraint"),
-                        stag_response.get("prompt_suffix"),
-                    )
-            except Exception:
-                pass  # Non-critical — _build_stagnation_recovery_section provides fallback
-
-            context["prompt"] = build_refinement_prompt(
-                tier1_report=tier1,
-                current_turn=current_turn_num,
-                max_turns=context.get("max_turns", 7),
-                sharpe_target=context.get("sharpe_target", 1.5),
-                effective_target=effective_target,
-                best_sharpe=context.get("best_sharpe_so_far", 0.0),
-                best_turn=context.get("best_turn", 0),
-                stagnation_suffix=stag_suffix,
-                strategy_examples=context.get("strategy_examples"),
-                winner_examples=context.get("winner_examples"),
-                archetype_section=context.get("archetype_section"),
-                indicator_reference=indicator_ref,
-                indicator_quick_ref=indicator_qr,
-                action_effectiveness_section=action_effectiveness_section,
-                failure_pattern_section=failure_pattern_section,
-                trade_count_guidance=trade_count_guidance,
-            )
-        except Exception:
-            # If prompt building fails, let call_llm_inventor use its fallback
-            logger.warning("Turn 2+ prompt build failed, falling back to per-field prompt")
-
-    # ── CRITICAL: Append context fields that the pre-built prompt misses ──
-    # build_turn1_prompt / build_refinement_prompt produce context["prompt"]
-    # which call_llm_inventor uses directly (line 314-315), bypassing the
-    # fallback branch that would consume these keys individually.
-    # Without this, multi_ticker_feedback, crash_error_feedback,
-    # action_analytics, and stagnation_recovery are computed but silently
-    # dropped — never reach the LLM.
-    # Only append when a prompt was already built; if prompt building failed,
-    # let call_llm_inventor use its own per-field fallback instead.
-    prompt = context.get("prompt", "")
-    if prompt:
-        append_sections = []
-        if context.get("multi_ticker_feedback"):
-            append_sections.append(context["multi_ticker_feedback"])
-        if context.get("crash_error_feedback"):
-            append_sections.append(context["crash_error_feedback"])
-        if context.get("action_analytics"):
-            append_sections.append(context["action_analytics"])
-        if context.get("stagnation_recovery"):
-            append_sections.append(context["stagnation_recovery"])
-        if context.get("family_plateau_section"):
-            append_sections.append(context["family_plateau_section"])
-        if context.get("failure_pattern_section"):
-            append_sections.append(context["failure_pattern_section"])
-        if context.get("param_optimization_section"):
-            append_sections.append(context["param_optimization_section"])
-        # Phase 6: Positive feedback — what's working (prevents regression)
-        if context.get("positive_feedback_section"):
-            append_sections.append(context["positive_feedback_section"])
-        # Phase 6: Gate validation retry feedback — critical for fixing code errors
-        if context.get("retry_feedback"):
+    # Per-ticker alpha decomposition
+    try:
+        ticker_alpha = build_ticker_alpha_context(
+            ticker=(mandate.get("tickers") or ["SPY"])[0],
+            turn_history=getattr(state, "history", []),
+        )
+        if not ticker_alpha.startswith("No prior data"):
             append_sections.append(
-                f"\n## ⛔ GATE VALIDATION FAILED — FIX THESE ERRORS\n\n"
-                f"{context['retry_feedback']}\n\n"
-                f"Your previous code was REJECTED by validation gates. You MUST fix the "
-                f"above errors in your new_strategy_code. Do NOT repeat the same mistake."
+                f"\n## 📊 Per-Ticker Alpha Decomposition\n\n{ticker_alpha}\n"
             )
-        # Phase 6: Code quality pre-check feedback — anti-patterns detected
-        code_quality_fb = getattr(state, "code_quality_feedback", "")
-        if code_quality_fb:
-            append_sections.append(
-                f"\n## ⛔ CODE QUALITY PRE-CHECK FAILED\n\n"
-                f"{code_quality_fb}\n\n"
-                f"Your previous code was REJECTED by the code quality pre-check. "
-                f"You MUST fix the above anti-patterns in your new_strategy_code. "
-                f"Do NOT repeat the same mistakes."
-            )
-        # Complexity analysis — flag overcomplicated strategies for the LLM
-        try:
-            from crabquant.refinement.complexity import complexity_score
-            history = getattr(state, "history", [])
-            latest_turn = history[-1] if history else {}
-            strategy_code = (
-                latest_turn.get("code")
-                or context.get("current_strategy_code")
-                or ""
-            )
-            params = latest_turn.get("params_used") or context.get("current_params") or {}
-            if strategy_code:
-                cx = complexity_score(strategy_code, params)
-                if cx["complexity"] > 60 or cx["flags"]:
-                    warn_lines = [
-                        "## ⚠️ STRATEGY COMPLEXITY WARNING",
-                        "",
-                        f"Complexity score: **{cx['complexity']:.1f}**/100",
-                    ]
-                    if cx["complexity"] > 60:
-                        warn_lines.append(
-                            "Your strategy is overly complex and at high risk of "
-                            "overfitting. Simpler strategies generalize better."
-                        )
-                    flag_suggestions = {
-                        "high_complexity": (
-                            "Reduce overall code size. Remove unnecessary helper "
-                            "functions and consolidate logic."
-                        ),
-                        "too_many_params": (
-                            "Reduce the number of tunable parameters. Each extra "
-                            "parameter increases overfitting risk. Target ≤8 params."
-                        ),
-                        "deep_nesting": (
-                            "Flatten deeply nested if/for blocks. Deep nesting "
-                            "makes the strategy fragile and hard to reason about."
-                        ),
-                        "too_many_branches": (
-                            "Reduce the number of conditional branches. Excessive "
-                            "branching leads to sparse data per path."
-                        ),
-                        "too_many_functions": (
-                            "Consolidate helper functions. Too many functions "
-                            "increase code surface area without proportional benefit."
-                        ),
-                        "invalid_python": (
-                            "Your strategy code has syntax errors. Fix them before "
-                            "proceeding."
-                        ),
-                    }
-                    for flag in cx["flags"]:
-                        suggestion = flag_suggestions.get(
-                            flag, f"Address the `{flag}` issue."
-                        )
-                        warn_lines.append(f"- **{flag}**: {suggestion}")
-                    append_sections.append("\n\n".join(warn_lines))
-        except Exception:
-            logger.debug("Complexity analysis failed, skipping", exc_info=True)
-        # Phase 6: Auto-revert notice — tell the LLM its change was reverted
-        revert_notice = getattr(state, "revert_notice", "")
-        if revert_notice:
-            append_sections.append(
-                f"\n## ⚠️ STRATEGY REVERTED\n\n{revert_notice}\n"
-            )
-        # Enhancement 14: Per-ticker alpha decomposition — show LLM what HASN'T
-        # worked for each ticker so it avoids repeating failed approaches.
-        try:
-            ticker_alpha = build_ticker_alpha_context(
-                ticker=(mandate.get("tickers") or ["SPY"])[0],
-                turn_history=getattr(state, "history", []),
-            )
-            if not ticker_alpha.startswith("No prior data"):
-                append_sections.append(
-                    f"\n## 📊 Per-Ticker Alpha Decomposition\n\n{ticker_alpha}\n"
-                )
-        except Exception:
-            pass  # Non-critical
-        if append_sections:
-            prompt = prompt.rstrip() + "\n\n" + "\n\n".join(append_sections)
-            context["prompt"] = prompt
+    except Exception:
+        pass
 
-    return context
+    if append_sections:
+        context["prompt"] = prompt.rstrip() + "\n\n" + "\n\n".join(append_sections)
+
+
+def _format_complexity_warning(cx: dict) -> str:
+    """Format a complexity warning section for the LLM prompt."""
+    warn_lines = [
+        "## ⚠️ STRATEGY COMPLEXITY WARNING",
+        "",
+        f"Complexity score: **{cx['complexity']:.1f}**/100",
+    ]
+    if cx["complexity"] > 60:
+        warn_lines.append(
+            "Your strategy is overly complex and at high risk of "
+            "overfitting. Simpler strategies generalize better."
+        )
+    _FLAG_SUGGESTIONS = {
+        "high_complexity": (
+            "Reduce overall code size. Remove unnecessary helper "
+            "functions and consolidate logic."
+        ),
+        "too_many_params": (
+            "Reduce the number of tunable parameters. Each extra "
+            "parameter increases overfitting risk. Target ≤8 params."
+        ),
+        "deep_nesting": (
+            "Flatten deeply nested if/for blocks. Deep nesting "
+            "makes the strategy fragile and hard to reason about."
+        ),
+        "too_many_branches": (
+            "Reduce the number of conditional branches. Excessive "
+            "branching leads to sparse data per path."
+        ),
+        "too_many_functions": (
+            "Consolidate helper functions. Too many functions "
+            "increase code surface area without proportional benefit."
+        ),
+        "invalid_python": (
+            "Your strategy code has syntax errors. Fix them before "
+            "proceeding."
+        ),
+    }
+    for flag in cx["flags"]:
+        suggestion = _FLAG_SUGGESTIONS.get(flag, f"Address the `{flag}` issue.")
+        warn_lines.append(f"- **{flag}**: {suggestion}")
+    return "\n\n".join(warn_lines)
 
 
 def build_ticker_alpha_context(ticker: str, turn_history: list) -> str:

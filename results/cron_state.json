@@ -702,7 +702,10 @@
     "TSLA|refined_breakout_tsla|561e8b55d720",
     "JPM|refined_momentum_jpm|44136fa355b3",
     "XOM|refined_mean_reversion_xom|44136fa355b3",
-    "NVDA|refined_volume_nvda|44136fa355b3"
+    "NVDA|refined_volume_nvda|44136fa355b3",
+    "AAPL|refined_mean_reversion_aapl|dffc217237a3",
+    "TSLA|refined_trend_tsla|44136fa355b3",
+    "NVDA|refined_volume_nvda|6e1726f766e3"
   ],
   "total_runs": 459,
   "total_winners": 8156,

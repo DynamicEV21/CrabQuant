@@ -137,8 +137,8 @@ def load_data(ticker: str, period: str = "2y", use_cache: bool = True) -> pd.Dat
     # Try cache first
     if use_cache and cache_file.exists():
         cache_age = datetime.now() - datetime.fromtimestamp(cache_file.stat().st_mtime)
-        # Cache is valid for 1 day (market hours)
-        if cache_age < timedelta(hours=20):
+        # Cache is valid for 7 days (OHLCV data changes slowly enough for validation)
+        if cache_age < timedelta(days=7):
             logger.debug(f"Loading {ticker} from cache ({cache_age.total_seconds() / 3600:.0f}h old)")
             with open(cache_file, "rb") as f:
                 df = pickle.load(f)

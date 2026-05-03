@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "key": "orch_stall",
+    "severity": "RED",
+    "timestamp": "2026-05-03T02:27:47.395229+00:00"
+  },
+  {
+    "key": "dir_stale",
+    "severity": "YELLOW",
+    "timestamp": "2026-05-03T02:27:47.395229+00:00"
+  },
+  {
+    "key": "no_commits",
+    "severity": "YELLOW",
+    "timestamp": "2026-05-03T02:27:47.395229+00:00"
+  }
+]

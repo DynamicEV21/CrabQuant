@@ -294,7 +294,7 @@ def main():
     print(f"Pending: {len(pending)} winners to validate")
     print()
 
-    BATCH_SIZE = 5
+    BATCH_SIZE = 15
     to_validate = pending if do_all else pending[:BATCH_SIZE]
 
     for w in to_validate:

@@ -134,9 +134,12 @@ def analyze_strategy_pair(
     returns_a = df["close"].pct_change() * signals_a.reindex(df.index).fillna(0).astype(float)
     returns_b = df["close"].pct_change() * signals_b.reindex(df.index).fillna(0).astype(float)
 
-    returns_corr = float(np.corrcoef(
-        returns_a.dropna().values, returns_b.dropna().values
-    )[0, 1]) if len(returns_a.dropna()) > 1 else 0.0
+    _ra = returns_a.dropna().values
+    _rb = returns_b.dropna().values
+    if len(_ra) > 1 and np.std(_ra, ddof=1) > 1e-10 and np.std(_rb, ddof=1) > 1e-10:
+        returns_corr = float(np.corrcoef(_ra, _rb)[0, 1])
+    else:
+        returns_corr = 0.0
 
     return {
         "strategy_a": strategy_a,

@@ -341,6 +341,190 @@ def track_indicator_diversity(
     }
 
 
+# ── Trap detection context bundle ─────────────────────────────────────────────
+
+_TrapCtx = dict  # shared context passed to individual trap checks
+
+
+def _build_trap_context(
+    sharpes: list[float],
+    failure_modes: list[str],
+    actions: list[str],
+    history: list[dict],
+    best_sharpe: float,
+    sharpe_target: float,
+) -> _TrapCtx:
+    """Pre-compute derived values shared across trap checks."""
+    recent_sharpes = sharpes[-3:] if len(sharpes) >= 3 else sharpes
+    avg_recent = sum(recent_sharpes) / len(recent_sharpes) if recent_sharpes else 0.0
+
+    turns_at_zero = sum(1 for s in sharpes if s <= 0)
+    turns_high_few = sum(
+        1 for h in history
+        if h.get("sharpe", 0) >= sharpe_target * 0.8
+        and h.get("num_trades", 100) < 20
+    )
+    turns_validation_fail = sum(
+        1 for fm in failure_modes if fm == "validation_failed"
+    )
+
+    # Detect action loop
+    action_loop = False
+    loop_action = ""
+    most_common_count = 0
+    if len(actions) >= 3:
+        from collections import Counter
+        action_counts = Counter(actions)
+        most_common_action, most_common_count = action_counts.most_common(1)[0]
+        if most_common_count >= 3 and most_common_action:
+            action_loop = True
+            loop_action = most_common_action
+
+    # Detect indicator rut
+    indicator_rut = False
+    dominant_family = ""
+    if len(history) >= 3:
+        diversity = track_indicator_diversity(history)
+        if diversity["is_rut"]:
+            indicator_rut = True
+            dominant_family = diversity["dominant_family"] or ""
+
+    return {
+        "sharpes": sharpes,
+        "failure_modes": failure_modes,
+        "actions": actions,
+        "history": history,
+        "best_sharpe": best_sharpe,
+        "sharpe_target": sharpe_target,
+        "avg_recent": avg_recent,
+        "turns_at_zero": turns_at_zero,
+        "turns_high_few": turns_high_few,
+        "turns_validation_fail": turns_validation_fail,
+        "action_loop": action_loop,
+        "loop_action": loop_action,
+        "most_common_count": most_common_count,
+        "indicator_rut": indicator_rut,
+        "dominant_family": dominant_family,
+    }
+
+
+# ── Individual trap checks (ordered: most specific first) ─────────────────────
+
+def _trap_zero_sharpe(ctx: _TrapCtx) -> dict | None:
+    s = ctx["sharpes"]
+    if ctx["turns_at_zero"] >= len(s) - 1 and len(s) >= 3:
+        return {
+            "trap": "zero_sharpe", "severity": "critical",
+            "turns_in_trap": ctx["turns_at_zero"],
+            "description": (
+                "ALL recent turns produced Sharpe <= 0. The LLM is generating "
+                "strategies that lose money."
+            ),
+        }
+    return None
+
+
+def _trap_validation_loop(ctx: _TrapCtx) -> dict | None:
+    if ctx["turns_validation_fail"] >= 2 and ctx["best_sharpe"] >= ctx["sharpe_target"] * 0.8:
+        return {
+            "trap": "validation_loop", "severity": "high",
+            "turns_in_trap": ctx["turns_validation_fail"],
+            "description": (
+                f"Sharpe reaches target ({ctx['best_sharpe']:.2f}) but fails out-of-sample "
+                f"validation {ctx['turns_validation_fail']} times."
+            ),
+        }
+    return None
+
+
+def _trap_high_sharpe_few_trades(ctx: _TrapCtx) -> dict | None:
+    if ctx["turns_high_few"] >= 2 and ctx["best_sharpe"] >= ctx["sharpe_target"] * 0.8:
+        return {
+            "trap": "high_sharpe_few_trades", "severity": "high",
+            "turns_in_trap": ctx["turns_high_few"],
+            "description": (
+                f"Best Sharpe {ctx['best_sharpe']:.2f} but only <20 trades. "
+                f"The strategy is curve-fit to rare events."
+            ),
+        }
+    return None
+
+
+def _trap_indicator_rut(ctx: _TrapCtx) -> dict | None:
+    if ctx["indicator_rut"]:
+        return {
+            "trap": "indicator_rut", "severity": "medium",
+            "turns_in_trap": len(ctx["sharpes"]),
+            "description": (
+                f"Stuck using '{ctx['dominant_family']}' indicators on every turn."
+            ),
+        }
+    return None
+
+
+def _trap_action_loop(ctx: _TrapCtx) -> dict | None:
+    if ctx["action_loop"]:
+        return {
+            "trap": "action_loop", "severity": "medium",
+            "turns_in_trap": ctx["most_common_count"],
+            "description": (
+                f"Action '{ctx['loop_action']}' repeated {ctx['most_common_count']} times."
+            ),
+        }
+    return None
+
+
+def _trap_low_sharpe_plateau(ctx: _TrapCtx) -> dict | None:
+    s = ctx["sharpes"]
+    if ctx["avg_recent"] <= 0.3 and len(s) >= 3:
+        return {
+            "trap": "low_sharpe_plateau", "severity": "high",
+            "turns_in_trap": sum(1 for v in reversed(s) if v <= 0.3),
+            "description": (
+                f"Sharpe stuck at {ctx['avg_recent']:.2f}. The current approach isn't working."
+            ),
+        }
+    return None
+
+
+def _trap_mid_sharpe(ctx: _TrapCtx) -> dict | None:
+    s = ctx["sharpes"]
+    if ctx["avg_recent"] <= 0.7 and len(s) >= 3 and ctx["best_sharpe"] < ctx["sharpe_target"] * 0.8:
+        return {
+            "trap": "mid_sharpe_trap", "severity": "medium",
+            "turns_in_trap": sum(1 for v in reversed(s) if 0.3 < v <= 0.7),
+            "description": (
+                f"Sharpe plateaued at {ctx['avg_recent']:.2f}. Getting some signal but not enough."
+            ),
+        }
+    return None
+
+
+def _trap_near_target(ctx: _TrapCtx) -> dict | None:
+    if ctx["best_sharpe"] >= ctx["sharpe_target"] * 0.7 and ctx["best_sharpe"] < ctx["sharpe_target"]:
+        s = ctx["sharpes"]
+        return {
+            "trap": "near_target", "severity": "low",
+            "turns_in_trap": sum(1 for v in reversed(s) if v >= ctx["sharpe_target"] * 0.5),
+            "description": (
+                f"Close to target (best {ctx['best_sharpe']:.2f} vs {ctx['sharpe_target']})."
+            ),
+        }
+    return None
+
+
+_TRAP_CHECKS = [
+    _trap_zero_sharpe,
+    _trap_validation_loop,
+    _trap_high_sharpe_few_trades,
+    _trap_indicator_rut,
+    _trap_action_loop,
+    _trap_low_sharpe_plateau,
+    _trap_mid_sharpe,
+    _trap_near_target,
+]
+
+
 def detect_stagnation_trap(
     history: list[dict],
     best_sharpe: float = 0.0,
@@ -385,122 +569,29 @@ def detect_stagnation_trap(
             "description": "Too few turns to diagnose stagnation.",
         }
 
-    recent_sharpes = sharpes[-3:]
-    avg_recent = sum(recent_sharpes) / len(recent_sharpes)
-
-    # Count specific conditions
-    turns_at_zero = sum(1 for s in sharpes if s <= 0)
-    turns_high_few = sum(
-        1 for h in history
-        if h.get("sharpe", 0) >= sharpe_target * 0.8
-        and h.get("num_trades", 100) < 20
-    )
-    turns_validation_fail = sum(
-        1 for fm in failure_modes if fm == "validation_failed"
+    ctx = _build_trap_context(
+        sharpes, failure_modes, actions, history, best_sharpe, sharpe_target
     )
 
-    # Detect action loop (same action 3+ times)
-    action_loop = False
-    loop_action = ""
-    most_common_count = 0
-    if len(actions) >= 3:
-        from collections import Counter
-        action_counts = Counter(actions)
-        most_common_action, most_common_count = action_counts.most_common(1)[0]
-        if most_common_count >= 3 and most_common_action:
-            action_loop = True
-            loop_action = most_common_action
-
-    # Detect indicator rut
-    indicator_rut = False
-    dominant_family = ""
-    if len(history) >= 3:
-        diversity = track_indicator_diversity(history)
-        if diversity["is_rut"]:
-            indicator_rut = True
-            dominant_family = diversity["dominant_family"] or ""
-
-    # Classify the trap (order matters — more specific first)
-    trap = "no_trap"
-    severity = "low"
-    description = ""
-    turns_in_trap = 0
-
-    if turns_at_zero >= len(sharpes) - 1 and len(sharpes) >= 3:
-        trap = "zero_sharpe"
-        severity = "critical"
-        turns_in_trap = turns_at_zero
-        description = (
-            "ALL recent turns produced Sharpe <= 0. The LLM is generating "
-            "strategies that lose money."
-        )
-
-    elif turns_validation_fail >= 2 and best_sharpe >= sharpe_target * 0.8:
-        trap = "validation_loop"
-        severity = "high"
-        turns_in_trap = turns_validation_fail
-        description = (
-            f"Sharpe reaches target ({best_sharpe:.2f}) but fails out-of-sample "
-            f"validation {turns_validation_fail} times."
-        )
-
-    elif turns_high_few >= 2 and best_sharpe >= sharpe_target * 0.8:
-        trap = "high_sharpe_few_trades"
-        severity = "high"
-        turns_in_trap = turns_high_few
-        description = (
-            f"Best Sharpe {best_sharpe:.2f} but only <20 trades. "
-            f"The strategy is curve-fit to rare events."
-        )
-
-    elif indicator_rut:
-        trap = "indicator_rut"
-        severity = "medium"
-        turns_in_trap = len(sharpes)
-        description = (
-            f"Stuck using '{dominant_family}' indicators on every turn."
-        )
-
-    elif action_loop:
-        trap = "action_loop"
-        severity = "medium"
-        turns_in_trap = most_common_count
-        description = (
-            f"Action '{loop_action}' repeated {most_common_count} times."
-        )
-
-    elif avg_recent <= 0.3 and len(sharpes) >= 3:
-        trap = "low_sharpe_plateau"
-        severity = "high"
-        turns_in_trap = sum(1 for s in reversed(sharpes) if s <= 0.3)
-        description = (
-            f"Sharpe stuck at {avg_recent:.2f}. The current approach isn't working."
-        )
-
-    elif avg_recent <= 0.7 and len(sharpes) >= 3 and best_sharpe < sharpe_target * 0.8:
-        trap = "mid_sharpe_trap"
-        severity = "medium"
-        turns_in_trap = sum(1 for s in reversed(sharpes) if 0.3 < s <= 0.7)
-        description = (
-            f"Sharpe plateaued at {avg_recent:.2f}. Getting some signal but not enough."
-        )
-
-    elif best_sharpe >= sharpe_target * 0.7 and best_sharpe < sharpe_target:
-        trap = "near_target"
-        severity = "low"
-        turns_in_trap = sum(1 for s in reversed(sharpes) if s >= sharpe_target * 0.5)
-        description = (
-            f"Close to target (best {best_sharpe:.2f} vs {sharpe_target})."
-        )
+    # Run trap checks in priority order; first match wins
+    for check in _TRAP_CHECKS:
+        result = check(ctx)
+        if result:
+            return {
+                **result,
+                "sharpes": sharpes,
+                "recent_failure_modes": failure_modes,
+                "recent_actions": actions,
+            }
 
     return {
-        "trap": trap,
-        "severity": severity,
+        "trap": "no_trap",
+        "severity": "low",
         "sharpes": sharpes,
         "recent_failure_modes": failure_modes,
         "recent_actions": actions,
-        "turns_in_trap": turns_in_trap,
-        "description": description,
+        "turns_in_trap": 0,
+        "description": "",
     }
 
 

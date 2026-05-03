@@ -185,7 +185,7 @@ class TestRunSingleMandate:
         """Timeout returns special returncode."""
         result = rp.run_single_mandate("mandates/test.json", timeout=1)
         assert result["returncode"] == -1
-        assert result["stderr"] == "TIMEOUT"
+        assert result["stderr"].startswith("TIMEOUT")
 
 
 # ── Signal handler ────────────────────────────────────────────────────────
