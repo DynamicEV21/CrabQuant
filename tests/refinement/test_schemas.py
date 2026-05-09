@@ -240,6 +240,7 @@ class TestBacktestReport:
             profit_factor=1.3,
             calmar_ratio=0.9,
             sortino_ratio=1.1,
+            expected_value=0.0,
             composite_score=0.76,
             failure_mode="low_sharpe",
             failure_details="Sharpe 0.85 < target 1.5.",

@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gc prime --hook --hook-format hermes"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gc handoff \"context cycle\" --hook-format hermes"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gc nudge drain --inject --hook-format hermes"
+          },
+          {
+            "type": "command",
+            "command": "gc mail check --inject --hook-format hermes"
+          }
+        ]
+      }
+    ]
+  }
+}

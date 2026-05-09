@@ -212,6 +212,8 @@ def load_report(run_dir: Path, turn: int) -> Optional[BacktestReport]:
     
     try:
         data = load_json(str(report_file))
+        if "expected_value" not in data:
+            data["expected_value"] = 0.0
         return BacktestReport(**data)
     except:
         return None
@@ -1206,6 +1208,7 @@ def refinement_loop(mandate_path: str, max_turns: int = 7,
             profit_factor=result.profit_factor,
             calmar_ratio=result.calmar_ratio,
             sortino_ratio=getattr(result, 'sortino_ratio', 0.0),
+            expected_value=getattr(result, 'expected_value', 0.0),
             composite_score=result.score,
             failure_mode=failure_mode,
             failure_details=failure_details,

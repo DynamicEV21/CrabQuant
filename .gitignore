@@ -32,3 +32,13 @@ refinement_runs/
 .beads/*
 !.beads/config.yaml
 !.beads/metadata.json
+# self-driving-gc factory artifacts (auto-generated)
+.beads/
+state/
+.hermes/cron-state.json
+.hermes/supervisor-prompt.md
+.hermes/worker-prompt.md
+.hermes/.active
+.hermes/.paused
+.hermes/.budget-paused
+skills/

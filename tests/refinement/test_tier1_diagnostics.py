@@ -26,6 +26,7 @@ def make_backtest_result(**overrides):
         profit_factor=1.5,
         calmar_ratio=1.5,
         sortino_ratio=2.0,
+        expected_value=0.0,
         score=1.2,
         passed=False,
         params={"period": 14, "threshold": 0.5},

@@ -23,6 +23,7 @@ from typing import Any, Callable
 
 import numpy as np
 import pandas as pd
+from backtesting import Strategy
 
 logger = logging.getLogger(__name__)
 
@@ -496,7 +497,7 @@ class StrategyAdapter:
             "_indicators": _indicators,
         }
 
-        return type(strategy_name, (), cls_dict)
+        return type(strategy_name, (Strategy,), cls_dict)
 
     def _extract_ported_signals(
         self,

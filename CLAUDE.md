@@ -2,6 +2,27 @@
 
 This file provides instructions and context for AI coding agents working on this project.
 
+## Self-Driving GC Context
+
+This project uses the **self-driving-gc** skill for autonomous build orchestration.
+Workers are dispatched by Gas City's supervisor and execute beads from the queue.
+
+### Key Files
+- `GOALS.md` — high-level project goals, priorities, and roadmap context
+- `.hermes/cron-state.json` — supervisor state, redirects, coordination
+- `state/world-model.json` — learned project knowledge, architecture notes, patterns
+- `.hermes/skills/*.md` — skill-specific execution guides (build.md, research.md, refactor.md, test.md, docs.md)
+
+### Worker Workflow
+1. Check supervisor redirects (priority override) from `cron-state.json`
+2. Read `GOALS.md` for goal context
+3. Read `world-model.json` for current project understanding
+4. Claim a bead via `bd ready --json` → `bd update <id> --claim`
+5. Read the matching skill prompt from `skills/` based on bead category
+6. Execute the task, test, commit
+7. Close bead, push, update `world-model.json` with learnings
+8. Repeat until queue empty
+
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
 
@@ -49,7 +70,6 @@ bd close <id>         # Complete work
 - If push fails, resolve and retry until it succeeds
 <!-- END BEADS INTEGRATION -->
 
-
 ## Build & Test
 
 _Add your build and test commands here_
@@ -66,4 +86,11 @@ _Add a brief overview of your project architecture_
 
 ## Conventions & Patterns
 
-_Add your project-specific conventions here_
+### Commit Style
+- Use conventional commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`
+- Keep commits atomic — one logical change per commit
+- Reference bead IDs when applicable: `fix: resolve auth timeout (closes #42)`
+
+### Naming
+- Use descriptive variable and function names
+- Follow the existing project naming patterns

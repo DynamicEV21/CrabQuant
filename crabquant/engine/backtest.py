@@ -35,7 +35,6 @@ class BacktestResult:
     avg_trade_return: float
     calmar_ratio: float
     sortino_ratio: float
-    expected_value: float
     profit_factor: float
     avg_holding_bars: float
     best_trade: float
@@ -43,6 +42,7 @@ class BacktestResult:
     passed: bool
     score: float  # Composite score
     notes: str
+    expected_value: float = 0.0
     params: dict = field(default_factory=dict)
     timestamp: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -106,7 +106,6 @@ class BacktestEngine:
                 fees=self.commission,
                 freq="1D",
                 accumulate=False,
-                call_seq="auto",
             )
 
             stats = pf.stats()

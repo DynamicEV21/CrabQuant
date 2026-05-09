@@ -298,14 +298,20 @@ class TestBacktestEngineRun:
         assert np.isfinite(result.score), f"Non-finite score: {result.score}"
 
     def test_run_score_formula(self):
-        """Verify score formula: sharpe * sqrt(min(trades,100)/20) * max(0, 1 - |max_dd|)."""
+        """Verify score formula: (sortino_weighted + ev_weighted) * robustness_factor."""
         df = make_ohlcv(n=500)
         entries, exits = make_entry_exit_signals(df, entry_every_n=20, hold_bars=5)
         engine = BacktestEngine(sharpe_target=0, min_trades=0, min_total_return=0)
         result = engine.run(df, entries, exits, "s", "T")
+        # Reproduce the composite score formula from backtest.py
         trade_factor = np.sqrt(min(result.num_trades, 100) / 20)
         dd_penalty = max(0, 1 - abs(result.max_drawdown))
-        expected_score = result.sharpe * trade_factor * dd_penalty
+        robustness_factor = trade_factor * dd_penalty
+        sortino_safe = max(result.sortino_ratio, 0.0) if np.isfinite(result.sortino_ratio) else 0.0
+        sortino_weighted = min(sortino_safe / 3.0, 1.0)
+        ev_weighted = (np.sign(result.expected_value) * min(abs(result.expected_value) / 100.0, 1.0)
+                       if np.isfinite(result.expected_value) else 0.0)
+        expected_score = (sortino_weighted + ev_weighted) * robustness_factor
         assert abs(result.score - expected_score) < 1e-10, \
             f"Score mismatch: {result.score} vs {expected_score}"
 
