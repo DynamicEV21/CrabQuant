@@ -174,12 +174,14 @@ class TestComputeCompositeScoreEdgeCases:
         assert score == pytest.approx(3.0, rel=1e-6)
 
     def test_very_large_trade_count(self):
-        """Very large trade count should scale appropriately."""
+        """Very large trade count should scale appropriately (capped at 100)."""
         score_20 = compute_composite_score(sharpe=2.0, trades=20, max_drawdown=0.0)
         score_500 = compute_composite_score(sharpe=2.0, trades=500, max_drawdown=0.0)
         ratio = score_500 / score_20
-        expected_ratio = math.sqrt(500 / 20)
+        # min(trades, 100) caps at 100, so ratio is sqrt(100/20), not sqrt(500/20)
+        expected_ratio = math.sqrt(100 / 20)
         assert ratio == pytest.approx(expected_ratio, rel=1e-6)
+        assert score_500 > score_20
 
     def test_99_percent_drawdown(self):
         """99% drawdown should heavily penalize but not zero out."""
@@ -203,9 +205,11 @@ class TestComputeCompositeScoreEdgeCases:
         assert compute_composite_score(sharpe=-100.0, trades=100, max_drawdown=0.01) == 0.0
 
     def test_very_high_sharpe_many_trades(self):
-        """Very high Sharpe with many trades → high score."""
+        """Very high Sharpe with many trades → high score (capped at 100 trades)."""
         score = compute_composite_score(sharpe=10.0, trades=200, max_drawdown=0.05)
-        assert score > 30.0
+        # min(200, 100) caps trade factor at sqrt(100/20) = sqrt(5) ≈ 2.236
+        # 10.0 * 2.236 * 0.95 ≈ 21.24
+        assert score > 20.0
 
     def test_returns_float_type(self):
         """Score should always be a float."""
@@ -236,8 +240,9 @@ class TestComputeCompositeScoreTradeoffs:
         # Extreme still wins here — curve-fit detection via composite works
         # for more moderate differences, not extreme Sharpe advantage
         assert extreme > moderate
-        # But verify the tradeoff: 200 trades should overcome the Sharpe gap
-        very_robust = compute_composite_score(sharpe=2.0, trades=200, max_drawdown=0.15)
+        # But verify the tradeoff: 200 trades with moderate Sharpe should overcome
+        # with the new capped formula (min(trades, 100)), need higher Sharpe
+        very_robust = compute_composite_score(sharpe=3.0, trades=200, max_drawdown=0.15)
         assert very_robust > extreme
 
     def test_drawdown_difference_overcomes_sharpe(self):

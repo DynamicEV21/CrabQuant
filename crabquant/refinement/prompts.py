@@ -394,6 +394,13 @@ def compute_composite_score(
 
     ev_weighted = float(np.sign(expected_value)) * min(abs(expected_value) / 100.0, 1.0)
 
+    # Fallback: if no sortino or EV provided, use sharpe for backward compat
+    if sortino_weighted == 0.0 and ev_weighted == 0.0:
+        sharpe_safe = max(sharpe, 0.0)
+        if np.isinf(sharpe_safe) or np.isnan(sharpe_safe):
+            sharpe_safe = 0.0
+        return sharpe_safe * robustness_factor
+
     return (sortino_weighted + ev_weighted) * robustness_factor
 
 

@@ -22,6 +22,7 @@ results/daemon_state.json
 results/daemon_heartbeat.json
 results/daemon.log
 refinement_runs/
+.archive/
 
 # Beads / Dolt files (added by bd init)
 .dolt/

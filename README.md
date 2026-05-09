@@ -171,6 +171,12 @@ The daemon continuously generates mandates, runs parallel refinement waves (up t
 | 8 | Deployment Readiness |
 | 9 | Live Trading |
 
+**Infrastructure:**
+- Gas City (gc) + Beads (bd) orchestration active
+- 22 validated strategies in production registry
+- Hermes-native pipeline with vectorbt + pandas_ta
+- Autonomous build factory via self-driving-gc
+
 See `VISION.md` for the full project vision, `ROADMAP.md` for detailed phase breakdowns.
 
 ## Testing
