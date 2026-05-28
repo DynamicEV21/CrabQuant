@@ -1,0 +1,17 @@
+{
+  "name": "e2e_test_momentum",
+  "description": "Momentum strategy for AAPL — E2E integration test",
+  "strategy_archetype": "momentum",
+  "tickers": ["AAPL"],
+  "primary_ticker": "AAPL",
+  "period": "1y",
+  "sharpe_target": 0.5,
+  "max_turns": 2,
+  "constraints": {
+    "max_parameters": 6,
+    "required_indicators": [],
+    "forbidden_indicators": [],
+    "min_trades": 5,
+    "max_drawdown_pct": 30
+  }
+}

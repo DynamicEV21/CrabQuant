@@ -1,0 +1,504 @@
+You are a quantitative strategy developer. Based on the following data, write a COMPLETE Python strategy file.
+
+## Market Analysis
+{
+  "AAPL": {
+    "momentum_tickers": [
+      "CAT",
+      "SPY",
+      "JPM",
+      "XOM",
+      "GLD"
+    ],
+    "mean_reversion_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "high_volatility_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "trending_tickers": [
+      "AAPL",
+      "NVDA",
+      "CAT",
+      "SPY",
+      "JPM"
+    ],
+    "range_bound_tickers": [
+      "JNJ",
+      "ORCL",
+      "PLTR"
+    ]
+  },
+  "NVDA": {
+    "momentum_tickers": [
+      "CAT",
+      "SPY",
+      "JPM",
+      "XOM",
+      "GLD"
+    ],
+    "mean_reversion_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "high_volatility_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "trending_tickers": [
+      "AAPL",
+      "NVDA",
+      "CAT",
+      "SPY",
+      "JPM"
+    ],
+    "range_bound_tickers": [
+      "JNJ",
+      "ORCL",
+      "PLTR"
+    ]
+  },
+  "CAT": {
+    "momentum_tickers": [
+      "CAT",
+      "SPY",
+      "JPM",
+      "XOM",
+      "GLD"
+    ],
+    "mean_reversion_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "high_volatility_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "trending_tickers": [
+      "AAPL",
+      "NVDA",
+      "CAT",
+      "SPY",
+      "JPM"
+    ],
+    "range_bound_tickers": [
+      "JNJ",
+      "ORCL",
+      "PLTR"
+    ]
+  },
+  "SPY": {
+    "momentum_tickers": [
+      "CAT",
+      "SPY",
+      "JPM",
+      "XOM",
+      "GLD"
+    ],
+    "mean_reversion_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "high_volatility_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "trending_tickers": [
+      "AAPL",
+      "NVDA",
+      "CAT",
+      "SPY",
+      "JPM"
+    ],
+    "range_bound_tickers": [
+      "JNJ",
+      "ORCL",
+      "PLTR"
+    ]
+  },
+  "JPM": {
+    "momentum_tickers": [
+      "CAT",
+      "SPY",
+      "JPM",
+      "XOM",
+      "GLD"
+    ],
+    "mean_reversion_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "high_volatility_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "trending_tickers": [
+      "AAPL",
+      "NVDA",
+      "CAT",
+      "SPY",
+      "JPM"
+    ],
+    "range_bound_tickers": [
+      "JNJ",
+      "ORCL",
+      "PLTR"
+    ]
+  },
+  "XOM": {
+    "momentum_tickers": [
+      "CAT",
+      "SPY",
+      "JPM",
+      "XOM",
+      "GLD"
+    ],
+    "mean_reversion_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "high_volatility_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "trending_tickers": [
+      "AAPL",
+      "NVDA",
+      "CAT",
+      "SPY",
+      "JPM"
+    ],
+    "range_bound_tickers": [
+      "JNJ",
+      "ORCL",
+      "PLTR"
+    ]
+  },
+  "GLD": {
+    "momentum_tickers": [
+      "CAT",
+      "SPY",
+      "JPM",
+      "XOM",
+      "GLD"
+    ],
+    "mean_reversion_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "high_volatility_tickers": [
+      "NVDA",
+      "TSLA",
+      "NFLX"
+    ],
+    "trending_tickers": [
+      "AAPL",
+      "NVDA",
+      "CAT",
+      "SPY",
+      "JPM"
+    ],
+    "range_bound_tickers": [
+      "JNJ",
+      "ORCL",
+      "PLTR"
+    ]
+  }
+}
+
+## Top Winning Strategies (by win rate)
+[
+  [
+    "roc_ema_volume",
+    {
+      "tested": 14256,
+      "won": 2078,
+      "total_sharpe": 6770.208276185316,
+      "total_return": 5005.570320899623,
+      "win_rate": 0.14576318742985409,
+      "avg_sharpe": 0.4749023762756254
+    }
+  ],
+  [
+    "invented_momentum_rsi_stoch",
+    {
+      "tested": 14,
+      "won": 1,
+      "total_sharpe": 13.758234012593343,
+      "total_return": 4.925203278460628,
+      "win_rate": 0.07142857142857142,
+      "avg_sharpe": 0.9827310008995245
+    }
+  ],
+  [
+    "atr_channel_breakout",
+    {
+      "tested": 726,
+      "won": 40,
+      "total_sharpe": 201.75771788423677,
+      "total_return": 76.56585277637662,
+      "win_rate": 0.05509641873278237,
+      "avg_sharpe": 0.27790319267801206
+    }
+  ]
+]
+
+## Top Tickers (by win rate)  
+[
+  [
+    "CAT",
+    {
+      "tested": 1303,
+      "won": 1113,
+      "win_rate": 0.8541826554105909
+    }
+  ],
+  [
+    "RBLX",
+    {
+      "tested": 37,
+      "won": 24,
+      "win_rate": 0.6486486486486487
+    }
+  ],
+  [
+    "JNJ",
+    {
+      "tested": 1301,
+      "won": 694,
+      "win_rate": 0.5334358186010761
+    }
+  ],
+  [
+    "INTC",
+    {
+      "tested": 3,
+      "won": 1,
+      "win_rate": 0.3333333333333333
+    }
+  ],
+  [
+    "PLTR",
+    {
+      "tested": 1415,
+      "won": 269,
+      "win_rate": 0.19010600706713782
+    }
+  ]
+]
+
+## Top Scoring Results
+[
+  {
+    "ticker": "CAT",
+    "strategy_name": "roc_ema_volume",
+    "iteration": 12,
+    "sharpe": 2.6576223219722452,
+    "total_return": 1.5999390361426409,
+    "max_drawdown": -0.12306584314143265,
+    "win_rate": 0.5333333333333333,
+    "num_trades": 15,
+    "avg_trade_return": 22301.22320336273,
+    "calmar_ratio": 8.174018425729765,
+    "sortino_ratio": 4.895178771311496,
+    "profit_factor": 9.687821930248566,
+    "avg_holding_bars": 26.8,
+    "best_trade": 38482.88968669006,
+    "worst_trade": -5699.891295848424,
+    "passed": true,
+    "score": 2.0183239833233593,
+    "notes": "Sharpe 2.66 >= 1.5 | MaxDD -12.3% OK | 15 trades | Return 160.0%",
+    "params": {
+      "roc_len": 8,
+      "ema_len": 15,
+      "vol_sma_len": 15,
+      "atr_len": 14,
+      "atr_mult": 1.5,
+      "trailing_len": 10
+    },
+    "timestamp": "2026-04-25T21:07:54.701051"
+  },
+  {
+    "ticker": "CAT",
+    "strategy_name": "roc_ema_volume",
+    "iteration": 0,
+    "sharpe": 2.7493479848756865,
+    "total_return": 1.6991306266635575,
+    "max_drawdown": -0.12306584314143265,
+    "win_rate": 0.5,
+    "num_trades": 14,
+    "avg_trade_return": 26904.134954141926,
+    "calmar_ratio": 8.624761248876284,
+    "sortino_ratio": 5.0675110277809505,
+    "profit_factor": 10.226441750102142,
+    "avg_holding_bars": 29.214285714285715,
+    "best_trade": 51276.02123907108,
+    "worst_trade": -5699.891295848424,
+    "passed": true,
+    "score": 2.0171849453724273,
+    "notes": "Sharpe 2.75 >= 1.5 | MaxDD -12.3% OK | 14 trades | Return 169.9%",
+    "params": {
+      "roc_len": 8,
+      "ema_len": 15,
+      "vol_sma_len": 15,
+      "atr_len": 10,
+      "atr_mult": 1.5,
+      "trailing_len": 10
+    },
+    "timestamp": "2026-04-25T21:07:54.700505"
+  },
+  {
+    "ticker": "CAT",
+    "strategy_name": "roc_ema_volume",
+    "iteration": 228,
+    "sharpe": 2.8234848232648933,
+    "total_return": 1.7435755834909485,
+    "max_drawdown": -0.12227207143830254,
+    "win_rate": 0.6153846153846154,
+    "num_trades": 13,
+    "avg_trade_return": 23391.971012466533,
+    "calmar_ratio": 8.882554406728127,
+    "sortino_ratio": 5.250201260364291,
+    "profit_factor": 14.644912843945015,
+    "avg_holding_bars": 29.923076923076923,
+    "best_trade": 40608.92007807293,
+    "worst_trade": -5711.628719109336,
+    "passed": true,
+    "score": 1.9980302239186665,
+    "notes": "Sharpe 2.82 >= 1.5 | MaxDD -12.2% OK | 13 trades | Return 174.4%",
+    "params": {
+      "roc_len": 8,
+      "ema_len": 25,
+      "vol_sma_len": 15,
+      "atr_len": 14,
+      "atr_mult": 1.5,
+      "trailing_len": 10
+    },
+    "timestamp": "2026-04-25T21:07:54.707208"
+  },
+  {
+    "ticker": "CAT",
+    "strategy_name": "roc_ema_volume",
+    "iteration": 264,
+    "sharpe": 2.8234848232648933,
+    "total_return": 1.7435755834909485,
+    "max_drawdown": -0.12227207143830254,
+    "win_rate": 0.6153846153846154,
+    "num_trades": 13,
+    "avg_trade_return": 23391.971012466533,
+    "calmar_ratio": 8.882554406728127,
+    "sortino_ratio": 5.250201260364291,
+    "profit_factor": 14.644912843945015,
+    "avg_holding_bars": 29.923076923076923,
+    "best_trade": 40608.92007807293,
+    "worst_trade": -5711.628719109336,
+    "passed": true,
+    "score": 1.9980302239186665,
+    "notes": "Sharpe 2.82 >= 1.5 | MaxDD -12.2% OK | 13 trades | Return 174.4%",
+    "params": {
+      "roc_len": 8,
+      "ema_len": 25,
+      "vol_sma_len": 20,
+      "atr_len": 14,
+      "atr_mult": 1.5,
+      "trailing_len": 10
+    },
+    "timestamp": "2026-04-25T21:07:54.708386"
+  },
+  {
+    "ticker": "CAT",
+    "strategy_name": "roc_ema_volume",
+    "iteration": 216,
+    "sharpe": 2.915618325650432,
+    "total_return": 1.8482471246531516,
+    "max_drawdown": -0.12227207143830254,
+    "win_rate": 0.5833333333333334,
+    "num_trades": 12,
+    "avg_trade_return": 28228.98888799322,
+    "calmar_ratio": 9.354349371813747,
+    "sortino_ratio": 5.424760714661816,
+    "profit_factor": 15.464053734608374,
+    "avg_holding_bars": 33.0,
+    "best_trade": 54108.82252792969,
+    "worst_trade": -5711.628719109336,
+    "passed": true,
+    "score": 1.982285544260607,
+    "notes": "Sharpe 2.92 >= 1.5 | MaxDD -12.2% OK | 12 trades | Return 184.8%",
+    "params": {
+      "roc_len": 8,
+      "ema_len": 25,
+      "vol_sma_len": 15,
+      "atr_len": 10,
+      "atr_mult": 1.5,
+      "trailing_len": 10
+    },
+    "timestamp": "2026-04-25T21:07:54.706886"
+  }
+]
+
+## Existing Strategies
+  - rsi_crossover: <function generate_signals_matrix at 0x7ac11b6d9760>
+  - macd_momentum: <function generate_signals_matrix at 0x7ac114241080>
+  - adx_pullback: <function generate_signals_matrix at 0x7ac1142411c0>
+  - atr_channel_breakout: <function generate_signals_matrix at 0x7ac1142413a0>
+  - volume_breakout: <function generate_signals_matrix at 0x7ac114241580>
+  - multi_rsi_confluence: <function generate_signals_matrix at 0x7ac114241800>
+  - ema_ribbon_reversal: <function generate_signals_matrix at 0x7ac1142419e0>
+  - bollinger_squeeze: <function generate_signals_matrix at 0x7ac114241b20>
+  - ichimoku_trend: <function generate_signals_matrix at 0x7ac114241e40>
+  - invented_momentum_rsi_atr: <function generate_signals_matrix at 0x7ac114242020>
+  - invented_momentum_rsi_stoch: <function generate_signals_matrix at 0x7ac114242340>
+  - invented_momentum_rsi_volume: <function generate_signals_matrix at 0x7ac114242fc0>
+  - vpt_crossover: <function generate_signals_matrix at 0x7ac114242480>
+  - roc_ema_volume: <function generate_signals_matrix at 0x7ac114242660>
+  - bb_stoch_macd: <function generate_signals_matrix at 0x7ac1142427a0>
+  - rsi_regime_dip: <function generate_signals_matrix at 0x7ac114242980>
+  - ema_crossover: <function generate_signals_matrix at 0x7ac114242c00>
+  - injected_momentum_atr_volume: <function generate_signals_matrix at 0x7ac114242de0>
+
+## Requirements
+Write a NEW strategy that is DIFFERENT from existing ones. Consider:
+- Combine signals from 2+ indicators (confluence)
+- Exploit patterns in the market analysis (momentum, mean reversion, volatility)
+- Use ATR-based dynamic exits
+- Volume-weighted entries
+- Multi-indicator confirmation
+
+The file must have EXACTLY this interface:
+```python
+import pandas as pd
+import pandas_ta
+
+DEFAULT_PARAMS = {...}
+PARAM_GRID = {...}  # at least 3 values per param
+DESCRIPTION = "..."
+
+def generate_signals(df: pd.DataFrame, params: dict | None = None) -> tuple[pd.Series, pd.Series]:
+    ...
+```
+
+IMPORTANT RULES:
+- df has columns: open, high, low, close, volume (all lowercase)
+- entries and exits are pd.Series[bool] indexed same as df
+- Use pandas_ta for ALL indicators (rsi, macd, ema, atr, adx, bbands, stoch, etc.)
+- pandas_ta column naming: ADX is 'ADX_14', Bollinger Bands are 'BBU_20_2.0_2.0' (std repeated), Stochastic is 'STOCHk_14_3_3'/'STOCHd_14_3_3'
+- The strategy MUST produce >0 trades on at least 2 tickers (AAPL, NVDA, CAT, SPY, GOOGL, JPM, XOM, GLD)
+- Do NOT use params that aren't in DEFAULT_PARAMS
+- Do NOT hardcode column names — detect them dynamically when needed
+
+Write ONLY the Python code. No explanations.

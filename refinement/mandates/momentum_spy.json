@@ -1,0 +1,20 @@
+{
+  "name": "Momentum Strategy for SPY",
+  "description": "Simple momentum strategy using price trends",
+  "tickers": ["SPY"],
+  "primary_ticker": "SPY",
+  "period": "2y",
+  "strategy_archetype": "momentum",
+  "max_turns": 3,
+  "sharpe_target": 1.0,
+  "constraints": {
+    "min_trades": 10,
+    "max_drawdown_pct": 20.0
+  },
+  "backtest_config": {
+    "start_date": "2023-01-01",
+    "initial_capital": 100000,
+    "commission": 0.001,
+    "slippage": 0.0001
+  }
+}

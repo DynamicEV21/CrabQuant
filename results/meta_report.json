@@ -1,0 +1,59 @@
+{
+  "timestamp": "2026-04-26T21:04:09.065006",
+  "system": {
+    "total_combos_tested": 455,
+    "dead_combos": 10,
+    "total_winners": 8156,
+    "validated_robust": 3,
+    "coverage_pct": 97.8
+  },
+  "strategy_analysis": {
+    "rsi_crossover": {
+      "wins": 5,
+      "best_sharpe": 2.1822910182862096,
+      "best_score": 2.442654448731927,
+      "tickers": [
+        "JNJ"
+      ]
+    },
+    "roc_ema_volume": {
+      "wins": 36,
+      "best_sharpe": 2.6522211049088726,
+      "best_score": 2.4281907589614526,
+      "tickers": [
+        "GOOGL"
+      ]
+    },
+    "informed_simple_adaptive": {
+      "wins": 9,
+      "best_sharpe": 2.7589667392723682,
+      "best_score": 2.387358973438374,
+      "tickers": [
+        "JNJ"
+      ]
+    }
+  },
+  "ticker_analysis": {
+    "JNJ": {
+      "wins": 14,
+      "strategies": [
+        "informed_simple_adaptive",
+        "rsi_crossover"
+      ]
+    },
+    "GOOGL": {
+      "wins": 36,
+      "strategies": [
+        "roc_ema_volume"
+      ]
+    }
+  },
+  "strategy_stats": {},
+  "ticker_stats": {},
+  "recommendations": [],
+  "invented_performance": {
+    "invented_strategies": 0,
+    "invented_wins": 0,
+    "original_wins": 50
+  }
+}

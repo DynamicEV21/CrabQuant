@@ -1,0 +1,15 @@
+{
+  "name": "mean_reversion_nvda",
+  "description": "Volatile mean reversion strategy using Bollinger Bands, RSI divergence, and stochastics on NVDA. Exploits oversold/overbought extremes in NVIDIA's high-volatility price action.",
+  "strategy_archetype": "mean_reversion",
+  "tickers": ["NVDA", "AMD", "SMCI"],
+  "primary_ticker": "NVDA",
+  "period": "2y",
+  "sharpe_target": 1.2,
+  "max_turns": 7,
+  "constraints": {
+    "max_parameters": 8,
+    "min_trades": 15,
+    "max_drawdown_pct": 25
+  }
+}
