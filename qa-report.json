@@ -1,0 +1,66 @@
+{
+  "project": "CrabQuant",
+  "branch": "phase5.6-overnight",
+  "timestamp": "2026-05-01T08:01:00Z",
+  "tests": {
+    "pass": 5366,
+    "fail": 0,
+    "skipped": 1,
+    "total": 5367,
+    "baseline": 5187,
+    "delta_vs_baseline": "+179 tests",
+    "new_failures_vs_baseline": 0,
+    "duration_seconds": 246.25,
+    "exit_code": 0
+  },
+  "coverage": {
+    "pct": 54,
+    "total_lines": 18823,
+    "covered_lines": 10194,
+    "missing_lines": 8629
+  },
+  "warnings": {
+    "count": 313,
+    "notable": [
+      "FutureWarning: Downcasting on .fillna/.ffill/.bfill deprecated (261 occurrences in test_param_optimizer_de.py)",
+      "DeprecationWarning: fork() in multi-threaded process (16 occurrences in test_parallel.py)",
+      "RuntimeWarning: invalid value in subtract in scipy _numdiff (12 occurrences)",
+      "UserWarning: Metric 'start' raised exception in param_optimizer.py:207"
+    ]
+  },
+  "issues": [
+    {
+      "severity": "info",
+      "description": "Test count increased from baseline 5187 to 5366 (+179). All new tests pass.",
+      "files": []
+    },
+    {
+      "severity": "low",
+      "description": "313 warnings emitted — mostly FutureWarning (pandas downcasting) and DeprecationWarning (fork in multithread). Should be addressed before pandas 3.0.",
+      "files": ["tests/refinement/test_param_optimizer_de.py", "tests/test_parallel.py"]
+    },
+    {
+      "severity": "low",
+      "description": "Coverage at 54% overall. Many strategy variant files (roc_ema_volume_*.py) have 0% coverage — appear to be dead/untested clones.",
+      "files": ["crabquant/strategies/roc_ema_volume_amzn.py", "crabquant/strategies/roc_ema_volume_cat.py", "crabquant/strategies/roc_ema_volume_gld.py", "crabquant/strategies/roc_ema_volume_googl.py", "crabquant/strategies/roc_ema_volume_googl_v2.py", "crabquant/strategies/roc_ema_volume_jnj.py", "crabquant/strategies/roc_ema_volume_jpm.py", "crabquant/strategies/roc_ema_volume_meta.py", "crabquant/strategies/roc_ema_volume_msft.py", "crabquant/strategies/roc_ema_volume_nvda.py", "crabquant/strategies/roc_ema_volume_qqq.py", "crabquant/strategies/roc_ema_volume_spy.py"]
+    },
+    {
+      "severity": "low",
+      "description": "Possibly unused imports in recently changed files: 'pathlib' and 'traceback' in scripts/batch_wf_validate_winners.py.",
+      "files": ["scripts/batch_wf_validate_winners.py"]
+    },
+    {
+      "severity": "info",
+      "description": "UserWarning about metric 'start' raising exception in param_optimizer.py:207 — non-fatal but worth investigating.",
+      "files": ["crabquant/refinement/param_optimizer.py"]
+    }
+  ],
+  "recommendations": [
+    "Address pandas FutureWarning about fillna downcasting by adding .infer_objects(copy=False) or setting pd.set_option('future.no_silent_downcasting', True) in test_param_optimizer_de.py.",
+    "Consider using multiprocessing start method 'spawn' instead of 'fork' in test_parallel.py to eliminate DeprecationWarning.",
+    "Evaluate 0% coverage strategy variant files (roc_ema_volume_*.py) — either add tests or remove if they are superseded dead code.",
+    "Investigate the 'Metric start raised exception' warning in param_optimizer.py:207.",
+    "Remove unused imports (pathlib, traceback) from scripts/batch_wf_validate_winners.py.",
+    "Clean up temporary validation scripts (validation_probe.py, verify_validation.py) if no longer needed."
+  ]
+}

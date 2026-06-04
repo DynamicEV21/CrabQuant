@@ -3,7 +3,7 @@ Three-gate pre-backtest validation for LLM-generated strategy code.
 
 Gate 1 (~0.1s): Syntax + import check via AST.
 Gate 2 (~1s):   Signal sanity — run generate_signals, verify output shape/dtype.
-Gate 3:         Placeholder, always passes (Phase 2).
+Gate 3 (~10s):  Smoke backtest — quick 6-month backtest, check metrics.
 """
 
 import ast
@@ -65,9 +65,31 @@ def gate_syntax(code: str) -> tuple[bool, list[str]]:
         elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
             defined.add(node.target.id)
 
+    # ── AST safety sanitizer (Enhancement 5) ──────────────────────────
+    # Checks for dangerous imports, blocked builtins, look-ahead bias.
+    try:
+        from crabquant.refinement.ast_sanitizer import sanitize_strategy_code
+        _safe, _violations = sanitize_strategy_code(code)
+        if _violations:
+            errors.extend(_violations)
+    except Exception:
+        pass  # Sanitizer is advisory — don't block on import failure
+
     missing = _REQUIRED_ATTRS - defined
     if missing:
         errors.append(f"Missing required: {sorted(missing)}")
+
+    # Verify generate_signals has correct signature (df, params)
+    if "generate_signals" in defined:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and node.name == "generate_signals":
+                args = [a.arg for a in node.args.args]
+                if args != ["df", "params"]:
+                    errors.append(
+                        f"generate_signals(df, params) signature expected, "
+                        f"got ({', '.join(args)})"
+                    )
+                break
 
     return (len(errors) == 0, errors)
 
@@ -170,8 +192,13 @@ def gate_signal_sanity(
 
 
 def gate_smoke_backtest(code: str, ticker: str = "SPY") -> tuple[bool, list[str]]:
-    """Gate 3: Placeholder — always passes (Phase 2)."""
-    return (True, [])
+    """Gate 3: quick 6-month smoke backtest validation.
+
+    Delegates to the real implementation in gate3_smoke.
+    """
+    from crabquant.refinement.gate3_smoke import gate_smoke_backtest as _real
+
+    return _real(code, ticker=ticker)
 
 
 def run_validation_gates(

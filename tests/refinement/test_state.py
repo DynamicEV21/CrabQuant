@@ -210,3 +210,201 @@ class TestHeartbeat:
         # Persisted
         loaded = DaemonState.load(state_path)
         assert loaded.last_heartbeat == s.last_heartbeat
+
+
+# ── additional edge cases ─────────────────────────────────────────────────
+
+
+class TestLoadEdgeCases:
+    """Edge cases for DaemonState.load()."""
+
+    def test_load_with_type_error_returns_none(self, state_path):
+        """Non-dict JSON (e.g., a list) returns None."""
+        with open(state_path, "w") as f:
+            json.dump(["not", "a", "dict"], f)
+        assert DaemonState.load(state_path) is None
+
+    def test_load_with_missing_fields_uses_defaults(self, state_path):
+        """JSON with only daemon_id uses defaults for remaining fields."""
+        with open(state_path, "w") as f:
+            json.dump({"daemon_id": "abc"}, f)
+        loaded = DaemonState.load(state_path)
+        assert loaded is not None
+        assert loaded.daemon_id == "abc"
+        assert loaded.current_wave == 0  # default
+        assert loaded.pending_mandates == []  # default
+
+    def test_load_with_extra_fields_returns_none(self, state_path):
+        """Extra fields in JSON cause TypeError, returning None."""
+        s = DaemonState.create()
+        s.current_wave = 5
+        s.save(state_path)
+
+        # Inject extra field
+        data = json.loads(open(state_path).read())
+        data["extra_field"] = "should be ignored"
+        with open(state_path, "w") as f:
+            json.dump(data, f)
+
+        loaded = DaemonState.load(state_path)
+        # cls(**data) raises TypeError for unknown kwargs
+        assert loaded is None
+
+    def test_load_with_wrong_field_type_succeeds(self, state_path):
+        """Wrong type for daemon_id still loads (Python doesn't enforce types)."""
+        with open(state_path, "w") as f:
+            json.dump({"daemon_id": 12345}, f)
+        loaded = DaemonState.load(state_path)
+        assert loaded is not None
+        assert loaded.daemon_id == 12345
+
+
+class TestSaveEdgeCases:
+    """Edge cases for DaemonState.save()."""
+
+    def test_save_no_parent_dir_raises_error(self, tmp_path):
+        """Save raises FileNotFoundError when parent dirs don't exist."""
+        deep_path = str(tmp_path / "sub" / "dir" / "state.json")
+        s = DaemonState.create()
+        import pytest as _pytest
+        with _pytest.raises(FileNotFoundError):
+            s.save(deep_path)
+
+    def test_multiple_save_load_cycles(self, state_path):
+        """Multiple save/load cycles preserve state correctly."""
+        s = DaemonState.create()
+
+        # Cycle 1
+        s.current_wave = 1
+        s.save(state_path)
+        s = DaemonState.load(state_path)
+        assert s.current_wave == 1
+
+        # Cycle 2
+        s.current_wave = 2
+        s.total_mandates_run = 5
+        s.save(state_path)
+        s = DaemonState.load(state_path)
+        assert s.current_wave == 2
+        assert s.total_mandates_run == 5
+
+    def test_save_overwrites_previous(self, state_path):
+        """Subsequent saves overwrite previous file content."""
+        s1 = DaemonState.create()
+        s1.current_wave = 1
+        s1.save(state_path)
+
+        s2 = DaemonState.create()
+        s2.current_wave = 99
+        s2.save(state_path)
+
+        loaded = DaemonState.load(state_path)
+        assert loaded.current_wave == 99
+
+
+class TestMutationEdgeCases:
+    """Edge cases for mutation methods."""
+
+    def test_record_wave_completion_nonexistent_mandate(self, state_path):
+        """Completing a mandate not in pending doesn't crash."""
+        s = DaemonState.create()
+        s.pending_mandates = ["a.json"]
+        s.record_wave_completion(
+            mandate_name="nonexistent.json",
+            status="success",
+            sharpe=2.0,
+            path=state_path,
+        )
+        # Nonexistent is still added to completed
+        assert "nonexistent.json" in s.completed_mandates
+        assert s.total_mandates_run == 1
+        # Original pending unchanged
+        assert "a.json" in s.pending_mandates
+
+    def test_record_wave_completion_clears_last_error(self, state_path):
+        """Successful completion clears previous last_error."""
+        s = DaemonState.create()
+        s.last_error = "previous error"
+        s.pending_mandates = ["a.json"]
+        s.record_wave_completion(
+            mandate_name="a.json",
+            status="success",
+            sharpe=1.0,
+            path=state_path,
+        )
+        assert s.last_error is None
+
+    def test_record_wave_start_updates_wave_number(self, state_path):
+        """record_wave_start updates current_wave on each call."""
+        s = DaemonState.create()
+        s.record_wave_start(1, "m1.json", state_path)
+        assert s.current_wave == 1
+        s.record_wave_start(5, "m2.json", state_path)
+        assert s.current_wave == 5
+
+    def test_multiple_wave_completions_accumulate(self, state_path):
+        """Multiple completions correctly accumulate counters."""
+        s = DaemonState.create()
+        s.pending_mandates = ["a.json", "b.json", "c.json"]
+
+        s.record_wave_completion("a.json", "success", 2.0, state_path)
+        s.record_wave_completion("b.json", "failed", -0.5, state_path)
+        s.record_wave_completion("c.json", "success", 0.8, state_path)
+
+        assert s.total_mandates_run == 3
+        assert len(s.completed_mandates) == 2
+        assert len(s.failed_mandates) == 1
+        assert s.total_strategies_promoted == 1  # only a.json with sharpe >= 1.5
+        assert s.pending_mandates == []
+
+    def test_mark_shutdown_persists(self, state_path):
+        """mark_shutdown persists across load."""
+        s = DaemonState.create()
+        s.mark_shutdown(state_path)
+
+        loaded = DaemonState.load(state_path)
+        assert loaded.shutdown_requested is True
+        assert loaded.daemon_id == s.daemon_id
+
+    def test_sharpe_boundary_exactly_1_5_promotes(self, state_path):
+        """Sharpe exactly 1.5 should promote (boundary)."""
+        s = DaemonState.create()
+        s.pending_mandates = ["boundary.json"]
+        s.record_wave_completion(
+            mandate_name="boundary.json",
+            status="success",
+            sharpe=1.5,
+            path=state_path,
+        )
+        assert s.total_strategies_promoted == 1
+
+    def test_sharpe_just_below_1_5_does_not_promote(self, state_path):
+        """Sharpe 1.4999 should not promote (boundary)."""
+        s = DaemonState.create()
+        s.pending_mandates = ["just_below.json"]
+        s.record_wave_completion(
+            mandate_name="just_below.json",
+            status="success",
+            sharpe=1.499,
+            path=state_path,
+        )
+        assert s.total_strategies_promoted == 0
+
+    def test_get_resume_point_returns_first(self):
+        """get_resume_point always returns the first pending mandate."""
+        s = DaemonState.create()
+        s.pending_mandates = ["first.json", "second.json", "third.json"]
+        assert s.get_resume_point() == "first.json"
+
+    def test_construction_with_explicit_args(self):
+        """DaemonState can be constructed with explicit arguments."""
+        s = DaemonState(
+            daemon_id="custom-id",
+            current_wave=10,
+            total_mandates_run=50,
+            shutdown_requested=True,
+        )
+        assert s.daemon_id == "custom-id"
+        assert s.current_wave == 10
+        assert s.total_mandates_run == 50
+        assert s.shutdown_requested is True

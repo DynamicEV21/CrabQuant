@@ -298,6 +298,7 @@ def generate_mandates(
             "seed_strategy": strategy["name"],
             "seed_params": strategy["default_params"],
             "constraints": dict(base_constraints),
+            "force_diversify": True,
         }
         mandates.append(mandate)
 
@@ -358,6 +359,7 @@ def _generate_diverse_mandates(
             "seed_strategy": strategy["name"],
             "seed_params": strategy["default_params"],
             "constraints": dict(base_constraints),
+            "force_diversify": True,
             "_diversity_score": diversity_score(
                 mandate={"seed_strategy": strategy["name"], "primary_ticker": primary_ticker},
                 winners_history=winners_history,
@@ -474,3 +476,143 @@ def save_mandates(
         paths.append(path)
 
     return paths
+
+
+# ---------------------------------------------------------------------------
+# Phase 6: Mandate Prioritization
+# ---------------------------------------------------------------------------
+
+# Default regime → archetype affinity scores (0–1).
+# Higher = better fit.  Based on domain knowledge about which strategy types
+# perform well in which market conditions.
+_REGIME_AFFINITY: dict[str, dict[str, float]] = {
+    "trending": {"trend": 0.9, "momentum": 0.8, "breakout": 0.7, "mean_reversion": 0.2},
+    "ranging": {"mean_reversion": 0.9, "breakout": 0.3, "trend": 0.2, "momentum": 0.3},
+    "high_volatility": {"breakout": 0.8, "momentum": 0.5, "trend": 0.4, "mean_reversion": 0.6},
+    "low_volatility": {"trend": 0.8, "momentum": 0.7, "breakout": 0.3, "mean_reversion": 0.5},
+    "unknown": {"trend": 0.5, "momentum": 0.5, "breakout": 0.5, "mean_reversion": 0.5},
+}
+
+
+def score_mandate(
+    mandate: dict,
+    convergence_history: dict[str, float] | None = None,
+    portfolio_gaps: dict[str, float] | None = None,
+    current_regime: str = "unknown",
+    regime_affinity: dict[str, dict[str, float]] | None = None,
+) -> float:
+    """Score a mandate on a 0–1 scale for prioritization.
+
+    Formula::
+
+        score = 0.30 * convergence_prob
+              + 0.30 * (1 - portfolio_coverage)
+              + 0.20 * regime_match
+              + 0.20 * expected_sharpe_normalized
+
+    Missing data defaults to 0.5 (neutral), so mandates without history
+    still receive a reasonable score.
+
+    Args:
+        mandate: Mandate dict with at least ``strategy_archetype``.
+        convergence_history: ``{archetype: convergence_rate}`` from
+            historical mandate runs.  Defaults to empty.
+        portfolio_gaps: ``{archetype: coverage_score}`` where 0 = no
+            promoted strategies, 1 = fully covered.  Defaults to empty.
+        current_regime: Current market regime string.
+        regime_affinity: ``{regime: {archetype: affinity}}` mapping.
+            Defaults to ``_REGIME_AFFINITY``.
+
+    Returns:
+        Float between 0.0 and 1.0.
+    """
+    convergence_history = convergence_history or {}
+    portfolio_gaps = portfolio_gaps or {}
+    regime_affinity = regime_affinity or _REGIME_AFFINITY
+
+    archetype = mandate.get("strategy_archetype", "other")
+
+    # 1. Convergence probability (0–1)
+    convergence_prob = convergence_history.get(archetype, 0.5)
+
+    # 2. Portfolio gap fill: 1 - coverage means bigger gap = higher priority
+    coverage = portfolio_gaps.get(archetype, 0.5)
+    gap_score = 1.0 - coverage
+
+    # 3. Regime match (0–1)
+    regime_map = regime_affinity.get(current_regime, regime_affinity.get("unknown", {}))
+    regime_match = regime_map.get(archetype, 0.5)
+
+    # 4. Expected Sharpe: use convergence as a proxy, normalized to 0–1
+    expected_sharpe_norm = min(convergence_prob, 1.0)
+
+    score = (
+        0.30 * convergence_prob
+        + 0.30 * gap_score
+        + 0.20 * regime_match
+        + 0.20 * expected_sharpe_norm
+    )
+
+    return round(min(max(score, 0.0), 1.0), 4)
+
+
+def prioritize_mandates(
+    mandates: list[dict],
+    convergence_history: dict[str, float] | None = None,
+    portfolio_gaps: dict[str, float] | None = None,
+    current_regime: str = "unknown",
+    regime_affinity: dict[str, dict[str, float]] | None = None,
+    api_budget_remaining: float = 1.0,
+    top_n: int | None = None,
+) -> list[dict]:
+    """Sort mandates by priority score and optionally truncate.
+
+    Each mandate gets an internal ``_priority_score`` field (float 0–1).
+    The returned list is sorted by score descending (highest priority first).
+
+    When ``api_budget_remaining`` is less than 1.0, only the top
+    ``int(len(mandates) * api_budget_remaining)`` mandates are returned,
+    simulating budget-aware truncation.
+
+    Args:
+        mandates: List of mandate dicts.
+        convergence_history: ``{archetype: convergence_rate}``.
+        portfolio_gaps: ``{archetype: coverage_score}``.
+        current_regime: Current market regime string.
+        regime_affinity: Regime → archetype affinity mapping.
+        api_budget_remaining: Fraction of mandates to keep (0–1).
+            Set to 1.0 for no truncation.
+        top_n: If set, return at most this many mandates (overrides
+            ``api_budget_remaining``).
+
+    Returns:
+        Sorted list of mandate dicts with ``_priority_score`` attached.
+        The field is stripped before JSON serialization by the caller.
+    """
+    if not mandates:
+        return []
+
+    # Score each mandate
+    scored: list[tuple[float, dict]] = []
+    for m in mandates:
+        s = score_mandate(
+            mandate=m,
+            convergence_history=convergence_history,
+            portfolio_gaps=portfolio_gaps,
+            current_regime=current_regime,
+            regime_affinity=regime_affinity,
+        )
+        m["_priority_score"] = s
+        scored.append((s, m))
+
+    # Sort by score descending; break ties by mandate name for determinism
+    scored.sort(key=lambda x: (-x[0], x[1].get("name", "")))
+
+    # Budget truncation
+    effective_n = len(scored)
+    if top_n is not None:
+        effective_n = min(top_n, effective_n)
+    elif api_budget_remaining < 1.0:
+        effective_n = max(1, int(len(scored) * api_budget_remaining))
+
+    return [m for _, m in scored[:effective_n]]

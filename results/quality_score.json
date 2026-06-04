@@ -1,0 +1,12 @@
+{
+  "cycles": [
+    {
+      "cycle": 20,
+      "attempted": 1469,
+      "passed": 760,
+      "score": 0.517358747447243,
+      "timestamp": "2026-04-30T04:22:00Z",
+      "notes": "Baseline measurement from run_history.jsonl. Includes all real mandate turns (excludes test_mandate/smoke_test). Per-turn success rate: 51.7%."
+    }
+  ]
+}

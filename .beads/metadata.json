@@ -1,0 +1,7 @@
+{
+  "backend": "dolt",
+  "database": "dolt",
+  "dolt_database": "CrabQuant",
+  "dolt_mode": "server",
+  "project_id": "212e9b29-8696-4067-afb8-10ff636ded14"
+}

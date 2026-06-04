@@ -1,0 +1,36 @@
+# Loop Registry — catalogs all available agent loops with metadata.
+#
+# This file is read by loops/run.py and loops/sandbox.py helpers.
+# When adding a new loop, add an entry here and create the loop directory.
+
+version: "1.0"
+project: CrabQuant
+description: "Agent loop system for iterative strategy optimization"
+
+loops:
+  diversity-explorer:
+    description: "Quality-diversity optimization across regimes, archetypes, and tickers"
+    metric: "composite (quality * diversity)"
+    direction: maximize
+    category: multi-objective
+    estimated_time_per_run_minutes: 15
+    created: "2026-05-03"
+    tsv_log: "diversity-explorer/gaps_log.tsv"
+
+  sharpe-optimizer:
+    description: "Iterative Sharpe optimization of near-miss strategies"
+    metric: "sharpe_ratio"
+    direction: maximize
+    category: single-objective
+    estimated_time_per_run_minutes: 15
+    created: "2026-05-03"
+    tsv_log: "sharpe-optimizer/optimization_log.tsv"
+
+  meta-analyzer:
+    description: "Cross-strategy pattern mining and knowledge generation"
+    metric: "insights_count"
+    direction: maximize
+    category: analysis
+    estimated_time_per_run_minutes: 2
+    created: "2026-05-03"
+    tsv_log: "meta-analyzer/insights_knowledge.tsv"

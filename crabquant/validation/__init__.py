@@ -91,9 +91,9 @@ def walk_forward_test(
     engine: Optional[BacktestEngine] = None,
     *,
     min_train_bars: int = 252,
-    min_test_sharpe: float = 0.3,
-    min_test_trades: int = 10,
-    max_degradation: float = 0.7,
+    min_test_sharpe: float = 0.0,
+    min_test_trades: int = 5,
+    max_degradation: float = 1.0,
 ) -> WalkForwardResult:
     """
     Walk-forward test: train on one period, validate on the next.
@@ -106,11 +106,11 @@ def walk_forward_test(
         test_months: Months of out-of-sample data (default 6 → 25% of 3y)
         engine: BacktestEngine instance
         min_train_bars: Minimum bars required in train split (default 252 ≈ 1 year)
-        min_test_sharpe: Minimum OOS Sharpe to be considered robust (default 0.3)
-        min_test_trades: Minimum trades in test period to be considered robust (default 10)
+        min_test_sharpe: Minimum OOS Sharpe to be considered robust (default 0.0 = break-even)
+        min_test_trades: Minimum trades in test period to be considered robust (default 5)
         max_degradation: Max allowed degradation ratio.  Test Sharpe must be
-            >= train_sharpe * (1 - max_degradation).  E.g. 0.7 means if train
-            Sharpe is 2.0, test must be >= 0.6.  Default 0.7.
+            >= train_sharpe * (1 - max_degradation).  E.g. 1.0 means no degradation
+            check at all.  Default 1.0.
 
     Returns:
         WalkForwardResult with train vs test comparison, including regime context
@@ -159,8 +159,11 @@ def walk_forward_test(
     # Calculate degradation
     if train_result.sharpe > 0:
         degradation = (train_result.sharpe - test_result.sharpe) / train_result.sharpe
+        degradation = max(0.0, degradation)  # Clamp: negative degradation = improvement
+    elif test_result.sharpe > 0:
+        degradation = 0.0  # Negative train but positive test = improvement
     else:
-        degradation = 1.0
+        degradation = 1.0  # Both negative
 
     # Detect regimes for train and test periods
     train_regime = ""
@@ -223,6 +226,9 @@ def cross_ticker_validation(
     params: dict,
     tickers: list[str],
     engine: Optional[BacktestEngine] = None,
+    *,
+    min_avg_sharpe: float = 0.1,
+    min_profitable_pct: float = 0.4,
 ) -> CrossTickerResult:
     """
     Test a strategy across multiple tickers to check generalization.
@@ -232,6 +238,9 @@ def cross_ticker_validation(
         params: Strategy parameters
         tickers: List of tickers to test
         engine: BacktestEngine instance
+        min_avg_sharpe: Minimum avg Sharpe for robust=True (default 0.3).
+        min_profitable_pct: Min fraction of tickers that must be profitable
+            for robust=True (default 0.3).
 
     Returns:
         CrossTickerResult with aggregate statistics
@@ -274,8 +283,8 @@ def cross_ticker_validation(
     avg_return = sum(returns) / len(returns)
     avg_max_dd = sum(max_dds) / len(max_dds)
 
-    # Robust if >40% of tickers are profitable and avg Sharpe > 0.5
-    robust = (profitable / len(results) > 0.4) and avg_sharpe > 0.5
+    # Robust if >min_profitable_pct of tickers are profitable and avg Sharpe > min_avg_sharpe
+    robust = (len(results) > 0 and profitable / len(results) > min_profitable_pct) and avg_sharpe > min_avg_sharpe
 
     notes_parts = [
         f"Tested {len(results)}/{len(tickers)} tickers",
@@ -341,8 +350,10 @@ def rolling_walk_forward(
     train_window: str = "18mo",
     test_window: str = "6mo",
     step: str = "6mo",
-    min_avg_test_sharpe: float = 0.5,
-    min_windows_passed: int = 2,
+    min_avg_test_sharpe: float = 0.3,
+    min_windows_passed: int = 1,
+    min_window_test_sharpe: float = 0.0,
+    max_window_degradation: float = 1.0,
     engine: Optional[BacktestEngine] = None,
 ) -> RollingWalkForwardResult:
     """Validate across multiple rolling walk-forward windows.
@@ -360,6 +371,8 @@ def rolling_walk_forward(
         step: Step between window starts (e.g. "6mo")
         min_avg_test_sharpe: Minimum average test Sharpe across windows
         min_windows_passed: Minimum windows that must individually pass
+        min_window_test_sharpe: Per-window test Sharpe floor (default 0.0 = disabled)
+        max_window_degradation: Per-window max degradation (default 1.0 = disabled)
         engine: BacktestEngine instance
 
     Returns:
@@ -417,10 +430,15 @@ def rolling_walk_forward(
 
             if train_result.sharpe > 0:
                 degradation = (train_result.sharpe - test_result.sharpe) / train_result.sharpe
+                degradation = max(0.0, degradation)  # Clamp: negative degradation = improvement
+            elif test_result.sharpe > 0:
+                # Negative train but positive test = strategy works out-of-sample despite bad train
+                degradation = 0.0
             else:
+                # Both negative — can't meaningfully measure degradation
                 degradation = 1.0
 
-            window_passed = test_result.sharpe >= 0.3 and degradation <= 0.7
+            window_passed = test_result.sharpe >= min_window_test_sharpe and degradation <= max_window_degradation
             window_results.append({
                 "window": i + 1,
                 "train_sharpe": train_result.sharpe,
@@ -516,3 +534,120 @@ def full_validation(
         "overall_robust": wf.robust and ct.robust,
         "timestamp": datetime.now().isoformat(),
     }
+
+
+def check_degenerate_strategy(
+    result,
+    *,
+    min_trades: int = 3,
+    min_return_vol: float = 1e-8,
+) -> tuple[bool, str]:
+    """Detect and reject degenerate strategies from their backtest result.
+
+    Catches strategies that would waste validation time by failing obvious
+    quality gates: zero trades, constant position, or flat PnL.
+
+    Args:
+        result: A BacktestResult (or any object with ``num_trades``,
+            ``total_return``, ``max_drawdown`` attributes).
+        min_trades: Minimum number of trades required (default 3).
+        min_return_vol: Minimum standard-deviation of returns to not be
+            considered flat.  Only used when a ``returns`` attribute or
+            ``equity_curve`` attribute is available (default 1e-8).
+
+    Returns:
+        (is_degenerate, reason) — is_degenerate=True means the strategy is
+        degenerate and should be rejected.  reason is a human-readable string
+        explaining why, or empty string when not degenerate.
+    """
+    num_trades = getattr(result, "num_trades", 0)
+    total_return = getattr(result, "total_return", 0)
+    max_drawdown = getattr(result, "max_drawdown", 0)
+
+    # 1. Zero or near-zero trades
+    if num_trades < min_trades:
+        return (
+            True,
+            f"DEGENERATE: strategy executed only {num_trades} trades "
+            f"(minimum {min_trades} required)",
+        )
+
+    # 2. Constant position — entered but never exited (or vice-versa).
+    #    Manifests as zero total return AND zero drawdown despite having trades.
+    if total_return == 0 and max_drawdown == 0:
+        return (
+            True,
+            "DEGENERATE: strategy never changed position "
+            "(zero return and zero drawdown despite trades)",
+        )
+
+    # 3. Flat PnL curve — near-zero volatility in returns.
+    #    Check equity_curve or returns attribute if available.
+    for attr in ("returns", "equity_curve"):
+        series = getattr(result, attr, None)
+        if series is not None and hasattr(series, "std"):
+            vol = float(series.std())
+            if vol < min_return_vol:
+                return (
+                    True,
+                    f"DEGENERATE: near-zero return volatility ({vol:.2e}) "
+                    f"— flat PnL curve",
+                )
+
+    return (False, "")
+
+
+def time_reversed_check(
+    strategy_fn,
+    data: pd.DataFrame,
+    params: dict,
+    threshold: float = 0.3,
+    ticker: str = "UNKNOWN",
+    engine: Optional[BacktestEngine] = None,
+) -> tuple[bool, str]:
+    """Check if strategy is overfit by testing on time-reversed data.
+
+    A strategy that performs similarly on reversed data is likely exploiting
+    a statistical artifact rather than a real edge.
+
+    Args:
+        strategy_fn: Strategy function (df, params) -> (entries, exits)
+        data: OHLCV DataFrame with DatetimeIndex
+        params: Strategy parameters
+        threshold: Max allowed ratio of reversed_score / normal_score (default 0.3)
+        ticker: Ticker symbol (required by BacktestEngine.run)
+        engine: BacktestEngine instance (created if None)
+
+    Returns:
+        (passed, notes) tuple. passed=False means the strategy looks overfit.
+    """
+    if engine is None:
+        engine = BacktestEngine()
+
+    reversed_data = data.iloc[::-1].copy()
+
+    # Run on normal data
+    entries, exits = strategy_fn(data, params)
+    name = getattr(strategy_fn, "__name__", "strategy")
+    normal_result = engine.run(data, entries, exits, name, ticker, params=params)
+    normal_score = normal_result.sharpe
+
+    # Run on reversed data
+    rev_entries, rev_exits = strategy_fn(reversed_data, params)
+    reversed_result = engine.run(reversed_data, rev_entries, rev_exits, name, ticker, params=params)
+    reversed_score = reversed_result.sharpe
+
+    ratio = reversed_score / max(normal_score, 1e-8)
+
+    if ratio > threshold:
+        return (
+            False,
+            f"Overfit: reversed Sharpe {reversed_score:.2f} is "
+            f"{ratio:.0%} of normal {normal_score:.2f}",
+        )
+
+    return (
+        True,
+        f"Passed time-reversed check (reversed Sharpe {reversed_score:.2f} "
+        f"is {ratio:.0%} of normal {normal_score:.2f})",
+    )

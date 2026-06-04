@@ -337,6 +337,188 @@ def _extract_slippage_results(confirm_result) -> list[SlippageResult]:
     return []
 
 
+def batch_promote_refinement_winners(
+    winners_file: str | Path = "results/winners/winners.json",
+    dry_run: bool = False,
+    strategy_dir: str | Path | None = None,
+) -> dict:
+    """Promote all already-validated refinement winners to the production registry.
+
+    Reads winners.json, finds entries with ``validation_status == "promoted"``
+    (which come from the refinement pipeline), and adds them to the production
+    ``registry.json``. This bridges the gap between the refinement pipeline
+    (which marks winners as promoted in winners.json) and the production
+    registry (which is what the production system reads).
+
+    Deduplicates by strategy_name|ticker|params_hash. Skips entries already
+    in the registry.
+
+    Args:
+        winners_file: Path to winners.json.
+        dry_run: If True, report what would be promoted without writing.
+        strategy_dir: Path to strategy .py files directory. Defaults to
+            ``crabquant/strategies/`` relative to the project root.
+
+    Returns:
+        Dict with keys: total_candidates, already_in_registry, newly_promoted,
+        skipped_no_strategy_file, skipped_no_params, errors.
+    """
+    from crabquant.strategies import STRATEGY_REGISTRY
+
+    if strategy_dir is None:
+        strategy_dir = Path(__file__).resolve().parent.parent.parent / "crabquant" / "strategies"
+    else:
+        strategy_dir = Path(strategy_dir)
+
+    winners_path = Path(winners_file)
+    if not winners_path.exists():
+        return {"total_candidates": 0, "already_in_registry": 0,
+                "newly_promoted": 0, "skipped_no_strategy_file": 0,
+                "skipped_no_params": 0, "errors": []}
+
+    winners = json.loads(winners_path.read_text())
+    candidates = [w for w in winners if w.get("validation_status") == "promoted"]
+
+    registry = _load_registry()
+    existing_keys = {entry["key"] for entry in registry}
+
+    result = {
+        "total_candidates": len(candidates),
+        "already_in_registry": 0,
+        "newly_promoted": 0,
+        "skipped_no_strategy_file": 0,
+        "skipped_no_params": 0,
+        "errors": [],
+    }
+
+    new_entries = []
+    for winner in candidates:
+        strategy_name = winner.get("strategy", "")
+        ticker = winner.get("ticker", "")
+        params = winner.get("params", {})
+
+        if not strategy_name or not ticker:
+            result["errors"].append(
+                f"Missing strategy/ticker: {winner.get('refinement_run', 'unknown')}"
+            )
+            continue
+
+        # Check if strategy .py file exists
+        strategy_file = strategy_dir / f"{strategy_name}.py"
+        if not strategy_file.exists():
+            result["skipped_no_strategy_file"] += 1
+            continue
+
+        key = _make_key(strategy_name, ticker, params)
+
+        if key in existing_keys:
+            result["already_in_registry"] += 1
+            continue
+
+        # Extract validation data
+        validation = winner.get("validation", {})
+        wf_data = validation.get("walk_forward", {})
+        ct_data = validation.get("cross_ticker", {})
+
+        # Infer regime info
+        regime_info = _infer_regime(strategy_name)
+
+        # Build registry entry
+        entry = {
+            "key": key,
+            "strategy_name": strategy_name,
+            "ticker": ticker,
+            "params_hash": _params_hash(params),
+            "params": params,
+            "promoted_at": winner.get("promoted_at", date.today().isoformat()),
+            "verdict": "ROBUST",
+            "report_file": f"{strategy_name}_{ticker}.md",
+            "source": "refinement_pipeline",
+            "refinement_run": winner.get("refinement_run", ""),
+            "refinement_turns": winner.get("refinement_turns", 0),
+            "sharpe": winner.get("sharpe", 0),
+            "total_return": winner.get("return", 0),
+            "max_drawdown": winner.get("max_drawdown", 0),
+            "trades": winner.get("trades", 0),
+            "walk_forward_robust": validation.get("walk_forward_robust", False),
+            "walk_forward_test_sharpe": wf_data.get("test_sharpe", 0),
+            "walk_forward_train_sharpe": wf_data.get("train_sharpe", 0),
+            "walk_forward_degradation": wf_data.get("degradation", 0),
+            "cross_ticker_robust": validation.get("cross_ticker_robust", False),
+        }
+
+        new_entries.append(entry)
+        existing_keys.add(key)
+
+    if dry_run:
+        result["newly_promoted"] = len(new_entries)
+        result["dry_run_entries"] = new_entries
+        return result
+
+    # Write new entries
+    if new_entries:
+        registry.extend(new_entries)
+        _save_registry(registry)
+        result["newly_promoted"] = len(new_entries)
+
+        # Also generate basic markdown reports for each
+        for entry in new_entries:
+            try:
+                _write_minimal_report(entry)
+            except Exception as e:
+                result["errors"].append(
+                    f"Report write failed for {entry['key']}: {e}"
+                )
+
+    return result
+
+
+def _write_minimal_report(entry: dict):
+    """Write a minimal markdown report for a batch-promoted entry."""
+    report_path = PRODUCTION_DIR / entry["report_file"]
+    lines = [
+        f"# {entry['strategy_name']} — {entry['ticker']}",
+        "",
+        f"**Source:** {entry.get('source', 'refinement_pipeline')}",
+        f"**Promoted:** {entry['promoted_at']}",
+        f"**Verdict:** {entry['verdict']}",
+        "",
+        "## Backtest Results",
+        "",
+        f"| Metric | Value |",
+        f"|--------|-------|",
+        f"| Sharpe | {entry.get('sharpe', 0):.4f} |",
+        f"| Return | {entry.get('total_return', 0):.2%} |",
+        f"| Max Drawdown | {entry.get('max_drawdown', 0):.2%} |",
+        f"| Trades | {entry.get('trades', 0)} |",
+        "",
+        "## Validation",
+        "",
+        f"| Check | Result |",
+        f"|-------|--------|",
+        f"| Walk-Forward Robust | {'✅' if entry.get('walk_forward_robust') else '❌'} |",
+        f"| Cross-Ticker Robust | {'✅' if entry.get('cross_ticker_robust') else '❌'} |",
+        "",
+    ]
+    if entry.get("walk_forward_test_sharpe"):
+        lines.extend([
+            f"| WF Test Sharpe | {entry['walk_forward_test_sharpe']:.4f} |",
+            f"| WF Train Sharpe | {entry['walk_forward_train_sharpe']:.4f} |",
+            f"| WF Degradation | {entry['walk_forward_degradation']:.2%} |",
+            "",
+        ])
+    lines.extend([
+        "## Parameters",
+        "",
+        f"```json",
+        json.dumps(entry.get("params", {}), indent=2),
+        "```",
+        "",
+    ])
+    PRODUCTION_DIR.mkdir(parents=True, exist_ok=True)
+    report_path.write_text("\n".join(lines))
+
+
 def _extract_period_results(confirm_result) -> list[PeriodResult]:
     """
     Extract period test results from batch_confirm notes.

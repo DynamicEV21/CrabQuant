@@ -3,27 +3,47 @@
 import importlib.util
 import sys
 import tempfile
+import traceback
 from pathlib import Path
 from types import ModuleType
 
 _REQUIRED_ATTRS = ("generate_signals", "DEFAULT_PARAMS")
 
 
+def _build_load_error_info(exc: Exception) -> dict:
+    """Build a structured error info dict from a module loading exception.
+
+    Args:
+        exc: The caught exception.
+
+    Returns:
+        Dict with error_type and error_message.
+    """
+    tb_lines = traceback.format_exception(type(exc), exc, exc.__traceback__)
+    last_lines = tb_lines[-10:] if len(tb_lines) > 10 else tb_lines
+    return {
+        "error_type": type(exc).__name__,
+        "error_message": str(exc),
+        "error_traceback": "".join(last_lines).strip(),
+    }
+
+
 def load_strategy_module(
     strategy_path: "Path | str",
     module_name: str | None = None,
-) -> "ModuleType | None":
+) -> "ModuleType | None | tuple":
     """Load a strategy .py file as a Python module.
 
     Uses importlib.util.spec_from_file_location so crabquant imports resolve
     correctly (exec() on a raw string does not set __file__, breaking relative
     imports and indicator caches).
 
-    Returns the module if all required attributes are present, else None.
+    Returns (module, None) on success, (None, error_info_dict) on failure.
+    error_info contains error_type, error_message, and error_traceback.
     """
     strategy_path = Path(strategy_path)
     if not strategy_path.exists():
-        return None
+        return None, {"error_type": "FileNotFoundError", "error_message": f"File not found: {strategy_path}", "error_traceback": ""}
 
     if module_name is None:
         module_name = f"strategy_temp_{strategy_path.stem}"
@@ -45,16 +65,21 @@ def load_strategy_module(
 
         for attr in _REQUIRED_ATTRS:
             if not hasattr(module, attr):
+                error_info = {
+                    "error_type": "AttributeError",
+                    "error_message": f"Missing required attribute: {attr}",
+                    "error_traceback": "",
+                }
                 print(f"  Module load error: Missing {attr}")
                 del sys.modules[module_name]
-                return None
+                return None, error_info
 
-        return module
+        return module, None
     except Exception as e:
         print(f"  Module load error: {e}")
         if module_name in sys.modules:
             del sys.modules[module_name]
-        return None
+        return None, _build_load_error_info(e)
 
 
 def load_module_from_code(
@@ -81,7 +106,11 @@ def load_module_from_code(
             f.write(code)
             tmp_path = Path(f.name)
 
-        return load_strategy_module(tmp_path, module_name=module_name)
+        result = load_strategy_module(tmp_path, module_name=module_name)
+        # Normalize: extract module from tuple if needed
+        if isinstance(result, tuple):
+            return result[0]  # module or None
+        return result
     except Exception as e:
         print(f"  load_module_from_code error: {e}")
         return None

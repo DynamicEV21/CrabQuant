@@ -1,7 +1,7 @@
 # CrabQuant — Roadmap
 
 **Last Updated:** 2026-04-28
-**Status:** Phase 5 (Fix the Funnel) — CURRENT
+**Status:** Phase 5.6 (Invention Accelerators) — CURRENT
 
 ---
 
@@ -14,8 +14,10 @@
 | 4 | Integration | ✅ Done |
 | 4.5 | Convergence Tuning | ✅ Done |
 | 5A | Daemon Core | ✅ Done |
-| **5** | **Fix the Funnel** | **🔴 CURRENT** |
-| 6 | Production Validation | Planned |
+| 5 | Fix the Funnel | ✅ Mostly Done |
+| **5.5** | **Regime-Aware Registry** | **✅ Done** |
+| **5.6** | **Invention Accelerators** | **✅ Done** |
+| 6 | Production Validation | 🔴 NEXT |
 | 7 | Intelligence Layer | Planned |
 | 8 | Deployment Readiness | Planned |
 | 9 | Live Trading | Far Future |
@@ -79,11 +81,201 @@ The circuit breaker (20% pass rate, grace=2 turns) fires too early, killing mand
 - **Files:** `crabquant/refinement/prompts.py`, `crabquant/refinement/context_builder.py`
 
 ### Phase 5 Success Criteria
+- [x] Rolling walk-forward replaces single-split (fixes Leak 1)
 - [ ] At least 3 refined strategies registered in STRATEGY_REGISTRY
 - [ ] Code gen failure rate < 30%
-- [ ] winners.json clearly separates invention from sweep
+- [x] winners.json clearly separates invention from sweep (source field added)
 - [ ] Convergence rate > 20% (from current ~10%)
-- [ ] measure_convergence.py reports accurate promotion rate
+- [x] measure_convergence.py reports accurate promotion rate
+
+---
+
+## Phase 5.5: Regime-Aware Registry 🔴 CURRENT
+
+**Why this phase exists:** CrabQuant's strategy catalog has 23 strategies but zero regime metadata. QuantFactory (the inspiration repo) baked regime detection into every layer — strategies knew which market conditions they thrived in, the portfolio selector picked strategies based on the current regime, and walk-forward analysis explicitly tested regime robustness. Without this, the system treats all strategies as regime-agnostic, which they aren't. This phase brings regime awareness into the registry and promotion pipeline.
+
+### What QuantFactory Did Right (That We're Adopting)
+
+1. **Regime tags on every strategy** — each strategy had `preferred_regimes`, `acceptable_regimes`, `weak_regimes` computed from per-regime Sharpe analysis
+2. **Rolling walk-forward** — multiple windows instead of a single train/test split, catching strategies that only work in specific regimes
+3. **Regime-aware promotion** — strategies flagged as regime-specific get different validation thresholds (they can be great in their regime without being universal)
+4. **Dict-based registry entries** — extensible metadata vs rigid tuples
+
+### What We Left Behind
+
+1. **Full mode system (day trading / swing trading)** — too complex, added modes we'd never use. CrabQuant's mandate system is simpler and more flexible
+2. **Web UI** — premature. CLI + Telegram first, UI when we have something worth dashboarding
+3. **Strategy factory patterns** — QuantFactory's abstract base classes were over-engineered for 23 strategies. Flat function-based strategies stay
+4. **Full portfolio optimizer** — too early. We need more winners before optimizing allocation between them
+
+### Deliverables
+
+#### 5.5.1 Regime Tagger Module ✅ Done
+- **New file:** `crabquant/refinement/regime_tagger.py`
+- `compute_strategy_regime_tags(strategy_fn, params, tickers)` → `{preferred_regimes, acceptable_regimes, weak_regimes, regime_sharpes, is_regime_specific}`
+- `get_regime_strategies(regime, registry, min_sharpe)` → filter registry by regime compatibility
+- Graceful fallback: returns empty tags on data errors
+
+#### 5.5.2 Rolling Walk-Forward in Promotion ✅ Done
+- **Modified:** `crabquant/refinement/promotion.py`
+- `run_full_validation_check` now calls `rolling_walk_forward` (4 windows, 60/40 split) instead of single-split `walk_forward_test`
+- Return dict includes `rolling_windows`, `avg_test_sharpe`, `worst_window_sharpe`, `regime_shift_windows`
+- Detects regime-specific strategies: if a strategy passes in its preferred regime but fails in others, still promotes with a warning
+
+#### 5.5.3 Registry Format Migration ✅ Done
+- **New file:** `crabquant/strategies/_registry_compat.py` — backward-compat shim
+- `register_strategy()` now stores dict entries with regime tags
+- `_registry_compat` helpers (`get_fn`, `get_defaults`, `get_regime_tags`, etc.) handle both tuple and dict formats
+- Existing 23 tuple entries continue to work; newly promoted entries are dicts
+- **Modified:** `crabquant/refinement/context_builder.py` — updated to use compat helpers
+
+#### 5.5.4 VALIDATION_CONFIG Update ✅ Done
+- **Modified:** `crabquant/refinement/config.py`
+- Rolling WF defaults: `n_windows=4`, `train_pct=0.6`, `min_test_sharpe=0.5`
+- Soft promotion threshold: `soft_promote_test_sharpe=0.3` (registers with `needs_ongoing_validation` flag)
+- Per-regime thresholds: regime-specific strategies get lower cross-ticker bar
+
+#### 5.5.5 Test Coverage ✅ Done
+- **New:** `tests/refinement/test_regime_tagger.py` (5 tests)
+- **New:** `tests/refinement/test_registry_compat.py` (13 tests)
+- **Updated:** `tests/refinement/test_promotion.py` (rolling WF mocks, regime tag mocks)
+- **Updated:** `tests/refinement/test_e2e_phase3.py` (rolling WF mocks)
+- **Total:** 932 tests pass, 0 regressions
+
+### Remaining Work (Phase 5.5)
+
+#### 5.5.6 Regime-Aware Scanner (Planned)
+- Modify `production/scanner.py` to filter strategies by detected current regime
+- Only run strategies whose `preferred_regimes` include the current market regime
+- Fall back to regime-agnostic strategies when regime is unclear
+
+#### 5.5.7 Portfolio Regime Router (Planned)
+- New module: `production/regime_router.py`
+- Reads current regime from `regime.py` detection
+- Selects top-N strategies from STRATEGY_REGISTRY that match current regime
+- Weight allocation by regime Sharpe scores
+
+### Phase 5.5 Success Criteria
+- [x] Regime tags computed on promotion
+- [x] Registry entries carry regime metadata
+- [x] Rolling walk-forward replaces single split
+- [x] Backward compatibility maintained (tuple + dict)
+- [ ] Scanner filters by regime
+- [ ] Portfolio router selects by current regime
+- [ ] At least 1 strategy promoted with regime tags (requires daemon run)
+
+---
+
+## Phase 5.6: Invention Accelerators ✅ Done
+
+**Why this phase exists:** Live runs revealed the core bottleneck — the LLM can hit Sharpe 1.0-1.7 in-sample but collapses to ~0 out-of-sample. The refinement loop wastes 2-3 turns on garbage strategies before finding something viable, and each successful strategy fails rolling walk-forward validation. Three acceleration features address this: cross-run learning (smarter first turns), parallel invention (explore more strategy space), and soft promotion (stop throwing away good-enough strategies).
+
+### Architecture: Modes + Toggles
+
+Users pick a **mode preset** or configure individual **toggles** in mandates/config:
+
+**Mode Presets:**
+| Mode | cross_run | parallel | soft_promote | Description |
+|------|-----------|----------|-------------|-------------|
+| `conservative` | off | off | off | Current behavior — strict sequential, strict promotion |
+| `explorer` | on | on | on | Maximum discovery — learn from history, spawn variants, keep candidates |
+| `fast` | on | off | off | Quick wins — smarter prompts, sequential, strict promotion |
+| `balanced` (default) | on | on | off | Smart + parallel but still strict on promotion |
+
+**Individual Toggles (override mode):**
+```json
+{
+  "mode": "balanced",
+  "toggles": {
+    "cross_run_learning": true,
+    "parallel_invention": true,
+    "parallel_count": 3,
+    "soft_promote": false,
+    "soft_promote_min_sharpe": 0.5,
+    "soft_promote_min_windows": 2
+  }
+}
+```
+
+### Deliverables
+
+#### 5.6.1 Cross-Run Learning ✅ Done
+- **Problem:** Each mandate starts blind — the LLM invents from scratch, wasting 2-3 turns on basic patterns
+- **Fix:** Feed top winners from `results/winners/winners.json` as example strategies into the LLM context
+  - On turn 1: inject 2-3 winning strategies with similar archetype/ticker as code examples
+  - On refinement turns: include "what worked for similar mandates" section
+  - Rank winners by Sharpe × sqrt(trades) to favor robust strategies over curve-fits
+  - Deduplicate by strategy_hash to avoid showing near-identical variants
+- **Files:** `crabquant/refinement/context_builder.py`, `crabquant/refinement/prompts.py`
+- **Success:** Turn 1 average Sharpe improves by 50%+ (from ~0.0 to ~0.5+)
+
+#### 5.6.2 Parallel Strategy Spawning ✅ Done
+- **Problem:** Sequential invention explores one path at a time; 2-3 turns wasted on dead ends
+- **Fix:** On turn 1, spawn N strategies in parallel (default 3), backtest all, keep the best
+  - Each parallel strategy gets a slightly different prompt variant (different indicator focus, different entry logic style)
+  - Best strategy by composite score proceeds to refinement loop
+  - Falls back to sequential if `parallel_count: 1`
+- **Files:** `scripts/refinement_loop.py`, `crabquant/refinement/prompts.py` (prompt variants)
+- **Success:** Discovery phase cut from 4-6 min to ~2 min, higher best-Sharpe on turn 1
+
+#### 5.6.3 Soft-Promote Tier ✅ Done
+- **Problem:** Binary pass/fail promotion throws away strategies that are good but not perfect
+- **Fix:** Add "candidate" promotion tier for near-misses
+  - Full promote: rolling WF passes, registered in STRATEGY_REGISTRY (current behavior)
+  - Soft promote: avg_test_sharpe >= 0.5 AND 2+ windows passed → goes to `results/candidates/` with `needs_ongoing_validation` flag
+  - Candidates can be promoted to full status after paper trading or additional validation windows
+  - Regime-specific strategies get lower soft-promote threshold (avg_test_sharpe >= 0.3)
+- **Files:** `crabquant/refinement/promotion.py`, `crabquant/refinement/config.py`, `results/candidates/`
+- **Success:** 5+ candidate strategies accumulated from 50 mandates (vs 0 full promotes)
+
+#### 5.6.4 Anti-Overfitting Prompt Engineering ✅ Done
+- **Problem:** LLM keeps generating curve-fit strategies with high in-sample Sharpe but poor out-of-sample
+- **Fix:** Enhanced prompts with BAD vs GOOD strategy examples, per-failure-mode actionable guidance, and per-window rolling WF breakdown
+- **Files:** `crabquant/refinement/prompts.py`, `crabquant/refinement/llm_api.py`
+- **Result:** LLM now receives inline warnings for `too_few_trades_for_validation`, `validation_failed` (with per-window breakdown), curve-fitting risk tiers
+
+#### 5.6.5 Strategy Archetype Templates ✅ Done
+- **Problem:** LLM starts from scratch each time, reinventing basic patterns
+- **Fix:** 4 archetype templates (mean_reversion, momentum, breakout, volatility) with skeleton code, anti-patterns, regime affinity
+- **Files:** `crabquant/refinement/archetypes.py`, `crabquant/refinement/prompts.py`
+- **Result:** Mandate can specify `strategy_archetype` to guide turn 1 generation
+
+#### 5.6.6 Negative Example Feedback Loop ✅ Done
+- **Problem:** LLM repeats the same mistakes across turns (wrong indicator APIs, restrictive conditions)
+- **Fix:** `format_previous_attempts_section()` replaces raw JSON dump with readable, guidance-rich output. Per-window breakdown for validation failures, curve-fitting warnings for low trade counts.
+- **Files:** `crabquant/refinement/prompts.py`, `crabquant/refinement/llm_api.py`
+
+#### 5.6.7 Composite Score for Best-Strategy Tracking ✅ Done
+- **Problem:** Best-strategy tracking used raw Sharpe, rewarding 3-trade curve-fits over robust 60-trade strategies
+- **Fix:** `compute_composite_score()`: sharpe × sqrt(trades/20) × (1 - |max_drawdown|). Applied to all 4 tracking points in refinement loop.
+- **Files:** `crabquant/refinement/prompts.py`, `scripts/refinement_loop.py`, `crabquant/refinement/schemas.py`
+
+#### 5.6.8 Stagnation Recovery ✅ Done
+- **Problem:** LLM gets stuck in indicator ruts (100% EMA usage across all turns) or plateaus
+- **Fix:** 7 trap types detected (zero_sharpe, low_sharpe_plateau, mid_sharpe_trap, high_sharpe_few_trades, validation_loop, action_loop, indicator_rut). Each has severity classification and targeted recovery instructions. Flows through context → prompt.
+- **Files:** `crabquant/refinement/stagnation.py`, `crabquant/refinement/context_builder.py`, `crabquant/refinement/llm_api.py`
+
+#### 5.6.9 Multi-Ticker Backtest ✅ Done
+- **Problem:** Strategies that look great on one ticker may be overfit
+- **Fix:** After primary backtest, run on secondary tickers. Results feed into LLM context as "multi-ticker feedback".
+- **Files:** `scripts/refinement_loop.py`, `crabquant/refinement/diagnostics.py`, `crabquant/refinement/config.py`
+
+#### 5.6.10 Feature Importance Feedback ✅ Done
+- **Problem:** LLM doesn't know which indicators in its strategy are actually useful
+- **Fix:** After backtest, analyze 18 indicators' correlation with forward returns. Classify as contributing/harmful/neutral. Feed formatted analysis to LLM on next turn.
+- **Files:** `crabquant/refinement/feature_importance.py`, `scripts/refinement_loop.py`, `crabquant/refinement/schemas.py`, `crabquant/refinement/context_builder.py`, `crabquant/refinement/prompts.py`
+
+### Phase 5.6 Success Criteria
+- [x] Cross-run learning: turn 1 average Sharpe > 0.5 (from ~0.0 baseline)
+- [x] Parallel invention: 8 variant foci on turn 1, composite ranking
+- [x] Soft promote: candidate pool infrastructure ready, soft_promote() wired
+- [x] Mode system: all 4 presets work (conservative/fast/explorer/balanced), individual toggles override
+- [x] Anti-overfitting: BAD/GOOD examples, failure guidance, window breakdown
+- [x] Archetypes: 4 templates with skeleton code, anti-patterns, regime affinity
+- [x] Composite score: sharpe × √(trades/20) × (1 - |dd|) for best-strategy tracking
+- [x] Stagnation recovery: 7 trap types, indicator diversity tracking
+- [x] Feature importance: 18 indicators, correlation-based analysis, LLM feedback loop
+- [x] Tests: 1337 passing (from 1033 baseline), 0 regressions
 
 ---
 

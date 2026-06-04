@@ -1,0 +1,222 @@
+{
+  "reviews": [
+    {
+      "timestamp": "2026-05-01T15:15:00Z",
+      "review_number": 8,
+      "status": "ON COURSE",
+      "directives_issued": [
+        {"id": 23, "action": "run_mandates", "target": "volatility_amd, multi_indicator_goog, mean_reversion_meta", "budget_cycles": 3, "description": "Tech Lead MUST run 3 mandates. This is not optional. Pipeline validated at 66.7% convergence. Execute now."},
+        {"id": 24, "action": "update_status", "target": "orchestrator-status.json", "budget_cycles": 0, "description": "Update orchestrator-status.json every cycle. Currently 10.75h stale."},
+        {"id": 25, "action": "fix_ops_cron", "target": "Operations health check", "budget_cycles": 0, "description": "Ops KPIs 5.3h stale. Verify Operations cron is scheduled. Manually run health check if needed."}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Fix cron infrastructure (Directive 20)", "outcome": "blocked", "evidence": "Correctly requires CEO manual intervention."},
+        {"directive": "Run 3 mandates (Directive 21)", "outcome": "refused", "evidence": "Tech Lead marked mandates as 'NOT Tech Lead job'. Zero mandates executed."},
+        {"directive": "Clean dead code (Directive 22)", "outcome": "completed", "evidence": "Deleted validation_probe.py, verify_validation.py. Fixed pandas FutureWarnings."}
+      ],
+      "key_findings": [
+        "Tech Lead back online — 3 workers spawned, all merged successfully",
+        "Test count grew 5187 → 5366 (+179 tests, all passing)",
+        "Directive 21 (mandates) explicitly refused by Tech Lead — execution gap",
+        "Ops KPIs 5.3h stale — Operations cron may not be firing",
+        "Coverage discrepancy: Review #7 reported 81%, QA measures 54%",
+        "Primary KPIs slightly improving: mandate success 38.4% → 39.4%",
+        "No new mandates in 4.5h despite validated pipeline",
+        "5366 tests pass, 0 failures, 1 skipped — stable"
+      ],
+      "orchestrator_compliance": "partial"
+    },
+    {
+      "timestamp": "2026-05-01T10:29:00Z",
+      "review_number": 7,
+      "status": "RECOVERING",
+      "directives_issued": [
+        {"id": 20, "action": "fix_cron_infrastructure", "target": "crontab + daemon module", "budget_cycles": 0, "description": "CEO action: Fix crontab schedules for all 3 agents. Create/fix crabquant.daemon module. Check agent logs for crash patterns."},
+        {"id": 21, "action": "run_mandates", "target": "AMD, GOOG, META", "budget_cycles": 4, "description": "Pipeline validated at 66.7% convergence. Run 3 new diverse mandates to build volume."},
+        {"id": 22, "action": "cleanup", "target": "dead code + FutureWarnings", "budget_cycles": 0, "description": "Archive validation_probe.py, verify_validation.py. Fix 322 pandas FutureWarnings in signal_analysis.py."}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Resume Tech Lead execution (Directive 17)", "outcome": "ignored", "evidence": "Tech Lead unresponsive 6.7h. No crontab — agent not firing. Ops rescued instead."},
+        {"directive": "Restart daemon (Directive 18)", "outcome": "blocked", "evidence": "crabquant.daemon module doesn't exist — cannot import or start."},
+        {"directive": "Commit stale state (Directive 19)", "outcome": "completed", "evidence": "Commit 1688295 — all files committed."}
+      ],
+      "key_findings": [
+        "Operations SRE heroically executed all 3 pending mandates when Tech Lead stalled",
+        "2/3 mandates promoted: mean_reversion_aapl (2.15), trend_tsla (1.92) — pipeline VALIDATED",
+        "Coverage jumped 54% → 81% — massive improvement",
+        "Mandate convergence 20% → 33% — first improvement in 5+ reviews",
+        "Tech Lead unresponsive 6.7h — root cause: no crontab configured",
+        "crabquant.daemon module doesn't exist — cannot be restarted",
+        "5182 tests pass, 0 failures — stable",
+        "API budget healthy: $8.86 total, $0.33/2h, 0% error rate"
+      ],
+      "orchestrator_compliance": "none"
+    },
+    {
+      "timestamp": "2026-05-01T04:20:00Z",
+      "review_number": 5,
+      "status": "NEEDS ATTENTION",
+      "directives_issued": [
+        {"id": 14, "action": "restart_daemon_run_mandates", "target": "mean_reversion_aapl, volume_btc, trend_tsla", "budget_cycles": 3, "description": "Daemon NOT running. Restart daemon or run mandates directly via refinement_loop.py. 3 pending mandates from Directive 11."},
+        {"id": 15, "action": "investigate", "target": "daemon down", "budget_cycles": 1, "description": "Investigate why daemon stopped (27 mandates run, then stopped). PID file? Crash? Graceful shutdown?"},
+        {"id": 16, "action": "investigate", "target": "ops-kpis.json staleness", "budget_cycles": 0, "description": "ops-kpis.json 86 min stale — Operations cron should compute every 5 min"}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Run 4 mandates (Directive 11)", "outcome": "partial", "evidence": "1/4 ran (breakout_spy — Sharpe 1.14, not converged). 3 blocked — Tech Lead self-blocked on mandate execution."},
+        {"directive": "Use param_optimizer early (Directive 12)", "outcome": "pending", "evidence": "No mandates ran to evaluate. Carry forward."},
+        {"directive": "Stop expanding tests (Directive 13)", "outcome": "following", "evidence": "Test count 5182 → 5187 — marginal, within acceptable range."}
+      ],
+      "key_findings": [
+        "Daemon NOT running — root cause of mandate execution stall",
+        "Tech Lead completed excellent infrastructure work (DE optimizer + AST sanitizer wiring + 14-enhancement audit)",
+        "3/4 Directive 11 mandates never ran — Tech Lead incorrectly self-blocked",
+        "Operations KPIs 86 min stale — possible cron gap",
+        "All primary KPIs flat for 3 consecutive reviews — no mandates = no data = no improvement",
+        "5182 tests pass, 0 failures, 1 skipped — stable",
+        "API budget healthy: $7.90 total, $1.51/2h, 0% error rate"
+      ],
+      "orchestrator_compliance": "good_infra_poor_execution"
+    },
+    {
+      "timestamp": "2026-05-01T07:49:00Z",
+      "review_number": 6,
+      "status": "CRITICAL",
+      "directives_issued": [
+        {"id": 17, "action": "resume_tech_lead_execution", "target": "pending mandates + daemon restart", "budget_cycles": 2, "description": "Tech Lead completely stalled 4.5h. Resume immediately: run 2/3 pending mandates via refinement_loop.py, restart daemon, update orchestrator-status.json."},
+        {"id": 18, "action": "restart_daemon", "target": "crabquant.daemon", "budget_cycles": 1, "description": "Daemon NOT running. Zombies killed by Ops. Restart daemon with python -m crabquant.daemon."},
+        {"id": 19, "action": "commit_stale_state", "target": "uncommitted files", "budget_cycles": 0, "description": "Commit volume_btc.json mandate file + modified results/ files + AGENTS.md."}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Restart daemon + run 3 mandates (Directive 14)", "outcome": "ignored", "evidence": "Zero action. Daemon still down. 0/3 mandates executed in 3.5h since directive issued."},
+        {"directive": "Investigate daemon down (Directive 15)", "outcome": "ignored", "evidence": "No investigation by Tech Lead. Operations partially handled (killed zombies)."},
+        {"directive": "Fix ops-kpis staleness (Directive 16)", "outcome": "ignored", "evidence": "KPIs computed at 05:24 by Ops, but now 2h25m stale again."}
+      ],
+      "key_findings": [
+        "Tech Lead COMPLETELY UNRESPONSIVE for 4h34m — last output 03:15 UTC",
+        "ALL 3 Directives from Review #5 completely ignored — zero response in 3.5h",
+        "Daemon dead — 6 zombie processes killed by Operations at 05:25 UTC",
+        "No mandate execution in 5+ hours — system producing zero alpha research",
+        "PRIMARY KPIs flat for 4 consecutive reviews",
+        "5182 tests pass, 0 failures, 1 skipped — stable",
+        "Coverage 54%, API budget healthy ($7.90 total, $0 in last 2h)",
+        "Operations escalated to RED at 05:25 UTC",
+        "Hermes gateway running fine (pid 522, Telegram connected)"
+      ],
+      "orchestrator_compliance": "none"
+    },
+    {
+      "timestamp": "2026-05-01T01:00:00Z",
+      "review_number": 4,
+      "status": "ON COURSE",
+      "directives_issued": [
+        {"id": 11, "action": "run_mandates", "target": "breakout_spy, mean_reversion_aapl, volume_btc, trend_tsla", "budget_cycles": 4, "description": "Run 4 new mandates to validate pipeline enhancements — system idle, need execution data"},
+        {"id": 12, "action": "behavioral", "target": "param_optimizer usage", "budget_cycles": 0, "description": "Use param_optimizer early in refinement loops (turn 2-3), not as last resort"},
+        {"id": 13, "action": "behavioral", "target": "test expansion", "budget_cycles": 0, "description": "Stop expanding test count without corresponding feature/fix work (+834 tests in 2.5h violates anti-patterns)"}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Commit staged work", "outcome": "completed", "evidence": "Commits 689c3fe, 3376c9c — all 12 files committed and pushed"},
+        {"directive": "Run 2 mandates (nvda, msft)", "outcome": "completed", "evidence": "nvda: Sharpe 1.21 (7t), msft: Sharpe 1.05 (7t). 0/2 converged. Total 1/5 = 20% convergence."},
+        {"directive": "Fix KPI rotation", "outcome": "verified_working", "evidence": "prev 00:46 UTC, current 00:52 UTC — different timestamps, rotation confirmed"},
+        {"directive": "Do NOT modify VISION.md", "outcome": "following", "evidence": "No VISION.md changes in git log"}
+      ],
+      "key_findings": [
+        "All Review #3 directives completed — orchestrator compliance EXCELLENT",
+        "Orchestrator idle for 87 min after completing tasks — Director planning gap",
+        "Test count jumped +834 (4353→5187) in 2.5h — potential anti-pattern violation",
+        "KPI rotation verified working (different timestamps in prev/current)",
+        "No mandates run this period — need execution tempo to validate 14 pipeline enhancements",
+        "Mandate convergence stuck at 20% (1/5) — below 50% target, but need more data",
+        "5180 tests pass, 0 failures, all QA gates green",
+        "API budget healthy: $6.39 total, $0.93/2h, 0% error rate"
+      ],
+      "orchestrator_compliance": "excellent",
+      "qa_results": {
+        "tests": "5180 passed, 1 skipped, 2 deselected",
+        "imports": "OK",
+        "orchestrator_status": "non-null, updated 00:34 UTC",
+        "git_state": "clean (4 state files modified only)"
+      }
+    },
+    {
+      "timestamp": "2026-04-30T22:15:00Z",
+      "review_number": 3,
+      "status": "ON COURSE",
+      "directives_issued": [
+        {"id": 7, "action": "commit", "target": "12 staged files", "budget_cycles": 0, "description": "Commit all staged work immediately — governance violation"},
+        {"id": 8, "action": "run_mandates", "target": "mandates/volume_nvda.json, momentum_msft.json", "budget_cycles": 2, "description": "Run remaining 2 mandates from Directive 2"},
+        {"id": 9, "action": "fix_bug", "target": "~/.hermes/scripts/crabquant-health-check.py", "budget_cycles": 1, "description": "Fix KPI prev/current rotation — 3rd time flagged, escalates if not fixed"},
+        {"id": 10, "action": "behavioral", "target": "VISION.md", "budget_cycles": 0, "description": "Do NOT modify VISION.md — it is a protected file (CEO-only)"}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Fix too_few_trades prompts", "outcome": "completed", "evidence": "Commit 3a93513 — threshold 20→10 across classifier, estimator, context builder"},
+        {"directive": "Run 3 mandates", "outcome": "in_progress", "evidence": "1/3 done — mean_reversion_xom SUCCESS (Sharpe 1.73, 21 trades, turn 2)"},
+        {"directive": "Fix KPI rotation bug", "outcome": "not_done", "evidence": "prev/current still written 5 min apart with same values"},
+        {"directive": "Update status file", "outcome": "following", "evidence": "orchestrator-status.json now has non-null last_updated"},
+        {"directive": "Commit + update VISION.md", "outcome": "partial", "evidence": "12 files staged but not committed. VISION.md is protected — directive was inappropriate."}
+      ],
+      "key_findings": [
+        "too_few_trades fix VALIDATED — mean_reversion_xom converged with 21 trades (was 56% failure mode)",
+        "Mandate success rate improving: 32.6% → 36.9%",
+        "winners_with_wf bug fixed: 0 → 136/188",
+        "12 files staged but uncommitted — governance violation",
+        "KPI prev/current rotation STILL broken after 3 reviews — escalation threshold",
+        "4353 tests pass, 0 failures"
+      ],
+      "orchestrator_compliance": "improving",
+      "qa_results": {
+        "tests": "4353 passed, 0 failures, 1 skipped",
+        "imports": "OK",
+        "orchestrator_status": "non-null, meaningful",
+        "git_state": "12 staged files uncommitted"
+      }
+    },
+    {
+      "timestamp": "2026-04-30T20:25:00Z",
+      "review_number": 2,
+      "status": "OFF COURSE",
+      "directives_issued": [
+        {"id": 1, "action": "fix_prompt", "target": "crabquant/refinement/context_builder.py", "budget_cycles": 1, "description": "Fix too_few_trades — add higher trade frequency guidance to invention prompts"},
+        {"id": 2, "action": "run_mandates", "target": "mandates/mean_reversion_xom.json, volume_nvda.json, momentum_msft.json", "budget_cycles": 2, "description": "Run 3 mandates targeting higher trade frequency"},
+        {"id": 3, "action": "fix_bug", "target": "~/.hermes/scripts/crabquant-health-check.py", "budget_cycles": 1, "description": "Fix KPI computation: winners_with_wf bug and prev/current rotation"},
+        {"id": 4, "action": "behavioral", "target": ".hermes/plans/orchestrator-status.json", "budget_cycles": 0, "description": "Update status file every cycle"},
+        {"id": 5, "action": "cleanup", "target": "results/*.json, VISION.md", "budget_cycles": 0, "description": "Commit uncommitted files, update VISION.md metrics"}
+      ],
+      "previous_directive_outcomes": [
+        {"directive": "Run 3 real mandates", "outcome": "completed", "evidence": "momentum_spy (7t, failed), breakout_tsla (7t, Sharpe 1.54 success), volume_aapl (7t, failed)"},
+        {"directive": "Commit and push uncommitted work", "outcome": "partial", "evidence": "Committed cleanup (7966bdd), but 3 result files still uncommitted"},
+        {"directive": "Fix vectorbt mock in conftest", "outcome": "completed", "evidence": "Commit 7966bdd"},
+        {"directive": "Stop expanding tests", "outcome": "following", "evidence": "No test-related commits in recent log"},
+        {"directive": "Update VISION.md metrics", "outcome": "ignored", "evidence": "VISION.md still shows April 29 date and old metrics"}
+      ],
+      "key_findings": [
+        "too_few_trades is now the #1 failure mode at 56% (up from 24%), displacing low_sharpe",
+        "KPI winners_with_wf reports 0 but 135/187 winners actually have WF data — health check script bug",
+        "KPI prev/current rotation broken — both files written 1 second apart, no trend data",
+        "Real mandate success rate is 14.1%, not 32.6% (KPI inflated by 5305 synthetic test entries)",
+        "Orchestrator not updating orchestrator-status.json — makes compliance tracking impossible",
+        "Commit message for momentum_spy claims Sharpe 2.13 but run_history shows max 1.01 — potential fabrication"
+      ],
+      "orchestrator_compliance": "following"
+    },
+    {
+      "timestamp": "2026-04-30T17:30:00Z",
+      "review_number": 1,
+      "status": "OFF COURSE",
+      "directives_issued": [
+        {"id": 1, "action": "run_mandates", "target": "mandates/momentum_spy.json, breakout_tsla.json, volume_aapl.json", "budget_cycles": 2},
+        {"id": 2, "action": "cleanup", "target": "git working tree", "budget_cycles": 0},
+        {"id": 3, "action": "fix_bug", "target": "test_param_optimizer.py", "budget_cycles": 1},
+        {"id": 4, "action": "behavioral", "target": "test expansion", "budget_cycles": 0},
+        {"id": 5, "action": "cleanup", "target": "VISION.md", "budget_cycles": 0}
+      ],
+      "previous_directive_outcomes": [],
+      "key_findings": [
+        "System spent 48h on infrastructure instead of running mandates",
+        "Only 4/182 winners have meaningful rolling WF data",
+        "173/182 winners promoted on raw backtest Sharpe alone"
+      ],
+      "orchestrator_compliance": "following"
+    }
+  ],
+  "created_at": "2026-04-30T19:00:00Z"
+}

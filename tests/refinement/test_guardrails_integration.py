@@ -179,3 +179,137 @@ class TestRunGuardrailsCheck:
         assert hasattr(integration, "violations")
         assert hasattr(integration, "warnings")
         assert hasattr(integration, "score_adjustment")
+
+
+# ── select_guardrail_config additional ────────────────────────────────────
+
+
+class TestSelectGuardrailConfigEdgeCases:
+    """Additional edge cases for config selection."""
+
+    def test_iteration_zero_returns_aggressive(self):
+        """Iteration 0 (progress=0) should return aggressive."""
+        cfg = select_guardrail_config(iteration=0, max_turns=7)
+        assert cfg.min_trades == 5
+
+    def test_max_turns_zero_returns_moderate(self):
+        """max_turns=0 returns moderate as default."""
+        cfg = select_guardrail_config(iteration=0, max_turns=0)
+        assert cfg.min_trades == 15
+
+    def test_exact_25_percent_boundary(self):
+        """Iteration exactly at 25% returns aggressive (<= 0.25)."""
+        cfg = select_guardrail_config(iteration=2, max_turns=8)  # 2/8 = 0.25
+        assert cfg.min_trades == 5  # aggressive
+
+    def test_just_above_25_percent(self):
+        """Iteration just above 25% returns moderate."""
+        cfg = select_guardrail_config(iteration=3, max_turns=8)  # 3/8 = 0.375
+        assert cfg.min_trades == 15  # moderate
+
+    def test_exact_75_percent_boundary(self):
+        """Iteration exactly at 75% returns moderate (<= 0.75)."""
+        cfg = select_guardrail_config(iteration=6, max_turns=8)  # 6/8 = 0.75
+        assert cfg.min_trades == 15  # moderate
+
+    def test_just_above_75_percent(self):
+        """Iteration just above 75% returns conservative."""
+        cfg = select_guardrail_config(iteration=7, max_turns=8)  # 7/8 = 0.875
+        assert cfg.min_trades == 30  # conservative
+
+    def test_explicit_moderate_preset(self):
+        """Explicit moderate preset works."""
+        cfg = select_guardrail_config(preset="moderate")
+        assert cfg.min_trades == 15
+
+    def test_explicit_aggressive_preset(self):
+        """Explicit aggressive preset works."""
+        cfg = select_guardrail_config(preset="aggressive")
+        assert cfg.min_trades == 5
+
+    def test_unknown_preset_falls_through(self):
+        """Unknown preset name triggers auto-selection."""
+        cfg = select_guardrail_config(iteration=0, max_turns=7, preset="unknown")
+        # Falls through to auto-selection; iteration=0 → aggressive
+        assert cfg.min_trades == 5
+
+
+# ── _config_preset_name ──────────────────────────────────────────────────
+
+
+class TestConfigPresetName:
+    """Test the _config_preset_name helper."""
+
+    def test_identifies_aggressive(self):
+        from crabquant.refinement.guardrails_integration import _config_preset_name
+        cfg = GuardrailConfig.aggressive()
+        assert _config_preset_name(cfg) == "aggressive"
+
+    def test_identifies_moderate(self):
+        from crabquant.refinement.guardrails_integration import _config_preset_name
+        cfg = GuardrailConfig.moderate()
+        assert _config_preset_name(cfg) == "moderate"
+
+    def test_identifies_conservative(self):
+        from crabquant.refinement.guardrails_integration import _config_preset_name
+        cfg = GuardrailConfig.conservative()
+        assert _config_preset_name(cfg) == "conservative"
+
+    def test_custom_config(self):
+        from crabquant.refinement.guardrails_integration import _config_preset_name
+        cfg = GuardrailConfig(min_trades=100, min_sharpe=5.0)
+        assert _config_preset_name(cfg) == "custom"
+
+
+# ── run_guardrails_check additional ──────────────────────────────────────
+
+
+class TestRunGuardrailsCheckEdgeCases:
+    """Additional edge cases for the main check function."""
+
+    def test_config_overrides_preset(self):
+        """When both config and preset are given, config wins."""
+        cfg = GuardrailConfig(min_trades=5, min_sharpe=0.5, max_drawdown=0.30)
+        result = make_result()
+        integration = run_guardrails_check(result, config=cfg, preset="conservative")
+        # Config matches aggressive preset exactly
+        assert integration.config_preset == "aggressive"
+        # Preset was ignored - result should pass with aggressive thresholds
+        assert integration.passed is True
+
+    def test_default_preset_is_unknown(self):
+        """GuardrailsIntegrationResult default config_preset is 'unknown'."""
+        r = GuardrailsIntegrationResult(
+            passed=False, violations=[], warnings=[], score_adjustment=0.0
+        )
+        assert r.config_preset == "unknown"
+
+    def test_multiple_violations_counted(self):
+        """Multiple failing metrics produce multiple violations."""
+        result = make_result(sharpe=-1.0, num_trades=0, max_drawdown=-0.90)
+        integration = run_guardrails_check(result, preset="conservative")
+        assert len(integration.violations) >= 2
+
+    def test_perfect_strategy_no_warnings(self):
+        """A very strong strategy should have no warnings."""
+        result = make_result(sharpe=5.0, num_trades=500, max_drawdown=-0.02)
+        integration = run_guardrails_check(result, preset="aggressive")
+        # Very high metrics, no warnings expected
+        assert integration.passed is True
+
+    def test_score_adjustment_zero_on_pass(self):
+        """Score adjustment should be 0 or positive when all checks pass."""
+        result = make_result(sharpe=3.0, num_trades=100)
+        integration = run_guardrails_check(result, preset="aggressive")
+        assert integration.score_adjustment >= 0
+
+    def test_integration_result_default_fields(self):
+        """GuardrailsIntegrationResult has correct default values."""
+        r = GuardrailsIntegrationResult(
+            passed=True, violations=["x"], warnings=["y"], score_adjustment=-0.5
+        )
+        assert r.passed is True
+        assert r.violations == ["x"]
+        assert r.warnings == ["y"]
+        assert r.score_adjustment == -0.5
+        assert r.config_preset == "unknown"

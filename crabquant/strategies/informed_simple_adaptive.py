@@ -14,13 +14,14 @@ from crabquant.indicator_cache import cached_indicator
 
 
 DEFAULT_PARAMS = {
-    "adx_len": 14,
-    "adx_threshold": 25,
+    # Updated 2026-05-01: best JNJ winner (Sharpe 2.76, 85.7% WR, 16 trades)
+    "adx_len": 21,
+    "adx_threshold": 30,
     "rsi_len": 14,
-    "rsi_oversold": 35,
-    "rsi_overbought": 65,
+    "rsi_oversold": 25,
+    "rsi_overbought": 60,
     "volume_window": 20,
-    "volume_mult": 1.3,
+    "volume_mult": 1.5,
 }
 
 PARAM_GRID = {

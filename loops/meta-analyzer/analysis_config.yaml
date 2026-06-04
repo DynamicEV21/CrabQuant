@@ -1,0 +1,143 @@
+# Meta-Analyzer Configuration
+# This loop is READ-ONLY — it never modifies strategy code, runs backtests, or creates mandates.
+# It produces KNOWLEDGE that other loops consume.
+
+data_sources:
+  registry: strategies/production/registry.json
+  sweep_results: results/sweep_results_cycle13.json
+  winners: results/winners/winners.json
+  winner_analysis: results/winner_analysis_results.json
+  meta_report: results/meta_report.json
+  insights: results/insights.json
+  quality_score: results/quality_score.json
+  refinement_runs: refinement_runs/
+  confirmed: results/confirmed/confirmed.json
+  dashboard: results/dashboard.json
+  run_history: results/run_history.jsonl
+
+# Ticker universe for cross-ticker analysis
+ticker_universe:
+  - SPY
+  - QQQ
+  - AAPL
+  - MSFT
+  - GOOGL
+  - AMZN
+  - NVDA
+  - META
+  - JPM
+  - JNJ
+  - CAT
+  - DE
+  - GLD
+  - UNH
+  - V
+
+# Indicator family definitions (must match crabquant/refinement/stagnation.py)
+indicator_families:
+  momentum: [ema, sma, wma, macd, roc, tsi, dpo]
+  mean_reversion: [rsi, bbands, bollinger, stoch, cci, willr]
+  volatility: [atr, adx, supertrend, kelner, keltner, true_range]
+  volume: [obv, vwap, ad, cmf, mfi]
+  trend: [ichimoku, dema, tema, psar]
+
+# Archetype definitions (must match crabquant/refinement/archetypes.py)
+archetypes:
+  - mean_reversion
+  - momentum
+  - breakout
+  - volatility
+  - statistical_arb
+  - multi_signal_ensemble
+  - volatility_breakout
+
+# Validation thresholds (must match crabquant/refinement/config.py VALIDATION_CONFIG)
+validation:
+  min_avg_test_sharpe: 0.4
+  min_windows_passed: 3
+  min_window_test_sharpe: 0.1
+  max_window_degradation: 0.8
+  min_cross_ticker_sharpe: 0.3
+
+# Stagnation trap types (from crabquant/refinement/stagnation.py)
+stagnation_traps:
+  - zero_sharpe
+  - low_sharpe_plateau
+  - mid_sharpe_trap
+  - high_sharpe_few_trades
+  - near_target
+  - validation_loop
+  - action_loop
+  - indicator_rut
+
+analyses:
+  # HIGH PRIORITY — run every cycle
+  - name: archetype_wf_rates
+    description: "Per-archetype rolling walk-forward pass rates"
+    priority: high
+    output_key: archetype_success
+
+  - name: ticker_sharpe_distribution
+    description: "Per-ticker Sharpe ratio distributions and success rates"
+    priority: high
+    output_key: ticker_performance
+
+  - name: indicator_success_rates
+    description: "Which indicator families lead to robust WF-passing strategies"
+    priority: high
+    output_key: indicator_effectiveness
+
+  - name: overfitting_detection
+    description: "Discovery Sharpe vs WF Sharpe correlation (overfitting signal)"
+    priority: high
+    output_key: overfitting_metrics
+
+  # MEDIUM PRIORITY — run every 2-3 cycles
+  - name: trade_frequency_robustness
+    description: "Trade count vs WF pass rate and Sharpe stability"
+    priority: medium
+    output_key: frequency_analysis
+
+  - name: stagnation_analysis
+    description: "Common traps and recovery effectiveness from refinement runs"
+    priority: medium
+    output_key: stagnation_patterns
+
+  - name: turn_to_success
+    description: "Distribution of turns until viable strategy (refinement efficiency)"
+    priority: medium
+    output_key: turn_efficiency
+
+  - name: complexity_vs_robustness
+    description: "Number of parameters/indicators vs WF pass rate"
+    priority: medium
+    output_key: complexity_analysis
+
+  # LOW PRIORITY — run weekly or when new data is significant
+  - name: ticker_archetype_affinity
+    description: "Which archetypes work best on which tickers (alpha factors)"
+    priority: low
+    output_key: ticker_archetype_matrix
+
+  - name: param_range_analysis
+    description: "Winning parameter ranges per strategy type"
+    priority: low
+    output_key: param_ranges
+
+  - name: temporal_patterns
+    description: "Strategy discovery success rates over time (improvement trends)"
+    priority: low
+    output_key: temporal_trends
+
+output:
+  knowledge_base: loops/meta-analyzer/insights_knowledge.tsv
+  report: loops/meta-analyzer/analysis_report.md
+  # JSON dump of full analysis results for programmatic consumption
+  results_json: loops/meta-analyzer/analysis_results.json
+
+# Confidence thresholds for insight generation
+confidence:
+  min_strategies: 5       # Minimum strategies to consider a pattern valid
+  high_confidence: 0.85   # Correlation/effect size threshold for high confidence
+  medium_confidence: 0.60 # Threshold for medium confidence
+  min_effect_size: 1.3    # Minimum ratio to report as actionable (e.g., 1.3x = 30% improvement)

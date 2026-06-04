@@ -64,6 +64,7 @@ def track_action_result(
     success: bool,
     failure_mode: str = "",
     path: str | None = None,
+    error_info: dict | None = None,
 ) -> None:
     """Append an action result entry to the run history JSONL file.
 
@@ -75,6 +76,8 @@ def track_action_result(
         success: Whether the turn met the Sharpe target.
         failure_mode: Failure classification (empty if success).
         path: Path to the JSONL file. Defaults to RUN_HISTORY_FILE.
+        error_info: Optional dict with error_type, error_message, error_traceback
+                    for backtest_crash and module_load_failed failures.
     """
     path = path or RUN_HISTORY_FILE
     entry = {
@@ -86,6 +89,10 @@ def track_action_result(
         "failure_mode": failure_mode,
         "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+    if error_info is not None:
+        entry["error_type"] = error_info.get("error_type", "unknown")
+        entry["error_message"] = str(error_info.get("error_message", ""))[:500]
+        entry["error_traceback"] = str(error_info.get("error_traceback", ""))[:1000]
 
     p = Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -158,6 +165,142 @@ def compute_action_success_rates(
 
     rates.sort(key=lambda x: x["success_rate"], reverse=True)
     return rates
+
+
+def get_failure_mode_action_stats(
+    history: list[dict],
+    failure_mode: str,
+    recent_window: int = 100,
+) -> dict[str, dict]:
+    """Get action stats filtered to a specific failure mode.
+
+    Returns per-action statistics for turns that resulted in *failure_mode*,
+    plus a global (all-mode) fallback.  Results are biased toward the most
+    recent *recent_window* entries so the feedback adapts to current
+    conditions.
+
+    Args:
+        history: Full run history.
+        failure_mode: The failure mode to filter by (e.g. "low_sharpe").
+        recent_window: Only consider the last N history entries (most recent
+            first in the list).  Set to 0 or a large number for no windowing.
+
+    Returns:
+        Dict mapping action name to ``{success, count, avg_delta}`` where:
+        - success: number of turns where this action *resolved* the failure
+          (next turn succeeded).
+        - count: total occurrences of this action for this failure mode.
+        - avg_delta: average Sharpe change when the action was used.
+    """
+    if not history:
+        return {}
+
+    # Apply recent window
+    windowed = history[-recent_window:] if recent_window > 0 else history
+
+    # Filter to entries matching the failure mode
+    mode_entries = [
+        e for e in windowed
+        if e.get("failure_mode") == failure_mode and not e.get("success", False)
+    ]
+
+    if not mode_entries:
+        return {}
+
+    # Build a lookup: (mandate, turn) -> entry for fast "next turn" lookup
+    entry_by_key: dict[tuple[str, int], dict] = {}
+    for e in windowed:
+        key = (e.get("mandate", ""), e.get("turn", 0))
+        entry_by_key[key] = e
+
+    # Aggregate per action
+    buckets: dict[str, list[dict]] = {}
+    for entry in mode_entries:
+        action = entry.get("action", "unknown")
+        buckets.setdefault(action, []).append(entry)
+
+    stats: dict[str, dict] = {}
+    for action, entries in buckets.items():
+        total = len(entries)
+        successes = 0
+        deltas: list[float] = []
+
+        for entry in entries:
+            mandate = entry.get("mandate", "")
+            turn = entry.get("turn", 0)
+            sharpe = entry.get("sharpe", 0.0)
+
+            # Check if the NEXT turn for the same mandate succeeded
+            next_key = (mandate, turn + 1)
+            next_entry = entry_by_key.get(next_key)
+            if next_entry is not None:
+                next_sharpe = next_entry.get("sharpe", 0.0)
+                delta = next_sharpe - sharpe
+                deltas.append(delta)
+                if next_entry.get("success", False):
+                    successes += 1
+
+        avg_delta = sum(deltas) / len(deltas) if deltas else 0.0
+
+        stats[action] = {
+            "success": successes,
+            "count": total,
+            "avg_delta": round(avg_delta, 4),
+        }
+
+    # Sort by success count descending
+    return dict(sorted(stats.items(), key=lambda x: x[1]["success"], reverse=True))
+
+
+def format_action_feedback_for_context(
+    failure_mode: str,
+    action_stats: dict[str, dict],
+    max_actions: int = 5,
+) -> str:
+    """Format action analytics as a context block for the LLM.
+
+    Produces a concise, actionable summary that tells the LLM which
+    actions historically worked best for the current failure mode.
+
+    Args:
+        failure_mode: The active failure mode (e.g. "low_sharpe").
+        action_stats: Output from ``get_failure_mode_action_stats()``.
+        max_actions: Maximum number of actions to include.
+
+    Returns:
+        Formatted string suitable for injection into the refinement prompt,
+        or empty string if no data is available.
+    """
+    if not action_stats:
+        return ""
+
+    total_turns = sum(s["count"] for s in action_stats.values())
+    if total_turns == 0:
+        return ""
+
+    lines = [
+        f"Based on {total_turns} recent runs with '{failure_mode}':"
+    ]
+
+    # Show top actions
+    shown = 0
+    for action, s in action_stats.items():
+        if shown >= max_actions:
+            break
+        rate = s["success"] / s["count"] if s["count"] > 0 else 0.0
+        marker = "✅" if rate >= 0.3 else "❌"
+        lines.append(
+            f"  {marker} {action} ({rate:.0%} success, avg {s['avg_delta']:+.2f} Sharpe)"
+        )
+        shown += 1
+
+    # Suggest best action
+    best_action = next(iter(action_stats))
+    best = action_stats[best_action]
+    best_rate = best["success"] / best["count"] if best["count"] > 0 else 0.0
+    lines.append(f"Consider trying: {best_action}")
+
+    return "\n".join(lines)
 
 
 def generate_llm_context(history: list[dict]) -> str:

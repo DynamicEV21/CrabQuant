@@ -35,6 +35,7 @@ class BacktestResult:
     avg_trade_return: float
     calmar_ratio: float
     sortino_ratio: float
+    expected_value: float
     profit_factor: float
     avg_holding_bars: float
     best_trade: float
@@ -145,18 +146,31 @@ class BacktestEngine:
                 worst_trade = 0.0
                 avg_hold = 0.0
 
+            # Expected Value: (win_rate * avg_win_size) - ((1 - win_rate) * avg_loss_size)
+            if len(trades) > 0 and "PnL" in trades.columns:
+                winners_pnl = trades[trades["PnL"] > 0]["PnL"]
+                losers_pnl = trades[trades["PnL"] < 0]["PnL"]
+                avg_win_size = float(winners_pnl.mean()) if len(winners_pnl) > 0 else 0.0
+                avg_loss_size = float(losers_pnl.abs().mean()) if len(losers_pnl) > 0 else 0.0
+                expected_value = (win_rate * avg_win_size) - ((1 - win_rate) * avg_loss_size)
+            else:
+                expected_value = 0.0
+
             # Handle edge cases BEFORE computing score to avoid RuntimeWarning
             if np.isinf(sharpe) or np.isnan(sharpe):
                 sharpe = 0.0
             if np.isnan(max_dd):
                 max_dd = 0.0
 
-            # Composite score: reward consistency and risk management
-            # score = sharpe * sqrt(trades/20) * (1 - abs(max_dd))
-            # This penalizes low-trade-count and high-drawdown strategies
+            # Composite score: reward consistency, risk management, and edge quality
+            # score = (sortino_weighted + ev_weighted) * robustness_factor
             trade_factor = np.sqrt(min(num_trades, 100) / 20)
             dd_penalty = max(0, 1 - abs(max_dd))
-            score = sharpe * trade_factor * dd_penalty
+            robustness_factor = trade_factor * dd_penalty
+            sortino_safe = max(sortino, 0.0) if not (np.isinf(sortino) or np.isnan(sortino)) else 0.0
+            ev_weighted = np.sign(expected_value) * min(abs(expected_value) / 100.0, 1.0)  # normalise EV to [-1, 1] scale
+            sortino_weighted = min(sortino_safe / 3.0, 1.0)  # normalise: sortino 3.0 → 1.0
+            score = (sortino_weighted + ev_weighted) * robustness_factor
 
             passed = (
                 sharpe >= self.sharpe_target
@@ -179,6 +193,7 @@ class BacktestEngine:
                 avg_trade_return=avg_trade,
                 calmar_ratio=calmar,
                 sortino_ratio=sortino,
+                expected_value=expected_value,
                 profit_factor=profit_factor,
                 avg_holding_bars=avg_hold,
                 best_trade=best_trade,
@@ -198,7 +213,7 @@ class BacktestEngine:
                 iteration=iteration,
                 sharpe=0, total_return=0, max_drawdown=0, win_rate=0,
                 num_trades=0, avg_trade_return=0, calmar_ratio=0,
-                sortino_ratio=0, profit_factor=0, avg_holding_bars=0,
+                sortino_ratio=0, expected_value=0, profit_factor=0, avg_holding_bars=0,
                 best_trade=0, worst_trade=0,
                 passed=False, score=0, notes=f"ERROR: {e}",
                 params=params or {},
@@ -301,14 +316,26 @@ class BacktestEngine:
                 # Build lookup with defaults for columns that had no trades
                 col_trades = {}
                 for col in entries_df.columns:
+                    # Expected Value per column
+                    col_records = records[records["Column"] == col] if "Column" in records.columns else pd.DataFrame()
+                    if len(col_records) > 0 and "PnL" in col_records.columns:
+                        wr = win_rates_per_col.get(col, 0.0)
+                        w_pnl = col_records[col_records["PnL"] > 0]["PnL"]
+                        l_pnl = col_records[col_records["PnL"] < 0]["PnL"]
+                        avg_win = float(w_pnl.mean()) if len(w_pnl) > 0 else 0.0
+                        avg_loss = float(l_pnl.abs().mean()) if len(l_pnl) > 0 else 0.0
+                        ev = (wr * avg_win) - ((1 - wr) * avg_loss)
+                    else:
+                        ev = 0.0
                     col_trades[col] = {
                         "best_trade": float(trade_details["best"].get(col, 0.0)),
                         "worst_trade": float(trade_details["worst"].get(col, 0.0)),
                         "avg_trade_return": float(trade_details["avg_win_pct"].get(col, 0.0)),
                         "avg_holding_bars": float(trade_details["avg_hold"].get(col, 0.0)),
+                        "expected_value": ev,
                     }
             else:
-                col_trades = {col: {"best_trade": 0.0, "worst_trade": 0.0, "avg_trade_return": 0.0, "avg_holding_bars": 0.0} for col in entries_df.columns}
+                col_trades = {col: {"best_trade": 0.0, "worst_trade": 0.0, "avg_trade_return": 0.0, "avg_holding_bars": 0.0, "expected_value": 0.0} for col in entries_df.columns}
 
             # ── Build results ──
             results = []
@@ -323,11 +350,16 @@ class BacktestEngine:
                 pf_val = float(profit_factors.iloc[i]) if i < len(profit_factors) else 0.0
 
                 ct = col_trades.get(col_name, {})
+                expected_value = ct.get("expected_value", 0.0)
 
-                # Composite score
+                # Composite score: (sortino_weighted + ev_weighted) * robustness_factor
                 trade_factor = np.sqrt(min(num_trades, 100) / 20)
                 dd_penalty = max(0, 1 - abs(max_dd))
-                score = sharpe * trade_factor * dd_penalty
+                robustness_factor = trade_factor * dd_penalty
+                sortino_safe = max(sortino, 0.0) if not (np.isinf(sortino) or np.isnan(sortino)) else 0.0
+                ev_weighted = np.sign(expected_value) * min(abs(expected_value) / 100.0, 1.0)
+                sortino_weighted = min(sortino_safe / 3.0, 1.0)
+                score = (sortino_weighted + ev_weighted) * robustness_factor
 
                 if np.isnan(score):
                     score = 0.0
@@ -353,6 +385,7 @@ class BacktestEngine:
                     avg_trade_return=ct.get("avg_trade_return", 0.0),
                     calmar_ratio=calmar,
                     sortino_ratio=sortino,
+                    expected_value=expected_value,
                     profit_factor=pf_val,
                     avg_holding_bars=ct.get("avg_holding_bars", 0.0),
                     best_trade=ct.get("best_trade", 0.0),

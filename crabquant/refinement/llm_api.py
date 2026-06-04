@@ -7,6 +7,7 @@ Handles all communication with z.ai (GLM-5) for strategy generation and refineme
 import json
 import logging
 import re
+import threading
 import time
 from pathlib import Path
 from typing import Optional
@@ -14,6 +15,136 @@ from typing import Optional
 import httpx
 
 logger = logging.getLogger(__name__)
+
+
+# ── Rate Limiter (per-process, thread-safe) ──────────────────────────────
+
+class _RateLimiter:
+    """Token-bucket rate limiter for API calls.
+
+    Tracks timestamps of recent calls and sleeps as needed to stay
+    within *max_calls_per_minute*.  Designed to be cheap: just a
+    deque append + popleft when the window slides.
+    """
+
+    def __init__(self, max_calls_per_minute: int = 20) -> None:
+        self._max = max_calls_per_minute
+        self._timestamps: list[float] = []
+        self._lock = threading.Lock()
+
+    def acquire(self) -> float:
+        """Block (sleep) until a call is permitted. Returns seconds slept."""
+        now = time.monotonic()
+        with self._lock:
+            # Prune timestamps older than 60 s
+            cutoff = now - 60.0
+            self._timestamps = [t for t in self._timestamps if t > cutoff]
+
+            if len(self._timestamps) >= self._max:
+                sleep_until = self._timestamps[0] + 60.0
+                sleep_time = max(0.0, sleep_until - now)
+            else:
+                sleep_time = 0.0
+
+            self._timestamps.append(now + sleep_time)
+
+        if sleep_time > 0:
+            logger.info("Rate limiter: sleeping %.1fs to stay under %d calls/min", sleep_time, self._max)
+            time.sleep(sleep_time)
+        return sleep_time
+
+
+# Default: 20 calls/min is conservative for z.ai's ~400 prompts / 5h ≈ 80/min.
+# Leaves headroom for other agents sharing the same budget.
+_global_rate_limiter = _RateLimiter(max_calls_per_minute=20)
+
+
+def get_rate_limiter() -> _RateLimiter:
+    """Return the global rate limiter (for test mocking or reconfiguration)."""
+    return _global_rate_limiter
+
+
+def set_rate_limit(calls_per_minute: int) -> None:
+    """Reconfigure the global rate limiter."""
+    global _global_rate_limiter
+    _global_rate_limiter = _RateLimiter(max_calls_per_minute=calls_per_minute)
+
+
+# ── Error-Type-Specific Repair Guidance (Enhancement 9) ──────────────────
+
+_REPAIR_GUIDANCE: dict[type, str] = {
+    SyntaxError: (
+        "Check indentation — Python uses 4-space indent, not tabs. "
+        "Check for missing colons after if/for/def/with. "
+        "Verify all brackets/parentheses are balanced."
+    ),
+    IndentationError: (
+        "Fix indentation. All code inside if/for/def/with/class must be "
+        "indented 4 spaces more than the parent line."
+    ),
+    ImportError: (
+        "Module not available. Use only: numpy (np), pandas (pd), numba, math, "
+        "and functions from strategy_helpers.py via cached_indicator. Check spelling."
+    ),
+    ModuleNotFoundError: (
+        "Module not available. Use only: numpy (np), pandas (pd), numba, math, "
+        "and functions from strategy_helpers.py via cached_indicator. Check spelling."
+    ),
+    TypeError: (
+        "Wrong number of arguments or wrong types passed to a function. "
+        "Check function signatures carefully — indicator functions have "
+        "specific required arguments (e.g., ATR needs high, low, close)."
+    ),
+    NameError: (
+        "Variable or function not defined. Check for typos. "
+        "Available functions are listed in strategy_helpers.py. "
+        "Verify the variable is in scope."
+    ),
+    IndexError: (
+        "Array index out of bounds. Your lookback window exceeds available data. "
+        "Check array lengths before indexing with len() or .shape."
+    ),
+    KeyError: (
+        "Dictionary key not found. Check column names in the DataFrame "
+        "(available: open, high, low, close, volume). Check dict keys."
+    ),
+    ValueError: (
+        "Invalid value — likely NaN, inf, or negative where positive expected. "
+        "Add guards: df.dropna(), np.isfinite(), or max(x, 1e-8) for denominators."
+    ),
+    ZeroDivisionError: (
+        "Division by zero. Add a small epsilon (1e-8) to denominators, "
+        "or check for zero before dividing."
+    ),
+    AttributeError: (
+        "Object has no such attribute. Check the type of the object and "
+        "verify the correct method/attribute name. Common: DataFrame vs Series methods."
+    ),
+}
+
+_DEFAULT_GUIDANCE = (
+    "Analyze the error traceback carefully and fix the root cause. "
+    "Ensure your strategy code is self-contained with all required imports."
+)
+
+
+def get_error_specific_guidance(error: Exception) -> str:
+    """Return targeted repair advice based on the error type.
+
+    Maps common Python exceptions to concise, actionable guidance that helps
+    the LLM fix strategy code more efficiently than a generic "fix this" prompt.
+
+    Args:
+        error: The exception that was raised during strategy execution.
+
+    Returns:
+        A 1-3 line guidance string tailored to the error type.
+    """
+    # Check exact type first, then walk the MRO for subclasses
+    for exc_type, guidance in _REPAIR_GUIDANCE.items():
+        if isinstance(error, exc_type):
+            return guidance
+    return _DEFAULT_GUIDANCE
 
 
 def load_api_config() -> dict:
@@ -67,9 +198,14 @@ def call_zai_llm(
         "Content-Type": "application/json",
     }
 
+    # Rate-limit gate (shared across all calls in this process)
+    _global_rate_limiter.acquire()
+
     # Exponential backoff: 2s, 4s, 8s (3 retries)
+    # 429 (rate limit) gets longer backoff: 5s, 15s, 30s
     max_retries = 3
     backoff_delays = [2, 4, 8]
+    rate_limit_backoffs = [5, 15, 30]  # Aggressive backoff for 429
     last_error = None
 
     for attempt in range(max_retries + 1):
@@ -103,23 +239,71 @@ def call_zai_llm(
                 continue
             raise
         except httpx.HTTPStatusError as e:
-            # Retry on 5xx server errors only
-            if e.response.status_code >= 500 and attempt < max_retries:
+            status = e.response.status_code
+            # Retry on 429 (rate limit) with aggressive backoff
+            if status == 429 and attempt < max_retries:
                 last_error = e
-                backoff = backoff_delays[attempt]
+                # Respect Retry-After header if present
+                retry_after = e.response.headers.get("Retry-After")
+                if retry_after:
+                    try:
+                        backoff = max(float(retry_after), rate_limit_backoffs[attempt])
+                    except ValueError:
+                        backoff = rate_limit_backoffs[attempt]
+                else:
+                    backoff = rate_limit_backoffs[attempt]
                 print(
-                    f"  LLM call failed (HTTP {e.response.status_code}), "
+                    f"  LLM call rate-limited (HTTP 429), "
                     f"retry {attempt + 1}/{max_retries} in {backoff}s...",
                     flush=True,
                 )
                 time.sleep(backoff)
                 continue
+            # Retry on 5xx server errors
+            if status >= 500 and attempt < max_retries:
+                last_error = e
+                backoff = backoff_delays[attempt]
+                print(
+                    f"  LLM call failed (HTTP {status}), "
+                    f"retry {attempt + 1}/{max_retries} in {backoff}s...",
+                    flush=True,
+                )
+                time.sleep(backoff)
+                continue
+            # Record 429 in budget tracker even if we give up
+            if status == 429:
+                try:
+                    from crabquant.refinement.api_budget import get_global_tracker
+                    get_global_tracker().record_call(
+                        model=model,
+                        prompt_tokens=0,
+                        completion_tokens=0,
+                        latency_seconds=0,
+                        success=False,
+                        error=f"HTTP 429 rate limit (attempt {attempt + 1}/{max_retries + 1})",
+                    )
+                except Exception:
+                    pass
             raise
     else:
         raise last_error  # Safety net
 
     if "choices" not in result or not result["choices"]:
         raise ValueError(f"Unexpected API response: {json.dumps(result)[:200]}")
+
+    # Record API usage for budget tracking (Phase 6 prep)
+    try:
+        from crabquant.refinement.api_budget import get_global_tracker
+        usage = result.get("usage", {})
+        get_global_tracker().record_call(
+            model=model,
+            prompt_tokens=usage.get("prompt_tokens", 0),
+            completion_tokens=usage.get("completion_tokens", 0),
+            latency_seconds=elapsed,
+            success=True,
+        )
+    except Exception:
+        pass  # Budget tracking is best-effort, never block the pipeline
 
     return result["choices"][0]["message"]["content"]
 
@@ -269,11 +453,27 @@ def call_llm_inventor(
             "CRITICAL RULES for new_strategy_code:\n"
             "1. Include DESCRIPTION (string variable), generate_signals(df, params), and DEFAULT_PARAMS.\n"
             "   Do NOT include generate_signals_matrix or PARAM_GRID.\n"
-            "   Example: DESCRIPTION = 'Momentum strategy using RSI and MACD'\n"
             "2. Keep strategy code under 80 lines. Be concise — no excessive comments.\n"
             "3. Use from crabquant.indicator_cache import cached_indicator for indicators.\n"
             "4. generate_signals MUST return (entries: pd.Series[bool], exits: pd.Series[bool]).\n"
-            "5. Ensure the JSON is COMPLETE — never truncate your response."
+            "5. Ensure the JSON is COMPLETE — never truncate your response.\n"
+            "6. You MUST state a causal hypothesis. 'Adjust parameters' is NOT a hypothesis.\n"
+            "   Good: 'The strategy loses money during high-volatility regimes because the signal\n"
+            "   threshold is too tight, generating whipsaws. Adding a volatility filter should\n"
+            "   reduce false signals by 30-50%%.'\n"
+            "   Bad: 'I'll try different parameters to improve Sharpe.'\n"
+            "7. TRADE FREQUENCY: Aim for 20-80 trades over the backtest period. Too few trades\n"
+            "   (< 10) means your conditions are too restrictive — simplify. Too many trades (> 200)\n"
+            "   means your signal is noise — add filters. Start SIMPLE on turn 1.\n"
+            "8. ANTI-OVERFITTING: A strategy with 3 trades at 100%% win rate is WORSE than useless —\n"
+            "   it is curve-fit garbage that will fail out-of-sample. Prefer 40+ trades at 50-65%% win rate.\n"
+            "   NEVER stack 4+ conditions — each additional condition narrows your signal and increases\n"
+            "   overfitting risk. If your entry fires fewer than once per month on average, OPEN IT UP.\n"
+            "9. REGULAR SIGNALS: Your entry conditions should fire REGULARLY (at least 2x per month).\n"
+            "   Avoid strategies that only trigger in rare market conditions. Simpler conditions\n"
+            "   that fire often are more robust out-of-sample.\n"
+            "10. Do NOT use future data (no lookahead bias).\n"
+            "11. Generate COMPLETE file content, not diffs or patches.\n\n"
             + indicator_mistakes
             + indicator_section
         ),
@@ -296,23 +496,110 @@ def call_llm_inventor(
             user_parts.append(f"## Failure Reasoning: {context.get('failure_reasoning', 'N/A')}\n")
         
         if context.get("previous_attempts"):
-            user_parts.append(f"## Previous Attempts\n{json.dumps(context['previous_attempts'], indent=2)}\n")
+            # Use formatted previous attempts with per-failure-mode guidance
+            from crabquant.refinement.prompts import format_previous_attempts_section
+            formatted_attempts = format_previous_attempts_section(context["previous_attempts"])
+            user_parts.append(f"## Previous Attempts\n{formatted_attempts}\n")
         
         if context.get("strategy_examples"):
-            user_parts.append(f"## Strategy Examples\n{context['strategy_examples']}\n")
+            # Format strategy examples as readable code blocks, not raw JSON
+            ex_parts = []
+            for ex in context["strategy_examples"]:
+                if isinstance(ex, dict):
+                    ex_parts.append(
+                        f"### {ex.get('name', 'unknown')}\n"
+                        f"Description: {ex.get('description', 'N/A')}\n"
+                        f"Default params: {ex.get('default_params', {})}\n"
+                        f"```python\n{ex.get('source_code', '# code unavailable')}\n```"
+                    )
+                else:
+                    ex_parts.append(str(ex))
+            user_parts.append(f"## Strategy Examples (follow this exact pattern)\n" + "\n\n".join(ex_parts) + "\n")
+
+        if context.get("winner_examples"):
+            # Format proven winner strategies from past runs
+            wex_parts = [
+                "These strategies achieved high Sharpe ratios with real trade counts in previous runs. "
+                "Study their patterns and signal logic."
+            ]
+            for wex in context["winner_examples"]:
+                if isinstance(wex, dict):
+                    ticker_str = f" ({wex['ticker']})" if wex.get("ticker") else ""
+                    wex_parts.append(
+                        f"### ⭐ {wex['name']} — Sharpe {wex['sharpe']:.2f}, "
+                        f"{wex['trades']} trades{ticker_str}\n"
+                        f"```python\n{wex['source_code']}\n```"
+                    )
+            user_parts.append(f"## Proven Strategies (from previous runs)\n" + "\n\n".join(wex_parts) + "\n")
         
         if context.get("strategy_catalog"):
             user_parts.append(f"## Available Strategies\n{json.dumps(context['strategy_catalog'], indent=2)}\n")
         
         if context.get("mandate"):
             user_parts.append(f"## Mandate\n{json.dumps(context['mandate'], indent=2)}\n")
+        
+        # Inject archetype template if available
+        if context.get("archetype_section"):
+            user_parts.append(
+                f"## Strategy Archetype Template\n"
+                f"Use this as your STARTING POINT. Customize the parameters and logic,\n"
+                f"but keep the core structure. This template is proven to work.\n\n"
+                f"{context['archetype_section']}\n"
+            )
 
         # Inject indicator quick reference if available
         quick_ref = context.get("indicator_quick_ref", "")
         if quick_ref:
             user_parts.append(f"## Indicator Quick Reference — USE THESE SIGNATURES EXACTLY\n{quick_ref}\n")
 
-    user_msg = {"role": "user", "content": "\n".join(user_parts)}
+        # Phase 5.6: Inject stagnation recovery guidance if trap detected
+        if context.get("stagnation_recovery"):
+            user_parts.append(f"{context['stagnation_recovery']}\n")
+
+        # Phase 5.6: Inject multi-ticker backtest feedback if available
+        if context.get("multi_ticker_feedback"):
+            user_parts.append(f"{context['multi_ticker_feedback']}\n")
+
+        # Phase 5.6: Inject feature importance feedback if available
+        if context.get("feature_importance_section"):
+            user_parts.append(f"{context['feature_importance_section']}\n")
+
+        # Phase 6: Inject crash error feedback if available
+        if context.get("crash_error_feedback"):
+            user_parts.append(f"{context['crash_error_feedback']}\n")
+
+        # Phase 6: Inject gate validation retry feedback — critical for fixing code errors
+        if context.get("retry_feedback"):
+            # Enhancement 9: Prepend error-type-specific repair guidance
+            error_guidance = ""
+            last_error = context.get("last_execution_error")
+            if last_error is not None:
+                error_guidance = get_error_specific_guidance(last_error)
+                error_guidance = f"**Error-type guidance:** {error_guidance}\n\n"
+
+            user_parts.append(
+                f"\n## ⛔ GATE VALIDATION FAILED — FIX THESE ERRORS\n\n"
+                f"{error_guidance}"
+                f"{context['retry_feedback']}\n\n"
+                f"Your previous code was REJECTED by validation gates. You MUST fix the "
+                f"above errors in your new_strategy_code. Do NOT repeat the same mistake.\n"
+            )
+
+    user_content = "\n".join(user_parts)
+
+    # Inject parallel variant bias if present in context (Phase 5.6.2)
+    variant_index = context.get("parallel_variant_index")
+    variant_count = context.get("parallel_variant_count")
+    if variant_index is not None and variant_count is not None and variant_count > 1:
+        try:
+            from crabquant.refinement.prompts import get_variant_bias_text
+            bias_text = get_variant_bias_text(variant_index, variant_count)
+            if bias_text:
+                user_content += f"\n\n{bias_text}"
+        except ImportError:
+            pass
+
+    user_msg = {"role": "user", "content": user_content}
     
     try:
         raw_response = call_zai_llm(

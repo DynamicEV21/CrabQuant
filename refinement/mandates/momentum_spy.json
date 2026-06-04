@@ -5,7 +5,7 @@
   "primary_ticker": "SPY",
   "period": "2y",
   "strategy_archetype": "momentum",
-  "max_turns": 3,
+  "max_turns": 10,
   "sharpe_target": 1.0,
   "constraints": {
     "min_trades": 10,

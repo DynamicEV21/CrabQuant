@@ -27,11 +27,26 @@ class RunState:
     current_turn: int = 0
     status: str = "pending"  # pending|running|success|max_turns|failed|stuck
     best_sharpe: float = -999.0
+    best_composite_score: float = -999.0  # Composite score for best-strategy tracking
     best_turn: int = 0
     best_code_path: str = ""
 
+    # Auto-revert state (Phase 6)
+    best_strategy_code: str = ""  # Full code of best strategy (not just path)
+    consecutive_regressions: int = 0  # Count of turns that regressed from best
+    revert_notice: str = ""  # Message for LLM when strategy was reverted
+
     # History (append-only)
     history: list = field(default_factory=list)
+
+    # Code quality feedback from the most recent code quality pre-check.
+    # Set when check_code_quality() finds issues; consumed by context_builder
+    # to inject into the LLM prompt on the next turn.
+    code_quality_feedback: str = ""
+
+    # Within-run action cooldown tracking
+    # Maps failure_mode → {action → consecutive_fail_count}
+    action_cooldowns: dict = field(default_factory=dict)
 
     # Concurrency lock
     lock_pid: int | None = None
@@ -73,6 +88,7 @@ class BacktestReport:
     profit_factor: float
     calmar_ratio: float
     sortino_ratio: float
+    expected_value: float
     composite_score: float     # BacktestResult.score
 
     # Failure classification
@@ -105,6 +121,15 @@ class BacktestReport:
     current_strategy_code: str
     current_params: dict
     previous_attempts: list
+
+    # ── Multi-ticker backtest (Phase 5.6) ─────────────────────────────────
+    multi_ticker_results: dict | None = None  # From run_multi_ticker_backtest()
+
+    # ── Feature importance (Phase 5.6) ────────────────────────────────────
+    feature_importance: dict | None = None  # From compute_feature_importance()
+
+    # ── Parameter optimization (Phase 6) ────────────────────────────────
+    param_optimization: dict | None = None  # From optimize_parameters()
 
     # ── serialisation ──────────────────────────────────────────────────────
 
@@ -145,6 +170,8 @@ class BacktestReport:
         portfolio_correlation: float | None = None,
         benchmark_return_pct: float | None = None,
         market_regime: str | None = None,
+        multi_ticker_results: dict | None = None,
+        feature_importance: dict | None = None,
     ) -> "BacktestReport":
         """Build a BacktestReport from a BacktestResult, mapping renamed fields."""
         return cls(
@@ -158,6 +185,7 @@ class BacktestReport:
             profit_factor=result.profit_factor,
             calmar_ratio=result.calmar_ratio,
             sortino_ratio=result.sortino_ratio,
+            expected_value=result.expected_value,
             composite_score=result.score,
             failure_mode=failure_mode,
             failure_details=failure_details,
@@ -177,6 +205,8 @@ class BacktestReport:
             current_strategy_code=current_strategy_code,
             current_params=current_params,
             previous_attempts=previous_attempts,
+            multi_ticker_results=multi_ticker_results,
+            feature_importance=feature_importance,
         )
 
 

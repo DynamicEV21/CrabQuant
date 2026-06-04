@@ -213,3 +213,228 @@ class TestGetStrategyRanking:
         ranking = get_strategy_ranking(MarketRegime.MEAN_REVERSION)
         top_name = ranking[0][0]
         assert top_name == "bollinger_squeeze"
+
+
+# ── Extended detect_regime tests ─────────────────────────────────────────
+
+
+class TestDetectRegimeExtended:
+    def test_insufficient_data_returns_low_volatility(self):
+        """Data with fewer than 20 bars should return LOW_VOLATILITY."""
+        dates = pd.date_range("2024-01-01", periods=10, freq="B")
+        spy = pd.DataFrame({"close": np.linspace(100, 101, 10)}, index=dates)
+        regime, meta = detect_regime(spy)
+        assert regime == MarketRegime.LOW_VOLATILITY
+        assert meta["confidence"] == 0.0
+        assert meta["reason"] == "insufficient_data"
+
+    def test_high_volatility_detected_with_volatile_data(self):
+        """Highly volatile sideways data + high VIX → HIGH_VOLATILITY."""
+        np.random.seed(42)
+        n = 120
+        dates = pd.date_range("2024-01-01", periods=n, freq="B")
+        # Create volatile price data
+        price = 100.0
+        prices = []
+        for i in range(n):
+            price *= (1 + np.random.normal(0, 0.03))  # 3% daily noise
+            prices.append(price)
+        spy = pd.DataFrame({"close": prices}, index=dates)
+        vix = _make_vix_data(level=35.0, n=n)
+        regime, meta = detect_regime(spy, vix_data=vix)
+        # Should have non-trivial high_vol score
+        assert meta["scores"]["high_volatility"] > 0.1
+
+    def test_metadata_has_all_expected_keys(self):
+        """Metadata dict should contain all expected keys."""
+        np.random.seed(42)
+        spy = _make_spy_data("up", n=120)
+        regime, meta = detect_regime(spy)
+        expected_keys = {
+            "confidence", "scores", "vix_value",
+            "realized_vol", "bb_width", "sma20_slope", "roc_20",
+        }
+        assert set(meta.keys()) == expected_keys
+
+    def test_scores_dict_has_all_regimes(self):
+        """Scores should contain entries for all 5 regimes."""
+        np.random.seed(42)
+        spy = _make_spy_data("up", n=120)
+        regime, meta = detect_regime(spy)
+        expected_regimes = {"trending_up", "trending_down", "mean_reversion",
+                            "high_volatility", "low_volatility"}
+        assert set(meta["scores"].keys()) == expected_regimes
+
+    def test_all_scores_are_numeric(self):
+        """All regime scores should be numeric (float)."""
+        np.random.seed(42)
+        spy = _make_spy_data("up", n=120)
+        regime, meta = detect_regime(spy)
+        for score in meta["scores"].values():
+            assert isinstance(score, (int, float))
+
+    def test_vix_at_boundary_20(self):
+        """VIX at exactly 20 → vix_score should be 0.0."""
+        np.random.seed(42)
+        spy = _make_spy_data("sideways", n=120, noise=0.003)
+        vix = _make_vix_data(level=20.0, n=120)
+        regime, meta = detect_regime(spy, vix_data=vix)
+        assert meta["vix_value"] is not None
+
+    def test_vix_at_boundary_30(self):
+        """VIX at exactly 30 → vix_score should be 1.0."""
+        np.random.seed(42)
+        spy = _make_spy_data("sideways", n=120, noise=0.003)
+        vix = _make_vix_data(level=30.0, n=120)
+        regime, meta = detect_regime(spy, vix_data=vix)
+        assert meta["vix_value"] is not None
+
+    def test_custom_lookback(self):
+        """Custom lookback parameter should be accepted."""
+        np.random.seed(42)
+        spy = _make_spy_data("up", n=200)
+        regime_default, meta_default = detect_regime(spy)
+        regime_short, meta_short = detect_regime(spy, lookback=60)
+        # Both should return valid results
+        assert isinstance(regime_default, MarketRegime)
+        assert isinstance(regime_short, MarketRegime)
+
+    def test_empty_vix_data(self):
+        """Empty VIX DataFrame should not crash."""
+        np.random.seed(42)
+        spy = _make_spy_data("up", n=120)
+        vix = pd.DataFrame({"close": []})
+        regime, meta = detect_regime(spy, vix_data=vix)
+        assert isinstance(regime, MarketRegime)
+        assert meta["vix_value"] is None
+
+    def test_realized_vol_in_metadata(self):
+        """Realized volatility should be in metadata and non-negative."""
+        np.random.seed(42)
+        spy = _make_spy_data("up", n=120)
+        regime, meta = detect_regime(spy)
+        assert meta["realized_vol"] >= 0.0
+
+    def test_bb_width_in_metadata(self):
+        """Bollinger Band width should be in metadata and non-negative."""
+        np.random.seed(42)
+        spy = _make_spy_data("up", n=120)
+        regime, meta = detect_regime(spy)
+        assert meta["bb_width"] >= 0.0
+
+    def test_deterministic_with_seed(self):
+        """Same seed should produce same regime."""
+        np.random.seed(42)
+        spy1 = _make_spy_data("up", n=120, noise=0.01)
+        regime1, _ = detect_regime(spy1)
+
+        np.random.seed(42)
+        spy2 = _make_spy_data("up", n=120, noise=0.01)
+        regime2, _ = detect_regime(spy2)
+
+        assert regime1 == regime2
+
+    def test_strong_downtrend_high_confidence(self):
+        """Strong downtrend should have reasonably high confidence."""
+        np.random.seed(42)
+        spy = _make_spy_data("down", n=120, noise=0.002)
+        regime, meta = detect_regime(spy)
+        assert regime == MarketRegime.TRENDING_DOWN
+        # Strong trend should have meaningful confidence
+        assert meta["confidence"] > 0.0
+
+    def test_very_short_data_exactly_19_bars(self):
+        """Exactly 19 bars should return insufficient_data."""
+        dates = pd.date_range("2024-01-01", periods=19, freq="B")
+        spy = pd.DataFrame({"close": np.linspace(100, 105, 19)}, index=dates)
+        regime, meta = detect_regime(spy)
+        assert regime == MarketRegime.LOW_VOLATILITY
+        assert meta.get("reason") == "insufficient_data"
+
+    def test_exactly_20_bars(self):
+        """Exactly 20 bars is the minimum for analysis."""
+        dates = pd.date_range("2024-01-01", periods=20, freq="B")
+        np.random.seed(42)
+        spy = pd.DataFrame({
+            "close": 100 + np.cumsum(np.random.randn(20) * 0.5),
+        }, index=dates)
+        regime, meta = detect_regime(spy)
+        assert isinstance(regime, MarketRegime)
+        # Should have actual scores, not insufficient_data
+        assert meta.get("reason") is None
+
+
+# ── Extended get_strategy_ranking tests ──────────────────────────────────
+
+
+class TestGetStrategyRankingExtended:
+    def test_empty_available_list(self):
+        """Empty available_strategies list → empty ranking."""
+        ranking = get_strategy_ranking(
+            MarketRegime.TRENDING_UP,
+            available_strategies=[],
+        )
+        assert ranking == []
+
+    def test_none_available_returns_all(self):
+        """None available_strategies → returns all strategies."""
+        ranking_all = get_strategy_ranking(MarketRegime.TRENDING_UP)
+        ranking_none = get_strategy_ranking(
+            MarketRegime.TRENDING_UP,
+            available_strategies=None,
+        )
+        assert len(ranking_all) == len(ranking_none)
+
+    def test_high_volatility_avoids_risk_strategies(self):
+        """HIGH_VOLATILITY should have lower scores for momentum strategies."""
+        ranking = get_strategy_ranking(MarketRegime.HIGH_VOLATILITY)
+        # Get the max score (should be moderate, not extreme)
+        max_score = ranking[0][1]
+        # In high vol, even the top strategy should have score <= 0.8
+        assert max_score <= 0.80
+
+    def test_low_volatility_favors_momentum(self):
+        """LOW_VOLATILITY should rank momentum strategies highest."""
+        ranking = get_strategy_ranking(MarketRegime.LOW_VOLATILITY)
+        top_name = ranking[0][0]
+        assert top_name == "ema_ribbon_reversal"
+
+    def test_trending_down_top_strategy(self):
+        """TRENDING_DOWN should rank adx_pullback highest."""
+        ranking = get_strategy_ranking(MarketRegime.TRENDING_DOWN)
+        top_name = ranking[0][0]
+        assert top_name == "adx_pullback"
+
+    def test_all_regimes_have_rankings(self):
+        """Every regime should return a non-empty ranking."""
+        for regime in MarketRegime:
+            ranking = get_strategy_ranking(regime)
+            assert len(ranking) > 0, f"{regime.value} has empty ranking"
+
+    def test_return_type_is_list_of_tuples(self):
+        """Should return list of (str, float) tuples."""
+        ranking = get_strategy_ranking(MarketRegime.TRENDING_UP)
+        assert isinstance(ranking, list)
+        for item in ranking:
+            assert isinstance(item, tuple)
+            assert len(item) == 2
+            assert isinstance(item[0], str)
+            assert isinstance(item[1], float)
+
+    def test_partial_filter_keeps_only_matching(self):
+        """Filtering to a subset should keep only those strategies."""
+        available = ["bollinger_squeeze", "rsi_crossover", "macd_momentum"]
+        ranking = get_strategy_ranking(MarketRegime.MEAN_REVERSION, available)
+        names = [name for name, _ in ranking]
+        assert set(names) == set(available)
+        # bollinger_squeeze should be ranked first for mean_reversion
+        assert names[0] == "bollinger_squeeze"
+
+    def test_affinity_dict_completeness(self):
+        """All regimes should have the same set of strategies."""
+        strategy_sets = []
+        for regime in MarketRegime:
+            strategy_sets.append(set(REGIME_STRATEGY_AFFINITY[regime].keys()))
+        # All should be identical
+        for s in strategy_sets[1:]:
+            assert s == strategy_sets[0], "Not all regimes have the same strategy set"

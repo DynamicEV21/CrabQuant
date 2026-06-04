@@ -1,0 +1,73 @@
+diff --git a/cmd/gc/order_dispatch.go b/cmd/gc/order_dispatch.go
+--- a/cmd/gc/order_dispatch.go
++++ b/cmd/gc/order_dispatch.go
+@@ -318,7 +318,7 @@ func orderTriggerUsesLastRun(a orders.Order) bool {
+ 
+ // dispatchOne runs a single order dispatch in its own goroutine.
+ // For exec orders, runs the script directly. For formula orders,
+-// instantiates a wisp. Emits events and updates the tracking bead.
++// runs preflight guardrails then instantiates a wisp. Emits events and updates the tracking bead.
+ func (m *memoryOrderDispatcher) dispatchOne(ctx context.Context, store beads.Store, target execStoreTarget, a orders.Order, cityPath, trackingID string) {
+ 	defer store.Close(trackingID) //nolint:errcheck // best-effort close
+ 
+@@ -329,6 +329,17 @@ func (m *memoryOrderDispatcher) dispatchOne(ctx context.Context, store beads.St
+ 		Subject: scoped,
+ 	})
+ 
++	// Run preflight guardrails (budget check, circuit breaker) for ALL order types.
++	// This closes the formula-order preflight bypass: formula orders previously
++	// skipped budget-check.sh and circuit-breaker.sh because only exec orders
++	// ran external scripts that could invoke these guardrails.
++	if err := runOrderPreflight(ctx, cityPath, a, m.stderr); err != nil {
++		m.rec.Record(events.Event{
++			Type:    events.OrderFailed,
++			Actor:   "controller",
++			Subject: scoped,
++			Message: fmt.Sprintf("preflight guardrail: %v", err),
++		})
++		store.Update(trackingID, beads.UpdateOpts{Labels: []string{"preflight-blocked"}}) //nolint:errcheck
++		return
++	}
++
+ 	if a.IsExec() {
+@@ -339,3 +350,52 @@ func (m *memoryOrderDispatcher) dispatchOne(ctx context.Context, store beads.St
+ 	} else {
+ 		m.dispatchWisp(childCtx, store, a, cityPath, trackingID)
+ 	}
+ }
++
++// runOrderPreflight executes budget and circuit-breaker guardrails before any order.
++// It checks for guardrail scripts in the city's scripts/ directory and runs them.
++// If no scripts are found, it's a no-op (non-HermGC deployments don't have them).
++func runOrderPreflight(ctx context.Context, cityPath string, a orders.Order, stderr io.Writer) error {
++	scriptsDir := filepath.Join(cityPath, "scripts")
++	budgetCheck := filepath.Join(scriptsDir, "budget-check.sh")
++	circuitBreaker := filepath.Join(scriptsDir, "circuit-breaker.sh")
++
++	// Budget preflight — check if daily budget allows dispatch
++	if info, err := os.Stat(budgetCheck); err == nil && info.Mode().Perm()&0111 != 0 {
++		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
++		defer cancel()
++		cmd := exec.CommandContext(ctx, budgetCheck, "preflight")
++		cmd.Env = append(os.Environ(), fmt.Sprintf("GC_CITY=%s", cityPath))
++		if output, err := cmd.CombinedOutput(); err != nil {
++			logDispatchError(stderr, "gc: order dispatch preflight: budget check failed for %s: %s", a.ScopedName(), string(output))
++			return fmt.Errorf("budget preflight failed: %s", strings.TrimSpace(string(output)))
++		}
++	}
++
++	// Circuit breaker — check if the target agent is circuit-broken
++	// For formula orders, the "bead-id" is the order's scoped name
++	if info, err := os.Stat(circuitBreaker); err == nil && info.Mode().Perm()&0111 != 0 {
++		ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
++		defer cancel()
++		cmd := exec.CommandContext(ctx, circuitBreaker, "check", a.ScopedName())
++		cmd.Env = append(os.Environ(), fmt.Sprintf("GC_CITY=%s", cityPath))
++		if output, err := cmd.CombinedOutput(); err != nil {
++			logDispatchError(stderr, "gc: order dispatch preflight: circuit breaker tripped for %s: %s", a.ScopedName(), string(output))
++			return fmt.Errorf("circuit breaker tripped: %s", strings.TrimSpace(string(output)))
++		}
++	}
++
++	return nil
++}

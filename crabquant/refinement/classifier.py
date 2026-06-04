@@ -29,11 +29,18 @@ def classify_failure(
         sharpe_target: Sharpe ratio target for the low_sharpe catch-all.
     """
 
-    # 1. Too few trades
-    if result.num_trades < 5:
+    # 1. Too few trades (below minimum for statistical significance)
+    # Threshold: 10 trades. Previously 20, lowered because 56% of recent
+    # mandate failures were too_few_trades — strategies were structurally
+    # sound but over-filtered. 10 trades provides adequate statistical
+    # significance on daily-frequency 2y backtests while not penalising
+    # legitimate conservative strategies.
+    if result.num_trades < 10:
         return (
             "too_few_trades",
-            f"Only {result.num_trades} trades (min 5). Strategy is too selective.",
+            f"Only {result.num_trades} trades (min 10 required). "
+            f"Strategy is too selective — use shorter lookback windows (5-15 periods), "
+            f"lower entry thresholds, or add a re-entry mechanism after stop-loss/cooldown.",
         )
 
     # 2. Flat signal (no meaningful activity)

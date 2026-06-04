@@ -1,5 +1,5 @@
 """
-Wave Manager — Parallel mandate execution via subprocess isolation.
+Wave Manager - Parallel mandate execution via subprocess isolation.
 
 Each mandate runs in its own subprocess to avoid shared state issues:
 - STRATEGY_REGISTRY, indicator_cache, sys.modules are all per-process
@@ -244,7 +244,9 @@ def run_waves(
             print(f"\n🎯 Convergence target met: {report.convergence_rate:.0%} >= {stop_on_convergence:.0%}")
             break
 
-        # Brief pause between waves to let API rate limits reset
-        time.sleep(5)
-
+        # Brief pause between waves to let API rate limits reset.
+        # 10s is conservative but ensures the rolling 5h window advances.
+        if wave_num < max_waves:
+            time.sleep(10)
+    
     return all_reports

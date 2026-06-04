@@ -8,6 +8,7 @@ import pytest
 
 from crabquant.data import load_data
 from crabquant.engine import BacktestEngine, BacktestResult
+from crabquant.engine.resource_monitor import ResourceSnapshot
 from crabquant.strategies.rsi_crossover import generate_signals, generate_signals_matrix, PARAM_GRID
 
 
@@ -311,3 +312,473 @@ class TestAllStrategiesMatrix:
         results = engine.run_vectorized(df, entries_df, exits_df, param_list, strategy_name, "AAPL")
         assert len(results) == len(param_list)
         assert all(isinstance(r, BacktestResult) for r in results)
+
+
+# ── BacktestResult dataclass ──────────────────────────────────────────────
+
+class TestBacktestResult:
+    def test_result_is_dataclass(self):
+        """BacktestResult should be a dataclass."""
+        from dataclasses import is_dataclass
+        assert is_dataclass(BacktestResult)
+
+    def test_result_default_values(self):
+        """Default BacktestResult should have sensible defaults."""
+        r = BacktestResult(
+            ticker="TEST", strategy_name="test", iteration=0,
+            sharpe=1.0, total_return=0.2, max_drawdown=-0.1, win_rate=0.6,
+            num_trades=10, avg_trade_return=0.02, calmar_ratio=2.0,
+            sortino_ratio=2.5, profit_factor=1.5, avg_holding_bars=5.0,
+            best_trade=0.1, worst_trade=-0.05, passed=True, score=1.0,
+            notes="test notes",
+        )
+        assert r.params == {}
+        assert isinstance(r.timestamp, str)
+        assert len(r.timestamp) > 0
+
+    def test_result_asdict(self):
+        """BacktestResult should be convertible to dict via dataclasses.asdict."""
+        from dataclasses import asdict
+        r = BacktestResult(
+            ticker="TEST", strategy_name="test", iteration=0,
+            sharpe=1.0, total_return=0.2, max_drawdown=-0.1, win_rate=0.6,
+            num_trades=10, avg_trade_return=0.02, calmar_ratio=2.0,
+            sortino_ratio=2.5, profit_factor=1.5, avg_holding_bars=5.0,
+            best_trade=0.1, worst_trade=-0.05, passed=True, score=1.0,
+            notes="test notes", params={"a": 1},
+        )
+        d = asdict(r)
+        assert isinstance(d, dict)
+        assert d["ticker"] == "TEST"
+        assert d["params"] == {"a": 1}
+
+    def test_result_all_field_types(self):
+        """Verify types of all BacktestResult fields."""
+        r = BacktestResult(
+            ticker="T", strategy_name="s", iteration=0,
+            sharpe=1.0, total_return=0.1, max_drawdown=-0.05, win_rate=0.5,
+            num_trades=5, avg_trade_return=0.01, calmar_ratio=1.0,
+            sortino_ratio=1.0, profit_factor=1.0, avg_holding_bars=3.0,
+            best_trade=0.05, worst_trade=-0.03, passed=True, score=0.5,
+            notes="n",
+        )
+        assert isinstance(r.ticker, str)
+        assert isinstance(r.strategy_name, str)
+        assert isinstance(r.iteration, int)
+        assert isinstance(r.sharpe, float)
+        assert isinstance(r.total_return, float)
+        assert isinstance(r.max_drawdown, float)
+        assert isinstance(r.win_rate, float)
+        assert isinstance(r.num_trades, int)
+        assert isinstance(r.avg_trade_return, float)
+        assert isinstance(r.calmar_ratio, float)
+        assert isinstance(r.sortino_ratio, float)
+        assert isinstance(r.profit_factor, float)
+        assert isinstance(r.avg_holding_bars, float)
+        assert isinstance(r.best_trade, float)
+        assert isinstance(r.worst_trade, float)
+        assert isinstance(r.passed, bool)
+        assert isinstance(r.score, float)
+        assert isinstance(r.notes, str)
+
+
+# ── BacktestEngine edge cases ─────────────────────────────────────────────
+
+class TestBacktestEngineEdgeCases:
+    def test_run_with_return_portfolio(self):
+        """run() with return_portfolio=True should return (result, portfolio)."""
+        engine = BacktestEngine()
+        df = load_data("AAPL", period="2y")
+        entries, exits = generate_signals(df)
+
+        result = engine.run(df, entries, exits, "test", "AAPL", return_portfolio=True)
+        assert isinstance(result, tuple)
+        assert len(result) == 2
+        assert isinstance(result[0], BacktestResult)
+        assert result[1] is not None  # portfolio object
+
+    def test_run_iteration_stored(self):
+        """Iteration number should be stored in result."""
+        engine = BacktestEngine()
+        df = load_data("AAPL", period="2y")
+        entries, exits = generate_signals(df)
+
+        result = engine.run(df, entries, exits, "test", "AAPL", iteration=42)
+        assert result.iteration == 42
+
+    def test_passed_false_when_drawdown_exceeds(self):
+        """Result should fail when max drawdown exceeds limit."""
+        engine = BacktestEngine(max_drawdown_limit=0.001)  # Very tight
+        df = load_data("AAPL", period="2y")
+        entries, exits = generate_signals(df)
+
+        result = engine.run(df, entries, exits, "test", "AAPL")
+        assert result.passed == False
+
+    def test_passed_false_when_too_few_trades(self):
+        """Result should fail when min_trades not met."""
+        engine = BacktestEngine(min_trades=9999)
+        df = load_data("AAPL", period="2y")
+        entries, exits = generate_signals(df)
+
+        result = engine.run(df, entries, exits, "test", "AAPL")
+        assert result.passed == False
+
+    def test_passed_false_when_return_too_low(self):
+        """Result should fail when total return below minimum."""
+        engine = BacktestEngine(min_total_return=10.0)  # 1000% required
+        df = load_data("AAPL", period="2y")
+        entries, exits = generate_signals(df)
+
+        result = engine.run(df, entries, exits, "test", "AAPL")
+        assert result.passed == False
+
+    def test_zero_commission(self):
+        """Engine should work with zero commission."""
+        engine = BacktestEngine(commission=0.0, sharpe_target=0, min_trades=0, min_total_return=0)
+        df = load_data("AAPL", period="2y")
+        entries, exits = generate_signals(df)
+
+        result = engine.run(df, entries, exits, "test", "AAPL")
+        assert isinstance(result, BacktestResult)
+
+    def test_high_commission(self):
+        """Engine should work with high commission."""
+        engine = BacktestEngine(commission=0.05, sharpe_target=0, min_trades=0, min_total_return=0)
+        df = load_data("AAPL", period="2y")
+        entries, exits = generate_signals(df)
+
+        result = engine.run(df, entries, exits, "test", "AAPL")
+        assert isinstance(result, BacktestResult)
+        assert np.isfinite(result.score)
+
+    def test_build_notes_format(self):
+        """_build_notes should return pipe-separated string."""
+        engine = BacktestEngine()
+        notes = engine._build_notes(sharpe=2.0, max_dd=-0.1, num_trades=15, total_return=0.3)
+        assert "|" in notes
+        assert "Sharpe" in notes
+
+    def test_build_notes_fail_sharpe(self):
+        """_build_notes should show Sharpe below target."""
+        engine = BacktestEngine(sharpe_target=3.0)
+        notes = engine._build_notes(sharpe=1.0, max_dd=-0.1, num_trades=15, total_return=0.3)
+        assert "< 3.0" in notes
+
+    def test_build_notes_fail_drawdown(self):
+        """_build_notes should show MaxDD exceeded."""
+        engine = BacktestEngine(max_drawdown_limit=0.10)
+        notes = engine._build_notes(sharpe=2.0, max_dd=-0.5, num_trades=15, total_return=0.3)
+        assert "> 10%" in notes
+
+    def test_build_notes_few_trades(self):
+        """_build_notes should show 'Only N trades' when below min."""
+        engine = BacktestEngine(min_trades=10)
+        notes = engine._build_notes(sharpe=2.0, max_dd=-0.1, num_trades=3, total_return=0.3)
+        assert "Only 3 trades" in notes
+
+    def test_no_trades_result_metrics_zero(self):
+        """With no trades, trade-level metrics should be zero."""
+        engine = BacktestEngine()
+        df = load_data("AAPL", period="2y")
+        entries = pd.Series(False, index=df.index)
+        exits = pd.Series(False, index=df.index)
+
+        result = engine.run(df, entries, exits, "test", "AAPL")
+        assert result.win_rate == 0.0
+        assert result.avg_trade_return == 0.0
+        assert result.profit_factor == 0.0
+        assert result.best_trade == 0.0
+        assert result.worst_trade == 0.0
+        assert result.avg_holding_bars == 0.0
+        assert result.num_trades == 0
+
+
+# ── ResourceSnapshot ──────────────────────────────────────────────────────
+
+class TestResourceSnapshot:
+    def test_ram_headroom_mb_positive(self):
+        """ram_headroom_mb should be positive when available > reserve."""
+        from crabquant.engine.resource_monitor import ResourceSnapshot, DEFAULT_RAM_RESERVE_MB
+
+        snap = ResourceSnapshot(
+            cpu_percent=10.0, ram_total_mb=16000, ram_used_mb=4000,
+            ram_available_mb=12000, ram_usage_pct=0.25, disk_free_gb=100.0,
+            cpu_count=8,
+        )
+        expected = 12000 - DEFAULT_RAM_RESERVE_MB
+        assert snap.ram_headroom_mb == expected
+
+    def test_ram_headroom_mb_clamped_to_zero(self):
+        """ram_headroom_mb should be 0 when available < reserve."""
+        from crabquant.engine.resource_monitor import ResourceSnapshot
+
+        snap = ResourceSnapshot(
+            cpu_percent=10.0, ram_total_mb=16000, ram_used_mb=15000,
+            ram_available_mb=100, ram_usage_pct=0.94, disk_free_gb=100.0,
+            cpu_count=8,
+        )
+        assert snap.ram_headroom_mb == 0.0
+
+    def test_max_workers_by_ram(self):
+        """max_workers_by_ram should divide headroom by per-worker memory."""
+        from crabquant.engine.resource_monitor import ResourceSnapshot, DEFAULT_MEMORY_PER_WORKER_MB
+
+        headroom = 1500.0  # enough for 10 workers at 150MB each
+        available = headroom + 500  # 500 reserve
+        snap = ResourceSnapshot(
+            cpu_percent=10.0, ram_total_mb=16000, ram_used_mb=16000 - available,
+            ram_available_mb=available, ram_usage_pct=0.25, disk_free_gb=100.0,
+            cpu_count=8,
+        )
+        expected = max(1, int(headroom / DEFAULT_MEMORY_PER_WORKER_MB))
+        assert snap.max_workers_by_ram == expected
+
+    def test_max_workers_by_cpu_low_usage(self):
+        """With low CPU usage, max_workers_by_cpu should be close to cpu_count."""
+        from crabquant.engine.resource_monitor import ResourceSnapshot
+
+        snap = ResourceSnapshot(
+            cpu_percent=5.0, ram_total_mb=16000, ram_used_mb=4000,
+            ram_available_mb=12000, ram_usage_pct=0.25, disk_free_gb=100.0,
+            cpu_count=8,
+        )
+        assert snap.max_workers_by_cpu >= 7  # 95% headroom
+
+    def test_max_workers_by_cpu_high_usage(self):
+        """With high CPU usage, max_workers_by_cpu should be low."""
+        from crabquant.engine.resource_monitor import ResourceSnapshot
+
+        snap = ResourceSnapshot(
+            cpu_percent=95.0, ram_total_mb=16000, ram_used_mb=4000,
+            ram_available_mb=12000, ram_usage_pct=0.25, disk_free_gb=100.0,
+            cpu_count=8,
+        )
+        assert snap.max_workers_by_cpu == 1
+
+    def test_is_ram_constrained_true(self):
+        """Should detect RAM constraint when usage > 80%."""
+        from crabquant.engine.resource_monitor import ResourceSnapshot
+
+        snap = ResourceSnapshot(
+            cpu_percent=10.0, ram_total_mb=16000, ram_used_mb=14000,
+            ram_available_mb=2000, ram_usage_pct=0.875, disk_free_gb=100.0,
+            cpu_count=8,
+        )
+        assert snap.is_ram_constrained == True
+
+    def test_is_ram_constrained_false(self):
+        """Should not flag RAM constraint when usage < 80%."""
+        from crabquant.engine.resource_monitor import ResourceSnapshot
+
+        snap = ResourceSnapshot(
+            cpu_percent=10.0, ram_total_mb=16000, ram_used_mb=4000,
+            ram_available_mb=12000, ram_usage_pct=0.25, disk_free_gb=100.0,
+            cpu_count=8,
+        )
+        assert snap.is_ram_constrained == False
+
+    def test_is_cpu_constrained_true(self):
+        """Should detect CPU constraint when usage > 90%."""
+        from crabquant.engine.resource_monitor import ResourceSnapshot
+
+        snap = ResourceSnapshot(
+            cpu_percent=95.0, ram_total_mb=16000, ram_used_mb=4000,
+            ram_available_mb=12000, ram_usage_pct=0.25, disk_free_gb=100.0,
+            cpu_count=8,
+        )
+        assert snap.is_cpu_constrained == True
+
+    def test_is_cpu_constrained_false(self):
+        """Should not flag CPU constraint when usage < 90%."""
+        from crabquant.engine.resource_monitor import ResourceSnapshot
+
+        snap = ResourceSnapshot(
+            cpu_percent=50.0, ram_total_mb=16000, ram_used_mb=4000,
+            ram_available_mb=12000, ram_usage_pct=0.25, disk_free_gb=100.0,
+            cpu_count=8,
+        )
+        assert snap.is_cpu_constrained == False
+
+    def test_to_dict_keys(self):
+        """to_dict should return all expected keys."""
+        from crabquant.engine.resource_monitor import ResourceSnapshot
+
+        snap = ResourceSnapshot(
+            cpu_percent=50.0, ram_total_mb=16000, ram_used_mb=4000,
+            ram_available_mb=12000, ram_usage_pct=0.25, disk_free_gb=100.0,
+            cpu_count=8, load_avg_1m=1.0, load_avg_5m=0.8,
+        )
+        d = snap.to_dict()
+        expected_keys = {
+            "cpu_percent", "ram_total_mb", "ram_used_mb", "ram_available_mb",
+            "ram_usage_pct", "ram_headroom_mb", "disk_free_gb",
+            "max_workers_by_ram", "max_workers_by_cpu",
+            "is_ram_constrained", "is_cpu_constrained", "cpu_count",
+        }
+        assert set(d.keys()) == expected_keys
+
+    def test_to_dict_values_are_rounded(self):
+        """to_dict values should be rounded numbers."""
+        from crabquant.engine.resource_monitor import ResourceSnapshot
+
+        snap = ResourceSnapshot(
+            cpu_percent=55.123456, ram_total_mb=16000.789,
+            ram_used_mb=4000.123, ram_available_mb=12000.666,
+            ram_usage_pct=0.25, disk_free_gb=100.555,
+            cpu_count=8,
+        )
+        d = snap.to_dict()
+        # Values should be rounded (not raw floats with many decimals)
+        assert d["cpu_percent"] == 55.1
+        assert d["disk_free_gb"] == 100.56
+
+
+# ── compute_optimal_workers ───────────────────────────────────────────────
+
+class TestComputeOptimalWorkers:
+    def test_minimum_one(self):
+        """Should always return at least 1."""
+        from crabquant.engine.resource_monitor import compute_optimal_workers
+
+        snap = ResourceSnapshot(
+            cpu_percent=99.0, ram_total_mb=1000, ram_used_mb=990,
+            ram_available_mb=10, ram_usage_pct=0.99, disk_free_gb=1.0,
+            cpu_count=2,
+        )
+        result = compute_optimal_workers(100, snap)
+        assert result >= 1
+
+    def test_respects_requested(self):
+        """Should not exceed requested count."""
+        from crabquant.engine.resource_monitor import compute_optimal_workers
+
+        snap = ResourceSnapshot(
+            cpu_percent=0.0, ram_total_mb=100000, ram_used_mb=1000,
+            ram_available_mb=99000, ram_usage_pct=0.01, disk_free_gb=500.0,
+            cpu_count=64,
+        )
+        result = compute_optimal_workers(4, snap)
+        assert result <= 4
+
+    def test_custom_memory_per_worker(self):
+        """Should use custom memory_per_worker_mb."""
+        from crabquant.engine.resource_monitor import compute_optimal_workers
+
+        # 16000 total, 1000 used → 15000 available, budget at 80% = 12800 - 1000 = 11800
+        # With 200MB per worker: 11800/200 = 59
+        snap = ResourceSnapshot(
+            cpu_percent=0.0, ram_total_mb=16000, ram_used_mb=1000,
+            ram_available_mb=15000, ram_usage_pct=0.0625, disk_free_gb=500.0,
+            cpu_count=64,
+        )
+        result = compute_optimal_workers(100, snap, memory_per_worker_mb=200.0)
+        # RAM budget: (16000*0.8 - 1000) / 200 = 11800/200 = 59
+        assert result == 59
+
+    def test_ram_budget_limit(self):
+        """Should respect max_ram_usage_pct budget."""
+        from crabquant.engine.resource_monitor import compute_optimal_workers
+
+        # 16000 total, 12000 used → budget at 80% = 12800, headroom = 800
+        snap = ResourceSnapshot(
+            cpu_percent=0.0, ram_total_mb=16000, ram_used_mb=12000,
+            ram_available_mb=4000, ram_usage_pct=0.75, disk_free_gb=500.0,
+            cpu_count=64,
+        )
+        result = compute_optimal_workers(100, snap, max_ram_usage_pct=0.80)
+        # Budget: 16000*0.8 - 12000 = 800. 800/150 = 5
+        assert result == 5
+
+
+# ── ResourceMonitor ───────────────────────────────────────────────────────
+
+class TestResourceMonitor:
+    def test_check_increments_count(self):
+        """check() should increment _check_count."""
+        from crabquant.engine.resource_monitor import ResourceMonitor
+
+        monitor = ResourceMonitor()
+        assert monitor._check_count == 0
+        monitor.check()
+        assert monitor._check_count == 1
+        monitor.check()
+        assert monitor._check_count == 2
+
+    def test_get_workers_returns_int(self):
+        """get_workers() should return an integer >= 1."""
+        from crabquant.engine.resource_monitor import ResourceMonitor
+
+        monitor = ResourceMonitor()
+        workers = monitor.get_workers(8)
+        assert isinstance(workers, int)
+        assert workers >= 1
+
+    def test_get_workers_respects_min_workers(self):
+        """get_workers() should return at least min_workers."""
+        from crabquant.engine.resource_monitor import ResourceMonitor
+
+        monitor = ResourceMonitor(min_workers=3)
+        workers = monitor.get_workers(100)
+        assert workers >= 3
+
+    def test_get_status_keys(self):
+        """get_status() should return expected keys."""
+        from crabquant.engine.resource_monitor import ResourceMonitor
+
+        monitor = ResourceMonitor()
+        monitor.check()
+        status = monitor.get_status()
+        assert "checks" in status
+        assert "throttles" in status
+        assert "last_recommendation" in status
+        assert "snapshot" in status
+        assert isinstance(status["snapshot"], dict)
+
+    def test_context_manager(self):
+        """ResourceMonitor should work as context manager."""
+        from crabquant.engine.resource_monitor import ResourceMonitor
+
+        monitor = ResourceMonitor()
+        with monitor:
+            workers = monitor.get_workers(4)
+            assert isinstance(workers, int)
+        assert monitor._check_count >= 1
+
+    def test_get_snapshot_caches(self):
+        """get_snapshot() should return cached snapshot if fresh."""
+        from crabquant.engine.resource_monitor import ResourceMonitor
+
+        monitor = ResourceMonitor(check_interval=60.0)
+        snap1 = monitor.get_snapshot()
+        snap2 = monitor.get_snapshot()
+        assert snap1 is snap2  # same object (cached)
+
+    def test_get_snapshot_refreshes_when_stale(self):
+        """get_snapshot() should refresh when check_interval elapsed."""
+        from crabquant.engine.resource_monitor import ResourceMonitor
+        import time
+
+        monitor = ResourceMonitor(check_interval=0.01)  # 10ms
+        snap1 = monitor.get_snapshot()
+        time.sleep(0.02)
+        snap2 = monitor.get_snapshot()
+        # May or may not be same object, but check_count should increase
+        assert monitor._check_count >= 2
+
+    def test_throttle_count_increments(self):
+        """_throttle_count should increment when workers are throttled."""
+        from crabquant.engine.resource_monitor import ResourceMonitor
+
+        monitor = ResourceMonitor()
+        # Request huge number — should be throttled down
+        workers = monitor.get_workers(99999)
+        if workers < 99999:
+            assert monitor._throttle_count >= 1
+
+    def test_custom_check_interval(self):
+        """ResourceMonitor should accept custom check_interval."""
+        from crabquant.engine.resource_monitor import ResourceMonitor
+
+        monitor = ResourceMonitor(check_interval=123.45)
+        assert monitor.check_interval == 123.45

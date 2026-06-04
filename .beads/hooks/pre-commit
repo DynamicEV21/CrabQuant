@@ -1,0 +1,107 @@
+#!/usr/bin/env bash
+# CrabQuant pre-commit hook — verifies code integrity before commit.
+# Strategy: import check + fast critical tests (target: <10s).
+# Full suite runs in CI/orchestrator cycles.
+
+set -euo pipefail
+
+# Phase 0: Protected file check — blocks modification of VISION.md and GUARDRAILS.md
+PROTECTED_FILES=("VISION.md" "GUARDRAILS.md")
+STAGED_PROTECTED=$(git diff --cached --name-only --diff-filter=ACM 2>/dev/null | grep -E "^(VISION\.md|GUARDRAILS\.md)$" || true)
+if [ -n "$STAGED_PROTECTED" ]; then
+  echo "🚫 BLOCKED: Protected files cannot be modified without CEO approval:"
+  echo "   $STAGED_PROTECTED"
+  echo "   Use git commit --no-verify ONLY if explicitly authorized by Tristan."
+  exit 1
+fi
+
+CRABQUANT_DIR="$HOME/development/CrabQuant"
+VENV_DIR="$HOME/development/CrabQuant/.venv"
+
+echo "🔍 CrabQuant pre-commit check..."
+
+if [ ! -d "$VENV_DIR" ]; then
+  echo "❌ Venv not found at $VENV_DIR"
+  exit 1
+fi
+source "$VENV_DIR/bin/activate"
+cd "$CRABQUANT_DIR"
+
+# Phase 1: Import check — verify all modules load without errors (~4s)
+echo "  Checking imports..."
+python3 -c "
+modules = [
+    'crabquant.refinement.config', 'crabquant.refinement.promotion',
+    'crabquant.refinement.schemas', 'crabquant.refinement.stagnation',
+    'crabquant.refinement.context_builder', 'crabquant.refinement.prompts',
+    'crabquant.refinement.param_optimizer', 'crabquant.refinement.signal_analysis',
+    'crabquant.refinement.feature_importance', 'crabquant.refinement.regime_diagnosis',
+    'crabquant.refinement.sharpe_diagnosis', 'crabquant.refinement.action_validator',
+    'crabquant.refinement.circuit_breaker', 'crabquant.refinement.classifier',
+    'crabquant.refinement.cosmetic_guard', 'crabquant.refinement.validation_gates',
+    'crabquant.refinement.gate3_smoke', 'crabquant.refinement.llm_api',
+    'crabquant.refinement.state', 'crabquant.refinement.scoring',
+    'crabquant.refinement.diagnostics', 'crabquant.refinement.archetypes',
+    'crabquant.refinement.wave_manager', 'crabquant.refinement.complexity',
+    'crabquant.refinement.per_wave_metrics', 'crabquant.refinement.portfolio_correlation',
+    'crabquant.engine.backtest', 'crabquant.engine.parallel',
+    'crabquant.analysis.correlation',
+    'crabquant.confirm.batch', 'crabquant.confirm.runner',
+]
+failed = []
+for m in modules:
+    try:
+        __import__(m)
+    except Exception as e:
+        failed.append(f'{m}: {e}')
+if failed:
+    for f in failed:
+        print(f'  ❌ {f}')
+    raise SystemExit(1)
+print(f'  ✅ All {len(modules)} modules import OK')
+" 2>&1
+
+if [ $? -ne 0 ]; then
+  echo "❌ Import check failed! Fix broken imports before committing."
+  exit 1
+fi
+
+# Phase 2: Fast schema + config tests (~3s)
+echo "  Running critical tests..."
+python -m pytest \
+  tests/refinement/test_schemas.py \
+  tests/refinement/test_config.py \
+  -q --tb=short \
+  2>&1 | tail -3
+
+if [ ${PIPESTATUS[0]} -ne 0 ]; then
+  echo "❌ Critical tests failed! Fix before committing."
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed!"
+exit 0
+
+# --- BEGIN BEADS INTEGRATION v1.0.3 ---
+# This section is managed by beads. Do not remove these markers.
+if command -v bd >/dev/null 2>&1; then
+  export BD_GIT_HOOK=1
+  _bd_timeout=${BEADS_HOOK_TIMEOUT:-300}
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$_bd_timeout" bd hooks run pre-commit "$@"
+    _bd_exit=$?
+    if [ $_bd_exit -eq 124 ]; then
+      echo >&2 "beads: hook 'pre-commit' timed out after ${_bd_timeout}s — continuing without beads"
+      _bd_exit=0
+    fi
+  else
+    bd hooks run pre-commit "$@"
+    _bd_exit=$?
+  fi
+  if [ $_bd_exit -eq 3 ]; then
+    echo >&2 "beads: database not initialized — skipping hook 'pre-commit'"
+    _bd_exit=0
+  fi
+  if [ $_bd_exit -ne 0 ]; then exit $_bd_exit; fi
+fi
+# --- END BEADS INTEGRATION v1.0.3 ---

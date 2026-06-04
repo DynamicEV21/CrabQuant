@@ -1,0 +1,190 @@
+[
+  {
+    "label": "informed_simple_adaptive|JNJ",
+    "sharpe": 2.7589667392723682,
+    "status": "fail",
+    "avg_test_sharpe": 0.23972605384846393,
+    "windows_passed": 3,
+    "num_windows": 6,
+    "min_test_sharpe": -2.7193582659923323,
+    "avg_degradation": 0.7799196200233259,
+    "notes": "Windows: 6, passed: 3 | Avg test Sharpe: 0.24 (min: -2.72) | Avg degradation: 78.0% | \u26a0\ufe0f Avg test Sharpe 0.24 < 0.3",
+    "elapsed": 7.1,
+    "params": {
+      "adx_len": 21,
+      "adx_threshold": 30,
+      "rsi_len": 14,
+      "rsi_oversold": 25,
+      "rsi_overbought": 60,
+      "volume_window": 20,
+      "volume_mult": 1.5
+    }
+  },
+  {
+    "label": "informed_simple_adaptive|JNJ",
+    "sharpe": 2.756303344095822,
+    "status": "fail",
+    "avg_test_sharpe": 0.038772290364263,
+    "windows_passed": 2,
+    "num_windows": 6,
+    "min_test_sharpe": -1.1111242845754425,
+    "avg_degradation": 0.9149080258463332,
+    "notes": "Windows: 6, passed: 2 | Avg test Sharpe: 0.04 (min: -1.11) | Avg degradation: 91.5% | \u26a0\ufe0f Avg test Sharpe 0.04 < 0.3",
+    "elapsed": 0.7,
+    "params": {
+      "adx_len": 21,
+      "adx_threshold": 30,
+      "rsi_len": 21,
+      "rsi_oversold": 35,
+      "rsi_overbought": 65,
+      "volume_window": 25,
+      "volume_mult": 1.3
+    }
+  },
+  {
+    "label": "roc_ema_volume|GOOGL",
+    "sharpe": 2.6522211049088726,
+    "status": "pass",
+    "avg_test_sharpe": 1.6921035519381624,
+    "windows_passed": 5,
+    "num_windows": 6,
+    "min_test_sharpe": -0.020049526187360715,
+    "avg_degradation": 0.16666666666666666,
+    "notes": "Windows: 6, passed: 5 | Avg test Sharpe: 1.69 (min: -0.02) | Avg degradation: 16.7%",
+    "elapsed": 0.8,
+    "params": {
+      "roc_len": 5,
+      "ema_len": 15,
+      "vol_sma_len": 15,
+      "atr_len": 21,
+      "atr_mult": 2.75,
+      "trailing_len": 7
+    }
+  },
+  {
+    "label": "roc_ema_volume|GOOGL",
+    "sharpe": 2.549703069474517,
+    "status": "pass",
+    "avg_test_sharpe": 1.2654342884963876,
+    "windows_passed": 5,
+    "num_windows": 6,
+    "min_test_sharpe": -0.7777520920594352,
+    "avg_degradation": 0.16666666666666666,
+    "notes": "Windows: 6, passed: 5 | Avg test Sharpe: 1.27 (min: -0.78) | Avg degradation: 16.7%",
+    "elapsed": 0.7,
+    "params": {
+      "roc_len": 21,
+      "ema_len": 20,
+      "vol_sma_len": 25,
+      "atr_len": 17,
+      "atr_mult": 2.0,
+      "trailing_len": 10
+    }
+  },
+  {
+    "label": "refined_momentum_googl|GOOGL",
+    "sharpe": 2.188954944584191,
+    "status": "skip",
+    "reason": "No module named 'crabquant.strategies.refined_momentum_googl'"
+  },
+  {
+    "label": "rsi_crossover|JNJ",
+    "sharpe": 2.1822910182862096,
+    "status": "fail",
+    "avg_test_sharpe": -0.1582746229383674,
+    "windows_passed": 5,
+    "num_windows": 6,
+    "min_test_sharpe": -0.9496477376302043,
+    "avg_degradation": 1.0,
+    "notes": "Windows: 6, passed: 5 | Avg test Sharpe: -0.16 (min: -0.95) | Avg degradation: 100.0% | \u26a0\ufe0f Avg test Sharpe -0.16 < 0.3",
+    "elapsed": 0.9,
+    "params": {
+      "fast_len": 14,
+      "slow_len": 21,
+      "regime_len": 30,
+      "regime_bull": 65,
+      "exit_level": 45
+    }
+  },
+  {
+    "label": "rsi_crossover|JNJ",
+    "sharpe": 2.0536493078927998,
+    "status": "fail",
+    "avg_test_sharpe": -0.5116431783073775,
+    "windows_passed": 4,
+    "num_windows": 6,
+    "min_test_sharpe": -1.5384527597111775,
+    "avg_degradation": 1.0,
+    "notes": "Windows: 6, passed: 4 | Avg test Sharpe: -0.51 (min: -1.54) | Avg degradation: 100.0% | \u26a0\ufe0f Avg test Sharpe -0.51 < 0.3",
+    "elapsed": 0.7,
+    "params": {
+      "fast_len": 14,
+      "slow_len": 21,
+      "regime_len": 50,
+      "regime_bull": 60,
+      "exit_level": 40
+    }
+  },
+  {
+    "label": "refined_mean_reversion_nvda|NVDA",
+    "sharpe": 1.7422784491824221,
+    "status": "skip",
+    "reason": "No module named 'crabquant.strategies.refined_mean_reversion_nvda'"
+  },
+  {
+    "label": "refined_multi_rsi_googl|GOOGL",
+    "sharpe": 1.7059361666878445,
+    "status": "skip",
+    "reason": "No module named 'crabquant.strategies.refined_multi_rsi_googl'"
+  },
+  {
+    "label": "refined_Momentum Strategy for SPY|SPY",
+    "sharpe": 1.6769364708542696,
+    "status": "skip",
+    "reason": "No module named 'crabquant.strategies.refined_Momentum Strategy for SPY'"
+  },
+  {
+    "label": "refined_Momentum Strategy for SPY|SPY",
+    "sharpe": 1.6756379341567393,
+    "status": "skip",
+    "reason": "No module named 'crabquant.strategies.refined_Momentum Strategy for SPY'"
+  },
+  {
+    "label": "refined_e2e_test_momentum|AAPL",
+    "sharpe": 1.6219398541553989,
+    "status": "pass",
+    "avg_test_sharpe": 0.7936389660663273,
+    "windows_passed": 4,
+    "num_windows": 6,
+    "min_test_sharpe": -2.951277403375315,
+    "avg_degradation": 0.7006701953228965,
+    "notes": "Windows: 6, passed: 4 | Avg test Sharpe: 0.79 (min: -2.95) | Avg degradation: 70.1%",
+    "elapsed": 0.7,
+    "params": {}
+  },
+  {
+    "label": "refined_e2e_test_momentum|AAPL",
+    "sharpe": 1.5545538526507134,
+    "status": "pass",
+    "avg_test_sharpe": 0.7936389660663273,
+    "windows_passed": 4,
+    "num_windows": 6,
+    "min_test_sharpe": -2.951277403375315,
+    "avg_degradation": 0.7006701953228965,
+    "notes": "Windows: 6, passed: 4 | Avg test Sharpe: 0.79 (min: -2.95) | Avg degradation: 70.1%",
+    "elapsed": 0.9,
+    "params": {}
+  },
+  {
+    "label": "refined_volume_aapl|AAPL",
+    "sharpe": 1.5628973561120971,
+    "status": "skip",
+    "reason": "No module named 'crabquant.strategies.refined_volume_aapl'"
+  },
+  {
+    "label": "refined_breakout_spy|SPY",
+    "sharpe": 1.5076240499038858,
+    "status": "skip",
+    "reason": "No module named 'crabquant.strategies.refined_breakout_spy'"
+  }
+]

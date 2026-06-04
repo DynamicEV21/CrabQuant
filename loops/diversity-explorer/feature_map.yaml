@@ -1,0 +1,283 @@
+# Diversity Feature Map for CrabQuant Portfolio
+#
+# Based on QuantEvolve (arxiv 2510.18569) quality-diversity optimization,
+# adapted for CrabQuant's strategy portfolio rather than alpha factor models.
+#
+# Each strategy occupies a cell in this multi-dimensional feature space.
+# The diversity-explorer loop tries to fill empty or weakly-covered cells
+# while maintaining minimum quality thresholds.
+#
+# Cell = (archetype, ticker, regime, indicator_family, trade_frequency)
+# Max cells: 6 archetypes x 33 tickers x 3 regimes x 5 indicator_families x 3 freqs = 8910
+# Realistic target: meaningful coverage of the most important combinations.
+
+dimensions:
+  # Dimension 1: Strategy Archetype
+  # What class of strategy is this? Determines the core logic approach.
+  # Source: inferred from strategy_name in registry.json
+  archetype:
+    description: "Strategy family — core logic approach"
+    source: "Inferred from strategy_name via keyword matching in sandbox.py"
+    bins:
+      momentum:
+        keywords: ["momentum", "trend", "roc", "ema_cross", "macd"]
+        regime_affinity: "trending"
+        typical_indicators: ["ema", "sma", "roc", "macd", "adx", "supertrend"]
+        label: "Rides existing trends via acceleration/deceleration signals"
+      mean_reversion:
+        keywords: ["mean_rev", "reversion", "rsi", "bollinger", "bbands", "oversold"]
+        regime_affinity: "ranging"
+        typical_indicators: ["rsi", "bbands", "cci", "stoch", "willr"]
+        label: "Buys oversold, sells overbought — profits from price mean reversion"
+      breakout:
+        keywords: ["breakout", "channel", "range_exp", "donchian"]
+        regime_affinity: "volatile"
+        typical_indicators: ["atr", "bbands", "donchian", "keltner", "adx"]
+        label: "Enters on range expansion — captures start of new trends"
+      volatility:
+        keywords: ["volatility", "vol_regime", "vol_break", "squeeze", "atr_ratio", "vix"]
+        regime_affinity: "volatile"
+        typical_indicators: ["atr", "bbands", "vix", "cci", "keltner"]
+        label: "Trades volatility expansion/contraction cycles"
+      statistical_arb:
+        keywords: ["stat_arb", "zscore", "pairs", "spread"]
+        regime_affinity: "ranging"
+        typical_indicators: ["sma", "rsi", "bbands", "cci", "obv"]
+        label: "Uses z-score normalization for statistical entry/exit signals"
+      multi_signal_ensemble:
+        keywords: ["ensemble", "multi_signal", "consensus"]
+        regime_affinity: "any"
+        typical_indicators: ["ema", "sma", "rsi", "macd", "adx", "obv"]
+        label: "Requires multiple independent signals to agree before trading"
+      unknown:
+        keywords: []
+        regime_affinity: "unknown"
+        typical_indicators: []
+        label: "Could not infer archetype from strategy name"
+
+  # Dimension 2: Ticker Coverage
+  # Which ticker(s) does the strategy target?
+  # Source: ticker field in registry.json
+  ticker_coverage:
+    description: "Target ticker — which instrument the strategy trades"
+    source: "ticker field in registry.json"
+    bins:
+      # Core ETFs (highest priority for coverage)
+      SPY:
+        label: "S&P 500 ETF — broad market benchmark"
+        priority: 1
+      QQQ:
+        label: "Nasdaq 100 ETF — tech-heavy growth"
+        priority: 1
+      IWM:
+        label: "Russell 2000 ETF — small caps"
+        priority: 1
+      GLD:
+        label: "Gold ETF — commodity/defensive"
+        priority: 1
+      # MAG7 (high liquidity, high priority)
+      AAPL:
+        label: "Apple — mega-cap tech"
+        priority: 2
+      AMZN:
+        label: "Amazon — mega-cap tech/consumer"
+        priority: 2
+      GOOGL:
+        label: "Alphabet — mega-cap tech/advertising"
+        priority: 2
+      META:
+        label: "Meta — mega-cap tech/social"
+        priority: 2
+      MSFT:
+        label: "Microsoft — mega-cap tech/cloud"
+        priority: 2
+      NVDA:
+        label: "NVIDIA — mega-cap tech/AI"
+        priority: 2
+      TSLA:
+        label: "Tesla — mega-cap auto/energy"
+        priority: 2
+      # Financials
+      BAC:
+        label: "Bank of America — large bank"
+        priority: 3
+      JPM:
+        label: "JPMorgan — large bank"
+        priority: 3
+      V:
+        label: "Visa — payments"
+        priority: 3
+      # Healthcare
+      ABBV:
+        label: "AbbVie — pharma"
+        priority: 3
+      LLY:
+        label: "Eli Lilly — pharma"
+        priority: 3
+      UNH:
+        label: "UnitedHealth — health insurance"
+        priority: 3
+      # Consumer staples / discretionary
+      COST:
+        label: "Costco — retail"
+        priority: 3
+      HD:
+        label: "Home Depot — retail"
+        priority: 3
+      PEP:
+        label: "PepsiCo — consumer staples"
+        priority: 3
+      PG:
+        label: "Procter & Gamble — consumer staples"
+        priority: 3
+      WMT:
+        label: "Walmart — retail"
+        priority: 3
+      # Tech extended
+      AMD:
+        label: "AMD — semiconductors"
+        priority: 3
+      AVGO:
+        label: "Broadcom — semiconductors"
+        priority: 3
+      CRM:
+        label: "Salesforce — enterprise software"
+        priority: 3
+      INTC:
+        label: "Intel — semiconductors"
+        priority: 3
+      ORCL:
+        label: "Oracle — enterprise software"
+        priority: 3
+      # Energy
+      CVX:
+        label: "Chevron — integrated energy"
+        priority: 3
+      XOM:
+        label: "ExxonMobil — integrated energy"
+        priority: 3
+      # Industrials
+      CAT:
+        label: "Caterpillar — industrials"
+        priority: 3
+      HON:
+        label: "Honeywell — industrials/conglomerate"
+        priority: 3
+      # Communications
+      DIS:
+        label: "Disney — media/entertainment"
+        priority: 3
+      NFLX:
+        label: "Netflix — streaming"
+        priority: 3
+      # Commodities
+      SLV:
+        label: "Silver ETF — commodity"
+        priority: 2
+
+  # Dimension 3: Regime Affinity
+  # What market conditions does the strategy perform best in?
+  # Source: derived from archetype definition (archetype → regime mapping)
+  regime_affinity:
+    description: "Market regime where the strategy excels"
+    source: "Derived from archetype definition in archetypes.py"
+    bins:
+      trending:
+        label: "Performs best in trending markets — momentum/ breakout strategies"
+        archetype_mapping: ["momentum"]
+      ranging:
+        label: "Performs best in sideways/mean-reverting markets"
+        archetype_mapping: ["mean_reversion", "statistical_arb"]
+      volatile:
+        label: "Performs best during volatility expansion — breakout/vol strategies"
+        archetype_mapping: ["breakout", "volatility"]
+      any:
+        label: "Performs across all regimes — ensemble approaches"
+        archetype_mapping: ["multi_signal_ensemble"]
+
+  # Dimension 4: Indicator Family
+  # Which indicator family does the strategy primarily rely on?
+  # Source: inferred from strategy name and typical_indicators in archetypes.py
+  indicator_family:
+    description: "Primary indicator family used by the strategy"
+    source: "Inferred from strategy name; confirmed by typical_indicators"
+    bins:
+      momentum_indicators:
+        indicators: ["ema", "sma", "roc", "macd", "adx", "supertrend"]
+        label: "Trend-following indicators — capture directional momentum"
+      mean_reversion_indicators:
+        indicators: ["rsi", "bbands", "cci", "stoch", "willr"]
+        label: "Oscillator indicators — detect overbought/oversold conditions"
+      volatility_indicators:
+        indicators: ["atr", "vix", "keltner"]
+        label: "Volatility measures — detect expansion/contraction cycles"
+      volume_indicators:
+        indicators: ["obv", "volume", "vwap"]
+        label: "Volume-based indicators — confirm moves via participation"
+      trend_indicators:
+        indicators: ["ema", "sma", "donchian", "supertrend"]
+        label: "Trend structure indicators — identify market direction"
+
+  # Dimension 5: Trade Frequency
+  # How often does the strategy trade?
+  # Source: trades field in registry.json, annualized
+  trade_frequency:
+    description: "Annualized trade frequency"
+    source: "trades / period_years from registry.json"
+    bins:
+      low:
+        range: [0, 20]
+        label: "Patient — fewer than 20 trades per year"
+      medium:
+        range: [20, 60]
+        label: "Moderate — 20-60 trades per year"
+      high:
+        range: [60, 1000]
+        label: "Active — more than 60 trades per year"
+
+  # Dimension 6: Sharpe Quality Tier
+  # How strong is the strategy's risk-adjusted return?
+  # Source: sharpe field in registry.json
+  sharpe_tier:
+    description: "Sharpe ratio quality classification"
+    source: "sharpe field in registry.json"
+    bins:
+      elite:
+        range: [2.0, 100.0]
+        label: "Elite — Sharpe > 2.0, exceptional risk-adjusted returns"
+      strong:
+        range: [1.0, 2.0]
+        label: "Strong — Sharpe 1.0-2.0, solid performer"
+      viable:
+        range: [0.5, 1.0]
+        label: "Viable — Sharpe 0.5-1.0, acceptable with diversification"
+      marginal:
+        range: [0.0, 0.5]
+        label: "Marginal — Sharpe 0-0.5, weak but positive"
+
+# Quality-Diversity Score formula:
+# qd_score = quality * novelty
+# quality = Sharpe * sqrt(trades/20) * (1 - |max_drawdown|)  [matches backtest engine]
+# novelty = 1 - max(similarity to any existing kept strategy)
+#   similarity measured across (archetype, ticker, regime, trade_freq) feature space
+#
+# Keep thresholds:
+# MIN_SHARPE = 0.5  — strategy must have at least viable Sharpe
+# MIN_QD_SCORE = 0.0 — any positive QD-score is acceptable for gap-filling
+# MIN_WF_WINDOWS = 3  — must pass at least 3/6 walk-forward windows
+# DIVERSITY_BONUS = 1.5 — strategies filling empty cells get 1.5x quality score
+#
+# Population management:
+# - No hard cap on population size (CrabQuant's promotion pipeline handles this)
+# - After every 5 mandates: print coverage report
+# - After 10 consecutive failed mandates: switch to highest-priority gaps
+# - Prefer filling empty cells over improving occupied ones
+# - Never override an existing robust strategy with a lower-quality one
+
+# Anti-patterns:
+# - Don't create mandates for already-covered archetype-ticker combinations
+# - Don't optimize for diversity alone — quality floor (Sharpe >= 0.5, WF >= 3/6) is sacred
+# - Don't create mandates for multi_signal_ensemble archetype (composed, not invented)
+# - Don't override existing robust strategies — only ADD new ones
+# - Don't spam mandates for the same gap — check gaps_log.tsv before creating a new one
+# - Don't modify crabquant/ source code, backtest engine, or validation logic

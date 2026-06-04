@@ -63,9 +63,17 @@ def test_too_few_trades_four():
     assert "4" in details
 
 
-def test_too_few_trades_exactly_five_passes_through():
-    """5 trades should NOT trigger too_few_trades."""
-    result = make_result(num_trades=5, sharpe=2.0)
+def test_too_few_trades_exactly_nine():
+    """9 trades should trigger too_few_trades (threshold is 10)."""
+    result = make_result(num_trades=9, sharpe=2.0)
+    mode, details = classify_failure(result, make_guardrails(), GOOD_SHARPE_BY_YEAR)
+    assert mode == "too_few_trades"
+    assert "9" in details
+
+
+def test_too_few_trades_exactly_ten_passes_through():
+    """10 trades should NOT trigger too_few_trades."""
+    result = make_result(num_trades=10, sharpe=2.0)
     mode, _ = classify_failure(result, make_guardrails(), GOOD_SHARPE_BY_YEAR)
     assert mode != "too_few_trades"
 
@@ -73,15 +81,15 @@ def test_too_few_trades_exactly_five_passes_through():
 # ── 2. flat_signal ───────────────────────────────────────────────────────────
 
 def test_flat_signal_zero_return_and_zero_sharpe():
-    """5+ trades but zero return and zero sharpe → flat_signal."""
-    result = make_result(num_trades=10, total_return=0.0, sharpe=0.0)
+    """25+ trades but zero return and zero sharpe → flat_signal."""
+    result = make_result(num_trades=25, total_return=0.0, sharpe=0.0)
     mode, details = classify_failure(result, make_guardrails(), {})
     assert mode == "flat_signal"
 
 
 def test_flat_signal_not_triggered_with_nonzero_return():
     """If return is nonzero, flat_signal should not trigger."""
-    result = make_result(num_trades=10, total_return=0.05, sharpe=0.5)
+    result = make_result(num_trades=25, total_return=0.05, sharpe=0.5)
     mode, _ = classify_failure(result, make_guardrails(), {})
     assert mode != "flat_signal"
 
@@ -227,8 +235,8 @@ def test_priority_too_few_trades_before_excessive_drawdown():
 
 
 def test_priority_flat_signal_before_excessive_drawdown():
-    """5+ trades, zero return+sharpe, AND severe drawdown → flat_signal wins."""
-    result = make_result(num_trades=10, total_return=0.0, sharpe=0.0, max_drawdown=-0.50)
+    """25+ trades, zero return+sharpe, AND severe drawdown → flat_signal wins."""
+    result = make_result(num_trades=25, total_return=0.0, sharpe=0.0, max_drawdown=-0.50)
     mode, _ = classify_failure(result, make_guardrails(), {})
     assert mode == "flat_signal"
 

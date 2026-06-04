@@ -1,0 +1,15 @@
+{
+  "name": "mean_reversion_xom",
+  "description": "Mean reversion strategy for XOM (Exxon Mobil) using Bollinger Bands, RSI divergence, and volume confirmation. Energy sector tends to exhibit strong mean-reverting behavior around commodity price cycles.",
+  "strategy_archetype": "mean_reversion",
+  "tickers": ["XOM", "CVX", "COP"],
+  "primary_ticker": "XOM",
+  "period": "2y",
+  "sharpe_target": 1.0,
+  "max_turns": 7,
+  "constraints": {
+    "max_parameters": 8,
+    "min_trades": 10,
+    "max_drawdown_pct": 20
+  }
+}
