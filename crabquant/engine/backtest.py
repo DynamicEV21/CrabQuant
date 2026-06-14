@@ -59,6 +59,7 @@ class BacktestEngine:
         max_drawdown_limit: float = 0.25,
         min_total_return: float = 0.10,
         min_trades: int = 5,
+        freq: str = "1D",
     ):
         self.initial_cash = initial_cash
         self.commission = commission
@@ -66,6 +67,7 @@ class BacktestEngine:
         self.max_drawdown_limit = max_drawdown_limit
         self.min_total_return = min_total_return
         self.min_trades = min_trades
+        self.freq = freq
 
     def run(
         self,
@@ -103,7 +105,7 @@ class BacktestEngine:
                 exits=exits,
                 init_cash=self.initial_cash,
                 fees=self.commission,
-                freq="1D",
+                freq=self.freq,
                 accumulate=False,
                 call_seq="auto",
             )
@@ -242,7 +244,7 @@ class BacktestEngine:
                 exits=exits_df,
                 init_cash=self.initial_cash,
                 fees=self.commission,
-                freq="1D",
+                freq=self.freq,
                 accumulate=False,
                 call_seq="auto",
             )
