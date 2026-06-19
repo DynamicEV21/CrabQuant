@@ -1,0 +1,171 @@
+# CrabQuant Overnight Build — Task Queue
+
+**Created:** 2026-04-28
+**Updated:** 2026-04-28 (restructured for invention-speed focus)
+**Project:** ~/development/CrabQuant/
+**Venv:** source ~/development/CrabQuant/.venv/bin/activate
+**Branch:** `phase5.6-overnight` (create from main, PR when done)
+**Context Docs:** ROADMAP.md, VISION.md, docs/INDICATOR_API.md
+**Test baseline:** 1033 passed, 4 pre-existing errors (always ignore)
+
+---
+
+## Global Rules
+
+1. **Venv**: ALWAYS `source ~/development/CrabQuant/.venv/bin/activate` before any Python command
+2. **Branch**: Create `phase5.6-overnight` from main. ALL commits go here. NEVER touch main.
+3. **Test after every change**: `cd ~/development/CrabQuant && python -m pytest tests/ -q --tb=short 2>&1 | tail -20`
+   - 4 pre-existing errors in root debug scripts — ALWAYS IGNORE
+   - Only fail on NEW test failures
+4. **Strategy format**: `generate_signals(df, params)`, `DEFAULT_PARAMS`, `DESCRIPTION`
+5. **Read before write**: Always read existing files before modifying
+6. **Skill file**: Read `~/.hermes/skills/software-development/crabquant-development/SKILL.md` for architecture + mock paths
+7. **Design principles**: Direct Python, JSON on disk, deterministic before intelligent
+
+---
+
+## How This Works
+
+This runs as a repeating cron job (every 45 min). Each run:
+1. Check out branch `phase5.6-overnight` (create from main if doesn't exist)
+2. Read this file for progress
+3. Pick next incomplete task
+4. Implement it + tests + commit
+5. Update this file (mark done, log decisions)
+6. Stop after 1-2 tasks (next cron tick continues)
+
+**If ALL tasks are done:** See the "Continuous Improvement" section at the bottom — there's always more to do.
+
+---
+
+## E2E Test Policy
+
+**3 minutes max wall time for any E2E test.** Here's how:
+- Feature validation: mock the LLM, don't make real API calls
+- Pipeline smoke test: use `--sharpe-target 5.0` (impossibly high) + `--max-turns 2` — exits in ~2 min without triggering validation
+- Actual strategy invention runs: ONLY in "Continuous Improvement" section, one at a time, 8 min max per run
+- NEVER run the daemon (`--wave-only` only, no continuous loop)
+
+---
+
+## Blocker Protocol
+
+- Stuck >10 min → log in Decision Log, skip to next task
+- ALL tasks blocked → log blockers, commit, stop
+- Common fixes: import errors → check `__init__.py`; circular imports → move imports into functions; test failures → read the error, fix code or test
+
+---
+
+## Tasks — Priority Order
+
+### Tier 1: Directly Improves Invention Speed
+
+- [x] 1. **Cross-Run Learning (5.6.1)** ✅ DONE
+  - Winners feed into LLM context. On main.
+
+- [x] 2. **Parallel Strategy Spawning (5.6.2)** ✅ DONE
+  - 8 variant foci, composite ranking, wired into turn 1. On main.
+
+- [x] 3. **Prompt Engineering: Anti-Overfitting** ✅ DONE
+  - Added BAD vs GOOD examples to turn 1 prompt, failure_guidance per mode, inline notes in history
+  - Commit: `cb4b48d`
+  - **Also partially completed Task 4**: `build_failure_guidance()` function provides per-failure-mode actionable advice, and `format_previous_attempts_section()` adds inline ⚠️ notes for `too_few_trades_for_validation` and `validation_failed` failures
+  - Remaining for Task 4: rolling WF window breakdown showing which windows passed/failed
+
+- [ ] 4. **Negative Example Feedback Loop**
+  - **Priority: CRITICAL** — the LLM never sees WHY it failed, only the Sharpe number
+  - **File**: `crabquant/refinement/context_builder.py`, `crabquant/refinement/prompts.py`
+  - In `build_refinement_prompt`, when adding previous turn history entries:
+    - If `failure_mode == "too_few_trades_for_validation"`: add specific guidance about opening conditions
+    - If `failure_mode == "validation_failed"`: add the rolling WF window breakdown — show WHICH windows passed and which failed, with train/test Sharpe per window
+    - If `failure_mode == "low_sharpe"` and `num_trades < 10`: warn about curve-fitting
+    - If `failure_mode == "regime_fragility"`: explain that the strategy only works in specific market conditions
+  - Load the actual validation results from `state.json` or pass them through the history dict
+  - **Tests**: Unit tests — mock a history entry with each failure_mode, verify the correct guidance text appears in the prompt
+
+- [ ] 5. **Strategy Archetype Templates**
+  - **Priority: HIGH** — gives the LLM proven starting points instead of blank-slate invention
+  - **File**: `crabquant/refinement/archetypes.py` (NEW)
+  - Define 4 archetypes with skeleton code:
+    - `mean_reversion`: RSI/Bollinger/z-score based, buys oversold, sells overbought
+    - `momentum`: ROC/MACD/ADX based, buys on trend acceleration, sells on deceleration
+    - `breakout`: ATR/Keltner/Donchian based, buys on range expansion, sells on contraction
+    - `volatility`: VIX ratio/ATR percentile based, buys on low vol expansion, sells on high vol contraction
+  - Each archetype is a dict: `{name, description, skeleton_code, default_params, typical_indicators, trade_frequency_expectation}`
+  - `get_archetype(name)` returns the skeleton
+  - Wire into `build_turn1_prompt`: if mandate has `strategy_archetype`, inject the matching skeleton as a starting template
+  - **Tests**: Unit tests — verify each archetype returns valid skeleton with required attributes
+  - **No E2E needed** — templates only affect prompt, no pipeline change
+
+- [ ] 6. **Run 3+ Full Mandates and Analyze**
+  - **Priority: HIGH** — we need real data on what the LLM does with the new features
+  - Run 3 mandates: `python scripts/refinement_loop.py --mandate <mandate> --timeout 480`
+  - Use the default SPY mandate but with `mode: "explorer"` to enable all accelerators
+  - After each run, read `results/refinement_runs/<run_dir>/state.json` and extract:
+    - Turns used, best Sharpe, best trade count, failure modes per turn
+    - Did cross-run learning fire? Did parallel spawning fire?
+    - What indicators did the LLM pick?
+  - Summarize patterns in Decision Log: what works, what doesn't, specific prompt improvements needed
+  - **Time budget**: 8 min per mandate max, 25 min total for this task
+  - **This is the ONLY task that should run real LLM calls**
+
+### Tier 2: Infrastructure That Enables Better Invention
+
+- [ ] 7. **Soft-Promote Tier (5.6.3)**
+  - **Priority: MEDIUM** — keeps near-miss strategies alive for analysis instead of throwing them away
+  - Create `results/candidates/` with `.gitkeep`
+  - In `crabquant/refinement/promotion.py`, after `run_full_validation_check()`:
+    - If `passed == True` → full promote (existing, no change)
+    - If `passed == False` but `avg_test_sharpe >= 0.5` AND `windows_passed >= 2` → soft-promote to candidates
+    - Regime-specific: lower threshold `avg_test_sharpe >= 0.3`
+  - Candidate file: `{name, timestamp, avg_test_sharpe, windows_passed, regime_tags, source_code, backtest_metrics}`
+  - Print: `"📝 Soft-promoted (avg_test_sharpe={:.3f}, {}/{} windows)"`
+  - Wire into `refinement_loop.py` — check soft promote before marking turn failed
+  - Config: `soft_promote: bool = True` already exists — verify wired
+  - **Tests**: 6+ tests in `tests/refinement/test_soft_promote.py` — mock validation result, verify candidate file
+  - **No E2E** — mock only
+
+- [ ] 8. **Mode System Integration**
+  - **Priority: MEDIUM** — makes toggles user-accessible via mandate JSON
+  - Verify `apply_mode()` works for all presets (conservative/explorer/fast/balanced)
+  - Wire mandate JSON `mode` field into config in `crabquant_cron.py` → `refinement_loop.py`
+  - Individual toggles override mode presets
+  - **Tests**: 5+ tests in `tests/refinement/test_mode_system.py`
+  - **No E2E** — config only
+
+- [ ] 9. **Composite Score for Best-Strategy Tracking**
+  - **Priority: MEDIUM** — prevents "high Sharpe, 3 trades" from being tracked as "best"
+  - Use `sharpe * sqrt(trades/20) * (1 - abs(max_dd))` for `best_strategy` tracking in refinement loop
+  - Log both Sharpe and composite score per turn
+  - Validation still uses raw Sharpe gate (don't change that), but `best_strategy` uses composite
+  - **Tests**: 5+ tests — verify composite score penalizes low trades, rewards high Sharpe
+  - **No E2E**
+
+### Tier 3: Continuous Improvement (do after all tasks done)
+
+If you complete all tasks above, keep going. Here's the priority order:
+
+1. **Analyze mandate run results** (from task 6) and identify the top 3 prompt improvements. Implement them.
+2. **Add more archetypes** — volatility breakout, statistical arbitrage, pair trading templates
+3. **Stagnation recovery** — when Sharpe plateaus, give the LLM specific recovery strategies based on WHERE it's stuck (0.0-0.3 → change indicator family, 0.5-0.8 → tune params, 0.8-1.0 → add filter)
+4. **Multi-ticker support** — run strategy on SPY+QQQ+IWM simultaneously, require pass on 2/3
+5. **Feature importance feedback** — after backtest, tell the LLM which indicators contributed most to Sharpe
+6. **Update SKILL.md** with any architecture changes you made
+7. **Update ROADMAP.md** — mark completed items, add new items you discovered
+8. **Run more mandates** to validate improvements (8 min max each)
+9. **Create the PR** — `gh pr create --title "Phase 5.6: Invention Accelerators" --body "..."` from `phase5.6-overnight` to `master`
+
+**IMPORTANT: Never stop just because the task list is done. The whole point is that you keep going.**
+
+---
+
+## Decision Log
+
+- [2026-04-28 09:44] Phase 5.6.1 committed to main (cross-run learning, min trade gate, examples formatting)
+- [2026-04-28 09:47] Phase 5.6.2 committed to main by overnight agent (parallel spawning, 8 variant foci)
+- [2026-04-28 10:01] Restructured task list: removed low-priority infrastructure (API budget, resource limiter), added prompt engineering + archetype system + negative feedback loop. Focus on invention speed.
+- [2026-04-28 10:01] 1033 tests passing, 4 pre-existing errors (ignore)
+
+## Errors / Blockers
+
+(none yet)

@@ -168,10 +168,16 @@ def run_single_mandate(
 
     script_path = project_root / "scripts" / "refinement_loop.py"
 
+    # Load mandate to pass its config to the subprocess
+    with open(mandate_path) as f:
+        mandate_cfg = json.load(f)
+
     cmd = [
         sys.executable,
         str(script_path),
         "--mandate", mandate_path,
+        "--sharpe-target", str(mandate_cfg.get("sharpe_target", 1.5)),
+        "--max-turns", str(mandate_cfg.get("max_turns", 5)),
     ]
 
     try:

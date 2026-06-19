@@ -27,6 +27,9 @@ class DaemonState:
     failed_mandates: list = field(default_factory=list)
     last_error: Optional[str] = None
     shutdown_requested: bool = False
+    # ── Phase 5B informational fields (actual logic lives in api_budget module) ──
+    api_budget_used_today: int = 0
+    api_budget_throttled: bool = False
 
     # ── factory ────────────────────────────────────────────────────────────
 

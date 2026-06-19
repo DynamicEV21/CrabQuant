@@ -570,7 +570,13 @@
     "GOOGL|roc_ema_volume|c061d91cebbf",
     "GOOGL|roc_ema_volume|4949c7f76cbe",
     "GOOGL|roc_ema_volume|1029ad9551b2",
-    "AAPL|refined_e2e_test_momentum|44136fa355b3"
+    "AAPL|refined_e2e_test_momentum|44136fa355b3",
+    "NVDA|refined_mean_reversion_nvda|44136fa355b3",
+    "SPY|refined_breakout_spy|44136fa355b3",
+    "AAPL|refined_volume_aapl|44136fa355b3",
+    "GOOGL|refined_momentum_googl|44136fa355b3",
+    "GOOGL|refined_multi_rsi_googl|44136fa355b3",
+    "SPY|refined_Momentum Strategy for SPY|44136fa355b3"
   ],
   "total_runs": 459,
   "total_winners": 8156,

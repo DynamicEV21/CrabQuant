@@ -15,6 +15,22 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
+# ── Lazy API budget tracker (Phase 5B) ────────────────────────────────────────
+_budget_tracker = None
+
+
+def _get_budget_tracker():
+    """Lazily instantiate ApiBudgetTracker. Returns None on import failure."""
+    global _budget_tracker
+    if _budget_tracker is None:
+        try:
+            from crabquant.refinement.api_budget import ApiBudgetTracker
+            _budget_tracker = ApiBudgetTracker()
+            logger.info("ApiBudgetTracker initialised")
+        except Exception as exc:
+            logger.warning("Could not import ApiBudgetTracker: %s", exc)
+    return _budget_tracker
+
 
 def load_api_config() -> dict:
     """Load z.ai credentials from OpenClaw config.
@@ -54,6 +70,19 @@ def call_zai_llm(
         httpx.ConnectTimeout / httpx.ReadTimeout: on timeouts after retries
         ValueError: on unexpected response format
     """
+    # ── Phase 5B: check throttle before calling ────────────────────────────
+    budget = _get_budget_tracker()
+    if budget is not None and budget.should_throttle():
+        throttled_model = budget.get_recommended_model()
+        # Strip zai/ prefix if present for comparison
+        throttled_short = throttled_model.split("/")[-1] if "/" in throttled_model else throttled_model
+        if model != throttled_short:
+            logger.info(
+                "API budget throttle active (%d/%d daily); switching %s → %s",
+                budget.daily_count, budget.daily_limit, model, throttled_short,
+            )
+            model = throttled_short
+
     cfg = load_api_config()
     url = f"{cfg['base_url']}/chat/completions"
     payload = {
@@ -121,7 +150,15 @@ def call_zai_llm(
     if "choices" not in result or not result["choices"]:
         raise ValueError(f"Unexpected API response: {json.dumps(result)[:200]}")
 
-    return result["choices"][0]["message"]["content"]
+    content = result["choices"][0]["message"]["content"]
+
+    # ── Phase 5B: record prompt usage ─────────────────────────────────────
+    if budget is not None:
+        usage = result.get("usage", {})
+        tokens = usage.get("total_tokens") or usage.get("completion_tokens", 0)
+        budget.record_prompt(model=model, tokens=tokens if tokens else None)
+
+    return content
 
 
 def extract_json_from_llm(text: str) -> dict:
@@ -299,7 +336,35 @@ def call_llm_inventor(
             user_parts.append(f"## Previous Attempts\n{json.dumps(context['previous_attempts'], indent=2)}\n")
         
         if context.get("strategy_examples"):
-            user_parts.append(f"## Strategy Examples\n{context['strategy_examples']}\n")
+            # Format strategy examples as readable code blocks, not raw JSON
+            ex_parts = []
+            for ex in context["strategy_examples"]:
+                if isinstance(ex, dict):
+                    ex_parts.append(
+                        f"### {ex.get('name', 'unknown')}\n"
+                        f"Description: {ex.get('description', 'N/A')}\n"
+                        f"Default params: {ex.get('default_params', {})}\n"
+                        f"```python\n{ex.get('source_code', '# code unavailable')}\n```"
+                    )
+                else:
+                    ex_parts.append(str(ex))
+            user_parts.append(f"## Strategy Examples (follow this exact pattern)\n" + "\n\n".join(ex_parts) + "\n")
+
+        if context.get("winner_examples"):
+            # Format proven winner strategies from past runs
+            wex_parts = [
+                "These strategies achieved high Sharpe ratios with real trade counts in previous runs. "
+                "Study their patterns and signal logic."
+            ]
+            for wex in context["winner_examples"]:
+                if isinstance(wex, dict):
+                    ticker_str = f" ({wex['ticker']})" if wex.get("ticker") else ""
+                    wex_parts.append(
+                        f"### ⭐ {wex['name']} — Sharpe {wex['sharpe']:.2f}, "
+                        f"{wex['trades']} trades{ticker_str}\n"
+                        f"```python\n{wex['source_code']}\n```"
+                    )
+            user_parts.append(f"## Proven Strategies (from previous runs)\n" + "\n\n".join(wex_parts) + "\n")
         
         if context.get("strategy_catalog"):
             user_parts.append(f"## Available Strategies\n{json.dumps(context['strategy_catalog'], indent=2)}\n")
@@ -312,7 +377,21 @@ def call_llm_inventor(
         if quick_ref:
             user_parts.append(f"## Indicator Quick Reference — USE THESE SIGNATURES EXACTLY\n{quick_ref}\n")
 
-    user_msg = {"role": "user", "content": "\n".join(user_parts)}
+    user_content = "\n".join(user_parts)
+
+    # Inject parallel variant bias if present in context (Phase 5.6.2)
+    variant_index = context.get("parallel_variant_index")
+    variant_count = context.get("parallel_variant_count")
+    if variant_index is not None and variant_count is not None and variant_count > 1:
+        try:
+            from crabquant.refinement.prompts import get_variant_bias_text
+            bias_text = get_variant_bias_text(variant_index, variant_count)
+            if bias_text:
+                user_content += f"\n\n{bias_text}"
+        except ImportError:
+            pass
+
+    user_msg = {"role": "user", "content": user_content}
     
     try:
         raw_response = call_zai_llm(

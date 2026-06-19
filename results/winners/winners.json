@@ -1467,5 +1467,155 @@
     },
     "promoted_at": "2026-04-28T09:59:04.015310+00:00",
     "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_Momentum Strategy for SPY",
+    "ticker": "SPY",
+    "sharpe": 1.6769364708542696,
+    "return": 0.09449021228790866,
+    "max_drawdown": -0.03339823832337535,
+    "trades": 6,
+    "params": {},
+    "refinement_run": "momentum_strategy_for_spy_20260428_072740",
+    "refinement_turns": 3,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": false,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": -0.14745720437084223,
+        "min_test_sharpe": -2.3950876322195644,
+        "avg_degradation": 1.0,
+        "num_windows": 6,
+        "windows_passed": 0,
+        "robust": false,
+        "notes": "Windows: 6, passed: 0 | Avg test Sharpe: -0.15 (min: -2.40) | Avg degradation: 100.0% | \u26a0\ufe0f Avg test Sharpe -0.15 < 0.5 | \u26a0\ufe0f Only 0/6 windows passed (need >= 2)",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.5482005729355981,
+            "test_sharpe": 0.7084900173999192,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 2,
+            "train_sharpe": -0.8485856518502389,
+            "test_sharpe": -0.6413066869856986,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": -0.9199575943048047,
+            "test_sharpe": -1.2483398289597318,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": -0.7332566276149015,
+            "test_sharpe": -1.395778353770196,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 5,
+            "train_sharpe": -1.1440621753498839,
+            "test_sharpe": -2.3950876322195644,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": -1.1293553682625896,
+            "test_sharpe": 4.087279258310218,
+            "degradation": 1.0,
+            "passed": false
+          }
+        ]
+      },
+      "cross_ticker": null,
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": true
+    },
+    "promoted_at": "2026-04-28T14:31:21.015123+00:00",
+    "validation_status": "backtest_only"
+  },
+  {
+    "strategy": "refined_Momentum Strategy for SPY",
+    "ticker": "SPY",
+    "sharpe": 1.6756379341567393,
+    "return": 0.07644688061958863,
+    "max_drawdown": -0.006810261153983889,
+    "trades": 3,
+    "params": {},
+    "refinement_run": "momentum_strategy_for_spy_20260428_074457",
+    "refinement_turns": 3,
+    "validation": {
+      "passed": false,
+      "walk_forward_robust": false,
+      "cross_ticker_robust": true,
+      "walk_forward": {
+        "avg_test_sharpe": 0.0874482074086413,
+        "min_test_sharpe": -1.7373386294162982,
+        "avg_degradation": 1.0464635269545004,
+        "num_windows": 6,
+        "windows_passed": 2,
+        "robust": false,
+        "notes": "Windows: 6, passed: 2 | Avg test Sharpe: 0.09 (min: -1.74) | Avg degradation: 104.6% | \u26a0\ufe0f Avg test Sharpe 0.09 < 0.5",
+        "window_results": [
+          {
+            "window": 1,
+            "train_sharpe": -0.6277557436699959,
+            "test_sharpe": 1.196477960769295,
+            "degradation": 0.0,
+            "passed": true
+          },
+          {
+            "window": 2,
+            "train_sharpe": 0.6917155652672137,
+            "test_sharpe": -1.5762683994042708,
+            "degradation": 3.278781161727002,
+            "passed": false
+          },
+          {
+            "window": 3,
+            "train_sharpe": -0.15506769340475118,
+            "test_sharpe": -1.7373386294162982,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 4,
+            "train_sharpe": -0.6035101961710764,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 5,
+            "train_sharpe": -1.324719722708558,
+            "test_sharpe": 0.0,
+            "degradation": 1.0,
+            "passed": false
+          },
+          {
+            "window": 6,
+            "train_sharpe": 0.0884512588164971,
+            "test_sharpe": 2.641818312503122,
+            "degradation": 0.0,
+            "passed": true
+          }
+        ]
+      },
+      "cross_ticker": null,
+      "error": null,
+      "validation_method": "rolling",
+      "is_regime_specific": true
+    },
+    "promoted_at": "2026-04-28T14:51:19.137863+00:00",
+    "validation_status": "backtest_only"
   }
 ]

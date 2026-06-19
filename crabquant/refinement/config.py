@@ -42,6 +42,17 @@ class RefinementConfig:
     circuit_breaker_window: int = 20
     circuit_breaker_min_pass_rate: float = 0.3
 
+    # ── Invention accelerators (Phase 5.6) ──────────────────────────────────
+    # These toggles can be set individually or via preset modes.
+    # Modes: "conservative" (all off), "fast" (cross-run only), "explorer" (all on)
+
+    cross_run_learning: bool = True      # Feed proven winners into LLM context
+    parallel_invention: bool = False     # Spawn N strategies in parallel on turn 1
+    parallel_invention_count: int = 3    # How many parallel strategies to spawn
+    soft_promote: bool = False           # Promote "good enough" strategies to candidates pool
+    soft_promote_sharpe: float = 0.5     # Min avg test Sharpe for soft promote
+    soft_promote_min_windows: int = 2    # Min windows passing for soft promote
+
     # Timeouts
     per_strategy_timeout_minutes: int = 15
     backtest_timeout_seconds: int = 60
@@ -86,6 +97,41 @@ class RefinementConfig:
 
     # ── mandate integration ────────────────────────────────────────────────
 
+    # ── preset modes ────────────────────────────────────────────────────────
+
+    def apply_mode(self, mode: str) -> "RefinementConfig":
+        """Apply a preset mode that flips the invention accelerator toggles.
+
+        Args:
+            mode: One of "conservative", "fast", "explorer", or "custom".
+
+        Returns:
+            self (for chaining).
+        """
+        mode = mode.lower().strip()
+        if mode == "conservative":
+            self.cross_run_learning = False
+            self.parallel_invention = False
+            self.soft_promote = False
+        elif mode == "fast":
+            self.cross_run_learning = True
+            self.parallel_invention = False
+            self.soft_promote = False
+        elif mode == "explorer":
+            self.cross_run_learning = True
+            self.parallel_invention = True
+            self.soft_promote = True
+        elif mode == "balanced":
+            self.cross_run_learning = True
+            self.parallel_invention = True
+            self.soft_promote = False
+        else:
+            # "custom" — leave toggles as-is
+            pass
+        return self
+
+    # ── mandate integration ────────────────────────────────────────────────
+
     @classmethod
     def from_mandate(cls, mandate: dict, **overrides) -> "RefinementConfig":
         """Build config from a mandate dict, pulling loop-level fields."""
@@ -113,8 +159,9 @@ class RefinementConfig:
 
 
 # ── Standalone validation config ────────────────────────────────────────
-# These defaults mirror the keyword arguments of ``walk_forward_test()``
-# and ``rolling_walk_forward()`` in ``crabquant.validation``.
+# These defaults mirror the keyword arguments of ``rolling_walk_forward()``
+# in ``crabquant.validation``.  Rolling walk-forward is the default validation
+# method (replaced single-split walk_forward_test in Phase 5).
 
 # ── Mandate diversity scoring ─────────────────────────────────────────────
 # Controls how the mandate generator penalises already-explored
@@ -128,16 +175,29 @@ DIVERSITY_CONFIG: dict = {
 }
 
 VALIDATION_CONFIG: dict = {
-    # walk_forward_test() thresholds
-    "train_pct": 0.75,            # 18mo / 24mo (≈ 3y of data)
-    "min_train_bars": 252,        # ~1 year of trading days
-    "min_test_sharpe": 0.3,       # relaxed from old hardcoded 0.5
-    "min_test_trades": 10,        # enough trades for statistical significance
-    "max_degradation": 0.7,       # test_sharpe >= train_sharpe * (1 - 0.7)
-    # rolling_walk_forward() thresholds
+    # rolling_walk_forward() — default validation method
     "train_window": "18mo",
     "test_window": "6mo",
     "step": "6mo",
     "min_avg_test_sharpe": 0.5,
     "min_windows_passed": 2,
+    # legacy walk_forward_test() thresholds (still available, not default)
+    "train_pct": 0.75,
+    "min_train_bars": 252,
+    "min_test_sharpe": 0.3,
+    "min_test_trades": 10,
+    "max_degradation": 0.7,
+    # cross-ticker validation
+    "min_cross_ticker_sharpe": 0.5,
+    # regime-specific strategy thresholds (lower bar — they excel in their regime)
+    "regime_specific_wf_sharpe_factor": 0.6,   # multiply min_walk_forward_sharpe by this
+    "regime_specific_ct_sharpe_factor": 0.7,   # multiply min_cross_ticker_sharpe by this
+    "soft_promote_test_sharpe": 0.3,            # below this, never promote even for regime-specific
+}
+
+# ── Regime tagging config ────────────────────────────────────────────────
+REGIME_TAG_CONFIG: dict = {
+    "sharpe_good_threshold": 0.8,      # Sharpe above this → "preferred" regime
+    "sharpe_acceptable_threshold": 0.3, # Sharpe above this → "acceptable"
+    "min_bars_per_regime": 20,          # Minimum bars to trust a regime Sharpe
 }

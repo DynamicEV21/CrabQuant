@@ -20,6 +20,21 @@ from crabquant.refinement.config import DIVERSITY_CONFIG
 
 logger = logging.getLogger(__name__)
 
+# ── Smart mandate generation constants ──────────────────────────────────────
+
+# All archetypes tracked for portfolio gap analysis
+_SMART_ARCHETYPES = [
+    "momentum",
+    "mean_reversion",
+    "breakout",
+    "trend",
+    "volatility",
+    "rsi_oscillator",
+]
+
+# Equal target distribution across 6 archetypes
+_TARGET_PCT = round(100.0 / len(_SMART_ARCHETYPES), 1)  # ≈16.7%
+
 # Archetype keywords for auto-detection from strategy descriptions
 _ARCHETYPE_KEYWORDS: dict[str, list[str]] = {
     "momentum": ["momentum", "roc", "rate of change", "acceleration", "velocity"],
@@ -445,6 +460,314 @@ def _generate_diverse_mandates(
         m["name"] = f"{m['strategy_archetype']}_{m['primary_ticker'].lower()}_{idx + 1}"
 
     return selected
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Smart mandate generation — regime-aware + portfolio-gap-aware
+# ═══════════════════════════════════════════════════════════════════════════
+
+
+def get_regime_weighted_archetypes(regime) -> dict[str, float]:
+    """Return archetype weights based on the given market regime.
+
+    Each weight is between 0 and 1, and the weights sum to 1.0.
+
+    Args:
+        regime: A ``MarketRegime`` enum member (or any object with a
+            ``.value`` attribute matching one of the known regimes).
+
+    Returns:
+        Dict mapping archetype name → float weight summing to 1.0.
+    """
+    # Fallback: treat unknown regimes as low_volatility
+    regime_val = getattr(regime, "value", str(regime))
+
+    # Base weights per regime — favour certain archetypes
+    _REGIME_WEIGHTS: dict[str, dict[str, float]] = {
+        "trending_up": {
+            "momentum": 0.30,
+            "trend": 0.30,
+            "breakout": 0.15,
+            "mean_reversion": 0.10,
+            "volatility": 0.08,
+            "rsi_oscillator": 0.07,
+        },
+        "trending_down": {
+            "mean_reversion": 0.30,
+            "breakout": 0.25,
+            "trend": 0.15,
+            "momentum": 0.10,
+            "volatility": 0.12,
+            "rsi_oscillator": 0.08,
+        },
+        "mean_reversion": {
+            "mean_reversion": 0.30,
+            "volatility": 0.25,
+            "rsi_oscillator": 0.20,
+            "breakout": 0.10,
+            "momentum": 0.08,
+            "trend": 0.07,
+        },
+        "high_volatility": {
+            "breakout": 0.30,
+            "trend": 0.25,
+            "volatility": 0.20,
+            "mean_reversion": 0.10,
+            "momentum": 0.08,
+            "rsi_oscillator": 0.07,
+        },
+        "low_volatility": {
+            "momentum": 0.30,
+            "trend": 0.30,
+            "breakout": 0.15,
+            "mean_reversion": 0.10,
+            "volatility": 0.08,
+            "rsi_oscillator": 0.07,
+        },
+    }
+
+    raw = _REGIME_WEIGHTS.get(regime_val, _REGIME_WEIGHTS["low_volatility"])
+
+    # Ensure all archetypes are present and normalise to sum to 1.0
+    weights: dict[str, float] = {}
+    for arch in _SMART_ARCHETYPES:
+        weights[arch] = raw.get(arch, 0.0)
+
+    total = sum(weights.values())
+    if total > 0:
+        weights = {k: round(v / total, 4) for k, v in weights.items()}
+
+    return weights
+
+
+def get_portfolio_gaps(
+    existing_results_dir: str | Path = "results/winning_strategies",
+) -> dict[str, dict[str, int | float]]:
+    """Analyse what's missing from the current winning-strategy portfolio.
+
+    Scans *existing_results_dir* for strategy files whose names or contents
+    contain archetype keywords, counts per archetype, and computes gaps
+    against an equal-weight target distribution.
+
+    Args:
+        existing_results_dir: Path to directory of winning strategy files
+            (JSON, .py, or .md).  If the directory does not exist or is
+            empty, returns neutral gaps for all archetypes.
+
+    Returns:
+        Dict mapping archetype name → ``{"current": int, "target_pct": float,
+        "gap": int}``.  A *negative* gap means the archetype is
+        over-represented; *positive* means under-represented.
+    """
+    results_dir = Path(existing_results_dir)
+
+    # Count strategies per archetype
+    counts: dict[str, int] = {arch: 0 for arch in _SMART_ARCHETYPES}
+
+    if results_dir.is_dir():
+        for fpath in results_dir.iterdir():
+            if not fpath.is_file():
+                continue
+            # Use filename for lightweight detection
+            name_lower = fpath.stem.lower()
+            for arch in _SMART_ARCHETYPES:
+                if arch.replace("_", "") in name_lower.replace("_", ""):
+                    counts[arch] += 1
+                    break  # one file → one archetype
+            else:
+                # Try content-based detection for JSON files
+                if fpath.suffix == ".json":
+                    try:
+                        text = fpath.read_text(encoding="utf-8")[:2000].lower()
+                        for arch in _SMART_ARCHETYPES:
+                            if arch.replace("_", "") in text.replace("_", ""):
+                                counts[arch] += 1
+                                break
+                    except OSError:
+                        pass
+
+    total = sum(counts.values()) or 1  # avoid div-by-zero
+
+    gaps: dict[str, dict[str, int | float]] = {}
+    for arch in _SMART_ARCHETYPES:
+        current = counts[arch]
+        target_count = _TARGET_PCT / 100.0 * total
+        gap = round(target_count - current)
+        gaps[arch] = {
+            "current": current,
+            "target_pct": _TARGET_PCT,
+            "gap": gap,
+        }
+
+    return gaps
+
+
+def generate_smart_mandates(
+    count: int = 5,
+    ticker: str | None = None,
+    regime=None,
+    strategies_dir: str | Path = "strategies",
+) -> list[dict[str, Any]]:
+    """Generate mandates weighted by market regime and portfolio gaps.
+
+    Combines regime affinity with portfolio-gap analysis to produce a
+    balanced set of mandates that favours under-represented archetypes
+    while respecting the current market environment.
+
+    Args:
+        count: Number of mandates to generate.
+        ticker: Optional single ticker override.  When ``None``, tickers
+            are drawn from ``_DEFAULT_TICKERS``.
+        regime: A ``MarketRegime`` enum member.  When ``None``, the regime
+            is auto-detected via ``crabquant.regime.detect_regime``.
+        strategies_dir: Directory of strategy .py files to seed from.
+
+    Returns:
+        List of mandate dicts (same format as ``generate_mandates``).
+    """
+    # ── Resolve regime ─────────────────────────────────────────────────
+    if regime is None:
+        try:
+            from crabquant.regime import MarketRegime, detect_regime
+
+            import pandas as pd
+
+            # Best-effort: download SPY data for regime detection
+            try:
+                spy = pd.read_csv(
+                    "results/spy_daily.csv",
+                    parse_dates=["date"],
+                    index_col="date",
+                )
+                if "close" not in spy.columns and "Close" in spy.columns:
+                    spy = spy.rename(columns={"Close": "close"})
+                regime, _meta = detect_regime(spy)
+            except Exception:
+                logger.info(
+                    "Could not auto-detect regime; falling back to LOW_VOLATILITY"
+                )
+                from crabquant.regime import MarketRegime
+
+                regime = MarketRegime.LOW_VOLATILITY
+        except Exception:
+            logger.info("Regime module unavailable; using default weights")
+            regime = None
+
+    # ── Get archetype weights from regime ───────────────────────────────
+    if regime is not None:
+        regime_weights = get_regime_weighted_archetypes(regime)
+    else:
+        # Uniform fallback
+        regime_weights = {a: 1.0 / len(_SMART_ARCHETYPES) for a in _SMART_ARCHETYPES}
+
+    # ── Get portfolio gaps ─────────────────────────────────────────────
+    gaps = get_portfolio_gaps()
+
+    # Combine: boost weight for archetypes with positive gaps (under-represented)
+    combined: dict[str, float] = {}
+    for arch in _SMART_ARCHETYPES:
+        gap_val = gaps[arch]["gap"]
+        # Boost factor: +0.2 per unit gap (capped)
+        boost = min(max(gap_val * 0.2, -0.3), 0.5)
+        combined[arch] = max(regime_weights.get(arch, 0.0) + boost, 0.01)
+
+    # Normalise to sum to 1.0
+    total_w = sum(combined.values())
+    if total_w > 0:
+        combined = {k: v / total_w for k, v in combined.items()}
+
+    # ── Map archetypes to catalogue entries ─────────────────────────────
+    catalog = scan_strategy_catalog(strategies_dir)
+    if not catalog:
+        return []
+
+    # Build archetype → list of catalog entries mapping
+    arch_catalog: dict[str, list[dict[str, Any]]] = {
+        a: [] for a in _SMART_ARCHETYPES
+    }
+    for entry in catalog:
+        detected = entry.get("archetype", "other")
+        # Map detected archetype to one of our tracked archetypes
+        mapped = _map_archetype(detected)
+        if mapped in arch_catalog:
+            arch_catalog[mapped].append(entry)
+        else:
+            # Assign to momentum as default bucket
+            arch_catalog["momentum"].append(entry)
+
+    # ── Weighted archetype selection ────────────────────────────────────
+    ticker_pool = [ticker] if ticker else _DEFAULT_TICKERS
+    sharpe_pool = _DEFAULT_SHARPE_TARGETS
+    period_pool = _DEFAULT_PERIODS
+
+    mandates: list[dict[str, Any]] = []
+    arch_names = list(combined.keys())
+    arch_weights_list = [combined[a] for a in arch_names]
+
+    for i in range(count):
+        # Weighted random archetype selection
+        chosen_arch = random.choices(arch_names, weights=arch_weights_list, k=1)[0]
+
+        # Pick a strategy from that archetype bucket
+        bucket = arch_catalog.get(chosen_arch, [])
+        if not bucket:
+            # Fall back to any available strategy
+            bucket = catalog
+        strategy = bucket[i % len(bucket)]
+
+        primary_ticker = ticker_pool[i % len(ticker_pool)]
+        sharpe_target = sharpe_pool[i % len(sharpe_pool)]
+        period = period_pool[i % len(period_pool)]
+
+        secondary_tickers = [t for t in (ticker_pool if ticker else _DEFAULT_TICKERS) if t != primary_ticker]
+        secondary = secondary_tickers[: min(3, len(secondary_tickers))]
+        all_tickers = [primary_ticker] + secondary
+
+        # For HIGH_VOLATILITY regime, use wider stops
+        base_constraints = {
+            "max_parameters": 8,
+            "required_indicators": [],
+            "forbidden_indicators": [],
+            "min_trades": 5,
+            "max_drawdown_pct": 30 if (regime and getattr(regime, "value", "") == "high_volatility") else 25,
+        }
+
+        mandate = {
+            "name": f"{chosen_arch}_{primary_ticker.lower()}_{i + 1}",
+            "description": f"Smart mandate: {strategy['name']} — {strategy['description']}",
+            "strategy_archetype": chosen_arch,
+            "tickers": all_tickers,
+            "primary_ticker": primary_ticker,
+            "period": period,
+            "sharpe_target": sharpe_target,
+            "max_turns": 7,
+            "seed_strategy": strategy["name"],
+            "seed_params": strategy["default_params"],
+            "constraints": base_constraints,
+        }
+        mandates.append(mandate)
+
+    return mandates
+
+
+def _map_archetype(detected: str) -> str:
+    """Map a detected archetype string to one of the six tracked archetypes.
+
+    Falls back to ``"momentum"`` for unknown values.
+    """
+    _MAPPING: dict[str, str] = {
+        "momentum": "momentum",
+        "mean_reversion": "mean_reversion",
+        "breakout": "breakout",
+        "trend": "trend",
+        "volatility": "volatility",
+        "rsi_oscillator": "rsi_oscillator",
+        "other": "momentum",
+        # Aliases from detect_archetype that should map cleanly
+        "rsi": "rsi_oscillator",
+        "bollinger": "mean_reversion",
+    }
+    return _MAPPING.get(detected, "momentum")
 
 
 def save_mandates(
